@@ -213,3 +213,13 @@ describe("debugParse", () => {
         )
     });
 });
+
+describe("arbitrary-grid", () => {
+    it("Produces grids with consistent dimensions", () => {
+        fc.assert(
+            fc.property(arbg.grid.tree, (g) => {
+                assert.ok(grid.debugCheckGridDimsConsistency(g));
+            })
+        )
+    });
+});

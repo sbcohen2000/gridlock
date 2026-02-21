@@ -339,3 +339,31 @@ export function debugParse(src) {
 
     return goLines(src.split("\n"));
 }
+
+/**
+ * Check that for each node in the `Grid` `g`, the dimensions of the
+ * node's children sum to the dimensions of its parent.
+ *
+ * @param {Grid} g The grid on which to check consistency of
+ *                 dimensions.
+ * @returns {boolean} `true` if the dimensions are consistent, and
+ *                    `false` otherwise.
+ */
+export function debugCheckGridDimsConsistency(g) {
+    switch(g.type) {
+    case "Vert":
+        return g.left.dims.width === g.right.dims.width
+            && g.left.dims.width === g.dims.width
+            && g.left.dims.height + g.right.dims.height === g.dims.height
+            && debugCheckGridDimsConsistency(g.left)
+            && debugCheckGridDimsConsistency(g.right);
+    case "Horz":
+        return g.left.dims.height === g.right.dims.height
+            && g.left.dims.height === g.dims.height
+            && g.left.dims.width + g.right.dims.width === g.dims.width
+            && debugCheckGridDimsConsistency(g.left)
+            && debugCheckGridDimsConsistency(g.right);
+    case "Leaf": return true;
+    }
+}
+
