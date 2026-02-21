@@ -466,3 +466,22 @@ describe("modifyHeight", () => {
         );
     });
 });
+
+describe("distanceToLeftEdge", () => {
+    it("Can find the distance to the left edge of a leaf", () => {
+        const g = grid.mk(2, 3);
+        assert.equal(grid.distanceToLeftEdge(g, g), 0);
+    });
+
+    it("Can find the distance to the left edge of nodes in a simple grid", () => {
+        let src =
+            "+-+--+---+----+\n" +
+            "+-+--+---+----+"
+        let g = grid.debugParse(src);
+
+        assert.equal(grid.distanceToLeftEdge(g, g.left), 0);
+        assert.equal(grid.distanceToLeftEdge(g, g.right.left), 2);
+        assert.equal(grid.distanceToLeftEdge(g, g.right.right.left), 5);
+        assert.equal(grid.distanceToLeftEdge(g, g.right.right.right), 9);
+    });
+});

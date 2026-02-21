@@ -555,3 +555,37 @@ export function modifyHeight(g, n, focus) {
 
     return g;
 }
+
+/**
+ * Find the distance from the left edge of the `focus` to the left
+ * margin.
+ *
+ * @param {Grid} g The root node of the grid.
+ * @param {Grid} focus The grid cell whose left edge we'd like to
+ *                     measure.
+ * @returns {number} The distance from the left edge of `focus` to the
+ *                   left margin.
+ */
+export function distanceToLeftEdge(g, focus) {
+    const chain = findParentChain(g, focus);
+
+    let last = focus;
+    let d = 0;
+    for(const splt of chain) {
+        switch(splt.type) {
+        case "Horz": {
+            // Only if we've come from the right branch should we
+            // account for the distance of this `Split`'s _left_
+            // child.
+            if(splt.right === last) {
+                d += splt.left.dims.width;
+            }
+        } break;
+        case "Vert": break; // Nothing to do.
+        }
+
+        last = splt;
+    }
+
+    return d;
+}
