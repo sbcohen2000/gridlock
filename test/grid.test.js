@@ -1,5 +1,7 @@
 import * as assert from "node:assert";
 import * as grid from "../src/grid.js";
+import * as arbg from "./arbitrary-grid.js";
+import * as fc from "fast-check";
 
 describe("transposeLines", () => {
     it("Can transpose the empty list", () => {
@@ -33,17 +35,77 @@ describe("transposeLines", () => {
 
 describe("debugPrint", () => {
     it("Can print a leaf", () => {
-        const str = grid.debugPrint(grid.mk(3, 4));
-        const src =
+        const act = grid.debugPrint(grid.mk(2, 3));
+        const exp =
               "+-+\n" +
               "| |\n" +
               "| |\n" +
               "+-+"
-        assert.equal(str, src);
+        assert.equal(act, exp);
+    });
+
+    it("Can print a more complex tree", () => {
+        const act = grid.debugPrint({
+            "type": "Horz",
+            "dims": {
+                "width": 5,
+                "height": 6
+            },
+            "left": {
+                "type": "Vert",
+                "dims": {
+                    "width": 3,
+                    "height": 6
+                },
+                "left": {
+                    "type": "Leaf",
+                    "dims": {
+                        "width": 3,
+                        "height": 4
+                    }
+                },
+                "right": {
+                    "type": "Leaf",
+                    "dims": {
+                        "width": 3,
+                        "height": 2
+                    }
+                }
+            },
+            "right": {
+                "type": "Leaf",
+                "dims": {
+                    "width": 2,
+                    "height": 6
+                }
+            }
+        });
+
+        const exp =
+              "+--+-+\n" +
+              "|  | |\n" +
+              "|  | |\n" +
+              "|  | |\n" +
+              "+--+ |\n" +
+              "|  | |\n" +
+              "+--+-+"
+        assert.equal(act, exp);
+
     });
 });
 
 describe("debugParse", () => {
+    it("Can parse a small leaf", () => {
+        const src =
+              "++\n" +
+              "++";
+        const g = grid.debugParse(src)
+        assert.deepEqual(g, {
+            type: "Leaf",
+            dims: { width: 1, height: 1 }
+        });
+    });
+
     it("Can parse a leaf", () => {
         const src =
               "+-+\n" +
@@ -53,7 +115,7 @@ describe("debugParse", () => {
         const g = grid.debugParse(src)
         assert.deepEqual(g, {
             type: "Leaf",
-            dims: { width: 3, height: 4 }
+            dims: { width: 2, height: 3 }
         });
     });
 
@@ -66,15 +128,14 @@ describe("debugParse", () => {
         const g = grid.debugParse(src);
         assert.deepEqual(g, {
             type: "Horz",
-            partition: 2,
-            dims: { width: 7, height: 3 },
+            dims: { width: 6, height: 2 },
             left: {
                 type: "Leaf",
-                dims: { width: 3, height: 3 }
+                dims: { width: 2, height: 2 }
             },
             right: {
                 type: "Leaf",
-                dims: { width: 5, height: 3 }
+                dims: { width: 4, height: 2 }
             }
         });
     });
@@ -88,15 +149,14 @@ describe("debugParse", () => {
         const g = grid.debugParse(src);
         assert.deepEqual(g, {
             type: "Vert",
-            partition: 1,
-            dims: { width: 7, height: 3 },
+            dims: { width: 6, height: 2 },
             left: {
                 type: "Leaf",
-                dims: { width: 7, height: 2 }
+                dims: { width: 6, height: 1 }
             },
             right: {
                 type: "Leaf",
-                dims: { width: 7, height: 2 }
+                dims: { width: 6, height: 1 }
             }
         });
     });
@@ -111,25 +171,45 @@ describe("debugParse", () => {
         const g = grid.debugParse(src);
         assert.deepEqual(g, {
             type: "Horz",
-            partition: 2,
-            dims: { width: 7, height: 4 },
+            dims: { width: 6, height: 3 },
             left: {
                 type: "Leaf",
-                dims: { width: 3, height: 4 }
+                dims: { width: 2, height: 3 }
             },
             right: {
                 type: "Vert",
-                partition: 1,
-                dims: { width: 5, height: 4 },
+                dims: { width: 4, height: 3 },
                 left: {
                     type: "Leaf",
-                    dims: { width: 5, height: 2 }
+                    dims: { width: 4, height: 1 }
                 },
                 right: {
                     type: "Leaf",
-                    dims: { width: 5, height: 3 }
+                    dims: { width: 4, height: 2 }
                 }
             }
         });
+    });
+
+    it("It can parse trees printed by debugPrint", () => {
+        fc.assert(
+            fc.property(arbg.grid.tree, (g0) => {
+                const src0 = grid.debugPrint(g0);
+                const g1 = grid.debugParse(src0);
+                const src1 = grid.debugPrint(g1);
+                assert.equal(src0, src1);
+            }),
+            {
+                reporter(out) {
+                    if(!out.failed) return;
+                    const genericErrorMessage = fc.defaultReportMessage(out);
+                    const src0 = grid.debugPrint(out.counterexample[0]);
+                    const g1   = grid.debugParse(src0);
+                    const src1 = grid.debugPrint(g1);
+
+                    throw new Error(`${genericErrorMessage}\nOriginal grid:\n${src0}\nAs parsed:\n${src1}`);
+                }
+            }
+        )
     });
 });

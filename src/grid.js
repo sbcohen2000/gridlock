@@ -11,7 +11,6 @@ import * as point from "./point.js";
  * @typedef {{
  *   type:      "Vert" | "Horz";
  *   dims:      Size;
- *   partition: number;
  *   left:      Grid;
  *   right:     Grid;
  * }} Split
@@ -43,6 +42,16 @@ export function mk(width, height) {
 }
 
 /**
+ * Compute the partition point of a `Split`.
+ *
+ * @param {Split} s The split whose partition to calculate.
+ * @returns {number}
+ */
+export function partition(s) {
+    return s.type === "Vert" ? s.left.dims.height : s.left.dims.width;
+}
+
+/**
  * Render a grid using ASCII characters for testing and debugging
  * purposes.
  *
@@ -53,9 +62,9 @@ export function debugPrint(g) {
     // Build a 2d array of characters with the same size as the
     // dimensions of the outermost grid node.
     const chars = [];
-    for(let i = 0; i < g.dims.height; ++i) {
+    for(let i = 0; i <= g.dims.height; ++i) {
         const row = [];
-        for(let j = 0; j < g.dims.width; ++j) {
+        for(let j = 0; j <= g.dims.width; ++j) {
             row.push(' ');
         }
         chars.push(row);
@@ -124,21 +133,21 @@ export function debugPrint(g) {
     const go = (g, topLeft) => {
         switch (g.type) {
         case "Vert": {
-            drawVertLine(g.partition, topLeft.y, topLeft.y + g.dims.height - 1);
+            drawHorzLine(topLeft.x, topLeft.x + g.dims.width, topLeft.y + partition(g));
             go(g.left, topLeft);
-            go(g.right, point.offset(topLeft, point.mkV2(0, g.partition)));
+            go(g.right, point.offset(topLeft, point.mkV2(0, partition(g))));
         } break;
         case "Horz": {
-            drawHorzLine(topLeft.x, topLeft.x + g.dims.width - 1, g.partition);
+            drawVertLine(topLeft.x + partition(g), topLeft.y, topLeft.y + g.dims.height);
             go(g.left, topLeft);
-            go(g.right, point.offset(topLeft, point.mkV2(g.partition, 0)));
+            go(g.right, point.offset(topLeft, point.mkV2(partition(g), 0)));
         } break;
         case "Leaf": break;
         }
     }
 
     go(g, point.mkOrigin());
-    drawSquare(0, 0, g.dims.width - 1, g.dims.height - 1);
+    drawSquare(0, 0, g.dims.width, g.dims.height);
 
     // Produce an output string from the array.
     return chars.map(row => row.join("")).join("\n");
@@ -244,7 +253,7 @@ export function debugParse(src) {
         expectEdge(rows.at(-1), horzEdgeRe);
 
         const columns = transposeLines(rows);
-        const dims = { width: rows[0].length, height: rows.length };
+        const dims = { width: rows[0].length - 1, height: rows.length - 1 };
 
         // The first and last columns should be edges.
         expectEdge(columns.at( 0), vertEdgeRe);
@@ -269,7 +278,6 @@ export function debugParse(src) {
 
             return {
                 type: "Horz",
-                partition: horzPartition,
                 dims,
                 left,
                 right
@@ -301,7 +309,6 @@ export function debugParse(src) {
 
             return {
                 type: "Vert",
-                partition: vertPartition,
                 dims,
                 left,
                 right
