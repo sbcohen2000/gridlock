@@ -288,6 +288,17 @@ describe("findParentChain", () => {
     });
 });
 
+/**
+ * Collect all nodes in a grid tree.
+ */
+function allNodes(g) {
+    switch(g.type) {
+    case "Vert":
+    case "Horz": return [g, ...allNodes(g.left), ...allNodes(g.right)];
+    case "Leaf": return [g];
+    }
+}
+
 describe("modifyWidth", () => {
     it("Can modify the width of a leaf", () => {
         const g = grid.mk(2, 3);
@@ -349,17 +360,6 @@ describe("modifyWidth", () => {
         );
     });
 
-    /**
-     * Collect all nodes in a grid tree (including the root).
-     */
-    function allNodes(g) {
-        switch(g.type) {
-        case "Vert":
-        case "Horz": return [g, ...allNodes(g.left), ...allNodes(g.right)];
-        case "Leaf": return [g];
-        }
-    }
-
     it("Produces grids with consistent dimensions", () => {
         fc.assert(
             fc.property(
@@ -373,6 +373,93 @@ describe("modifyWidth", () => {
                 }),
                 ({ g, focus, n }) => {
                     grid.modifyWidth(g, n, focus);
+                    assert.ok(grid.debugCheckGridDimsConsistency(g));
+                }
+            )
+        );
+    });
+});
+
+describe("modifyHeight", () => {
+    it("Can modify the height of a leaf", () => {
+        const g = grid.mk(2, 3);
+        grid.modifyHeight(g, 2, g);
+        assert.equal(g.dims.height, 5);
+    });
+
+    it("Can modify the height of a leaf in a small tree (1)", () => {
+        const src =
+              "+-+---+\n" +
+              "| +---+\n" +
+              "| |   |\n" +
+              "+-+---+";
+
+        const g = grid.debugParse(src);
+        grid.modifyHeight(g, 2, g.right.left);
+        assert.equal(
+            grid.debugPrint(g),
+            "+-+---+\n" +
+            "| |   |\n" +
+            "| |   |\n" +
+            "| +---+\n" +
+            "| |   |\n" +
+            "+-+---+"
+        );
+    });
+
+    it("Can modify the height of a leaf in a small tree (2)", () => {
+        const src =
+              "+-+---+\n" +
+              "| +---+\n" +
+              "| |   |\n" +
+              "+-+---+";
+
+        const g = grid.debugParse(src);
+        grid.modifyHeight(g, 2, g.right.right);
+        assert.equal(
+            grid.debugPrint(g),
+            "+-+---+\n" +
+            "| +---+\n" +
+            "| |   |\n" +
+            "| |   |\n" +
+            "| |   |\n" +
+            "+-+---+"
+        );
+    });
+
+    it("Can modify the height of a leaf in a small tree (3)", () => {
+        const src =
+              "+-+---+\n" +
+              "| +---+\n" +
+              "| |   |\n" +
+              "+-+---+";
+
+        const g = grid.debugParse(src);
+        grid.modifyHeight(g, 2, g.left);
+        assert.equal(
+            grid.debugPrint(g),
+            "+-+---+\n" +
+            "| |   |\n" +
+            "| |   |\n" +
+            "| +---+\n" +
+            "| |   |\n" +
+            "+-+---+"
+        );
+    });
+
+    it("Produces grids with consistent dimensions", () => {
+        fc.assert(
+            fc.property(
+                arbg.grid.tree.chain(g => {
+                    const nodes = allNodes(g);
+                    return fc.record({
+                        g: fc.constant(g),
+                        focus: fc.constantFrom(...nodes),
+                        n: fc.integer({ min: 1, max: 5 })
+                    });
+                }),
+                ({ g, focus, n }) => {
+                    grid.modifyHeight(g, n, focus);
                     assert.ok(grid.debugCheckGridDimsConsistency(g));
                 }
             )

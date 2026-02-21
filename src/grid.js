@@ -490,3 +490,68 @@ export function modifyWidth(g, n, focus) {
 
     return g;
 }
+
+/**
+ * Modify the height of the given `Grid`, with no regard for `g`'s
+ * parent.
+ *
+ * This is a helper of `modifyHeight`. No one should ever call this.
+ *
+ * @param {Grid} g
+ * @param {number} n The amount to expand vertically.
+ */
+function modifySubtreeHeight(g, n) {
+    switch(g.type) {
+    case "Horz": {
+        // Both of our children need to be expanded.
+        modifySubtreeHeight(g.left, n);
+        modifySubtreeHeight(g.right, n);
+        g.dims.height += n;
+    } break;
+    case "Vert": {
+        // Expand our left-side downward. This is an arbitrary
+        // choice.
+        modifySubtreeHeight(g.left, n);
+        g.dims.height += n;
+    } break;
+    case "Leaf": {
+        g.dims.height += n;
+    } break;
+    }
+}
+
+/**
+ * Modify the focused `Grid`'s height.
+ *
+ * @param {Grid} g The root node of the grid.
+ * @param {number} n The amount to expand vertically.
+ * @param {Grid} focus The grid cell to modify.
+ * @returns {Grid} The grid.
+ */
+export function modifyHeight(g, n, focus) {
+    modifySubtreeHeight(focus, n);
+
+    // Walk up the parent chain, performing repairs to the dimensions
+    // along the way.
+    let last = focus;
+    const chain = findParentChain(g, focus);
+    for(const splt of chain) {
+        switch(splt.type) {
+        case "Horz": {
+            if(splt.left === last) {
+                // We've come from the left branch. Expand the right to match.
+                modifySubtreeHeight(splt.right, n);
+            } else {
+                // We've come from the right branch. Expand the left to match.
+                modifySubtreeHeight(splt.left, n);
+            }
+        } break;
+        case "Vert": break; // Nothing to do.
+        }
+        splt.dims.height += n;
+
+        last = splt;
+    }
+
+    return g;
+}
