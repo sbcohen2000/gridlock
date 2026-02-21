@@ -1,0 +1,19 @@
+{
+    "name": "gooey-code",
+    "version": "1.0.0",
+    "description": "A gooey editor for JavaScript",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "watch": "esbuild 'src/**/*.js' 'src/**/*.css' --bundle --outdir=www --watch --servedir=www",
+        "test": "mocha"
+    },
+    "author": "Sam Cohen",
+    "license": "ISC",
+    "devDependencies": {
+        "codemirror": "^6.0.2",
+        "esbuild": "^0.27.3",
+        "fast-check": "^4.5.3",
+        "mocha": "^11.3.0"
+    }
+}
