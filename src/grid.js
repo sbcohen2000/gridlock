@@ -55,6 +55,24 @@ export function partition(s) {
  * Render a grid using ASCII characters for testing and debugging
  * purposes.
  *
+ * For a given grid node, the _top_ and _left_ edges belong to the
+ * area of the grid, whereas the _bottom_ and _right_ edges belong
+ * either to no grid or some adjacent grid node. For example, the
+ * grid:
+ * ```
+ * +-+---+
+ * | |   |
+ * +-+---+
+ * ```
+ * Should be interpreted as having dimensions `{ width: 6, height: 2 }`,
+ * even though the drawing occupies 7 columns and 4 rows. That's because
+ * the bottom-most row and right-most column don't contribute to the
+ * grid's height.
+ *
+ * It follows that the vertical partition in the grid belongs to the
+ * _right_ child, not the _left_. That is, the _right_ child has a width
+ * of 4 units, and the _left_ child has a width of 2 units.
+ *
  * @param {Grid} g The grid.
  * @returns {string} A string representation of the grid.
  */
@@ -213,6 +231,9 @@ function findi(f, as, skip) {
 
 /**
  * Parse a `Grid` from a string.
+ *
+ * See the description in `debugPrint` for how to interpret the
+ * drawings that this function can parse.
  *
  * @param {string} src The source to parse.
  * @returns {Grid} The parsed grid.
