@@ -367,3 +367,46 @@ export function debugCheckGridDimsConsistency(g) {
     }
 }
 
+/**
+ * Find a list of `Grid`s, each element a node which must be traversed
+ * to go from node `grid` to node `focus`.
+ *
+ * @param {Grid} g The root of the grid.
+ * @param {Grid} focus The focused child of `g`.
+ * @returns {Grid[] | undefined} A list of grids, in the first of
+ *                   which is the parent of `focus`, and the last of
+ *                   which is `g`.  If `focus` is not a child of `g`,
+ *                   then undefined is returned.
+ */
+export function findParentChain(g, focus) {
+    /**
+     * @type {Grid[]}
+     */
+    const out = [];
+    /**
+     * @param {Grid} g
+     * @returns {Grid[] | undefined}
+     */
+    const go = (g) => {
+        if(g === focus) {
+            return out;
+        } else {
+            switch(g.type) {
+            case "Horz":
+            case "Vert": {
+                let chain = go(g.left);
+                if(chain === undefined) {
+                    chain = go(g.right);
+                }
+
+                if(chain !== undefined) {
+                    chain.push(g);
+                }
+                return chain;
+            }
+            case "Leaf": return undefined;
+            }
+        }
+    };
+    return go(g);
+}

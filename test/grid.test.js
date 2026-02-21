@@ -223,3 +223,67 @@ describe("arbitrary-grid", () => {
         )
     });
 });
+
+describe("findParentChain", () => {
+    it("Can find the parent chain of a simple tree", () => {
+        const tree = {
+            type: "Horz",
+            dims: { width: 6, height: 3 },
+            left: {
+                type: "Leaf",
+                dims: { width: 2, height: 3 }
+            },
+            right: {
+                type: "Vert",
+                dims: { width: 4, height: 3 },
+                left: {
+                    type: "Leaf",
+                    dims: { width: 4, height: 1 }
+                },
+                right: {
+                    type: "Leaf",
+                    dims: { width: 4, height: 2 }
+                }
+            }
+        };
+
+        const focus = tree.right.left;
+        const chain = grid.findParentChain(tree, focus);
+
+        assert.deepEqual(chain, [
+            tree.right, tree
+        ]);
+    });
+
+    it("Returns undefined when the focus isn't in the tree", () => {
+        const tree = {
+            type: "Horz",
+            dims: { width: 6, height: 3 },
+            left: {
+                type: "Leaf",
+                dims: { width: 2, height: 3 }
+            },
+            right: {
+                type: "Vert",
+                dims: { width: 4, height: 3 },
+                left: {
+                    type: "Leaf",
+                    dims: { width: 4, height: 1 }
+                },
+                right: {
+                    type: "Leaf",
+                    dims: { width: 4, height: 2 }
+                }
+            }
+        };
+
+        const irrelevant = {
+            type: "Leaf",
+            dims: { width: 4, height: 2 }
+        };
+
+        const chain = grid.findParentChain(tree, irrelevant);
+
+        assert.deepEqual(chain, undefined);
+    });
+});
