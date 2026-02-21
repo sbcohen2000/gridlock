@@ -42,6 +42,21 @@ export function mk(width, height) {
 }
 
 /**
+ * Produce a deep-copy of a grid.
+ *
+ * @param {Grid} g The grid to copy.
+ * @returns {Grid} A new `Grid`, identical to `g`, but sharing no
+ *                 pointers with it.
+ */
+export function clone(g) {
+    switch(g.type) {
+    case "Vert":
+    case "Horz": return { ...g, left: clone(g.left), right: clone(g.right) }
+    case "Leaf": return { ...g }
+    }
+}
+
+/**
  * Compute the partition point of a `Split`.
  *
  * @param {Split} s The split whose partition to calculate.
@@ -373,19 +388,19 @@ export function debugCheckGridDimsConsistency(g) {
  *
  * @param {Grid} g The root of the grid.
  * @param {Grid} focus The focused child of `g`.
- * @returns {Grid[] | undefined} A list of grids, in the first of
+ * @returns {Split[] | undefined} A list of grids, in the first of
  *                   which is the parent of `focus`, and the last of
  *                   which is `g`.  If `focus` is not a child of `g`,
  *                   then undefined is returned.
  */
 export function findParentChain(g, focus) {
     /**
-     * @type {Grid[]}
+     * @type {Split[]}
      */
     const out = [];
     /**
      * @param {Grid} g
-     * @returns {Grid[] | undefined}
+     * @returns {Split[] | undefined}
      */
     const go = (g) => {
         if(g === focus) {
@@ -409,4 +424,69 @@ export function findParentChain(g, focus) {
         }
     };
     return go(g);
+}
+
+/**
+ * Modify the width of the given `Grid`, with no regard for `g`'s
+ * parent.
+ *
+ * This is a helper of `modifyWidth`. No one should ever call this.
+ *
+ * @param {Grid} g
+ * @param {number} n The amount to expand horizontally.
+ */
+function modifySubtreeWidth(g, n) {
+    switch(g.type) {
+    case "Vert": {
+        // Both of our children need to be expanded.
+        modifySubtreeWidth(g.left, n);
+        modifySubtreeWidth(g.right, n);
+        g.dims.width += n;
+    } break;
+    case "Horz": {
+        // Expand our left-side to the right. This is an arbitrary
+        // choice.
+        modifySubtreeWidth(g.left, n);
+        g.dims.width += n;
+    } break;
+    case "Leaf": {
+        g.dims.width += n;
+    } break;
+    }
+}
+
+/**
+ * Modify the focused `Grid`'s width.
+ *
+ * @param {Grid} g The root node of the grid.
+ * @param {number} n The amount expand horizontally.
+ * @param {Grid} focus The grid cell to modify.
+ * @returns {Grid} The grid.
+ */
+export function modifyWidth(g, n, focus) {
+    modifySubtreeWidth(focus, n);
+
+    // Walk up the parent chain, performing repairs to the dimensions
+    // along the way.
+    let last = focus;
+    const chain = findParentChain(g, focus);
+    for(const splt of chain) {
+        switch(splt.type) {
+        case "Vert": {
+            if(splt.left === last) {
+                // We've come from the left branch. Expand the right to match.
+                modifySubtreeWidth(splt.right, n);
+            } else {
+                // We've come from the right branch. Expand the left to match.
+                modifySubtreeWidth(splt.left, n);
+            }
+        } break;
+        case "Horz": break; // Nothing to do.
+        }
+        splt.dims.width += n;
+
+        last = splt;
+    }
+
+    return g;
 }
