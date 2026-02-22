@@ -20,6 +20,8 @@ import * as point from "./point.js";
  * @typedef {{
  *   type:    "Leaf";
  *   dims:    Size;
+ *   tree?:   Tree;
+ *   label?:  string;
  * }} Leaf
  */
 
@@ -330,10 +332,25 @@ export function debugParse(src) {
             if(vertPartition === undefined) {
                 // Then, there's no vertical or horizontal partition.
                 // So, we have a leaf.
-                return {
+
+                // Find the inner text of the leaf so that we can look for a label.
+                const text = rows
+                      .slice(1, -1)
+                      .map(row => row.slice(1, -1))
+                      .join("")
+                      .trim();
+
+                /** @type{Leaf} */
+                const leaf = {
                     type: "Leaf",
                     dims
+                };
+
+                if(text !== "") {
+                    leaf.label = text;
                 }
+
+                return leaf;
             }
 
             // See reasoning above for index offsets.
@@ -353,6 +370,50 @@ export function debugParse(src) {
     };
 
     return goLines(src.split("\n"));
+}
+
+/**
+ * Collect all nodes in a grid.
+ *
+ * @param {Grid} g
+ * @returns {IteratorObject<Grid>}
+ */
+export function* allNodes(g) {
+    switch(g.type) {
+    case "Vert":
+    case "Horz": {
+        yield g;
+        for(const c of allNodes(g.left)) {
+            yield c;
+        }
+        for(const c of allNodes(g.right)) {
+            yield c;
+        }
+    } break;
+    case "Leaf": yield g; break;
+    }
+}
+
+/**
+ * Collect all leaves in a grid.
+ *
+ * @param {Grid} g
+ * @returns {IteratorObject<Leaf>}
+ */
+export function allLeaves(g) {
+    return allNodes(g).filter((n) => n.type === "Leaf");
+}
+
+/**
+ * Find the leaf node in `g` with a particular label, or return
+ * `undefined` if no such leaf was found.
+ *
+ * @param {Grid} g
+ * @param {string} label
+ * @returns {Leaf | undefined}
+ */
+export function findLeafWithLabel(g, label) {
+    return allLeaves(g).find(l => l.label === label);
 }
 
 /**
@@ -424,71 +485,6 @@ export function findParentChain(g, focus) {
         }
     };
     return go(g);
-}
-
-/**
- * Modify the width of the given `Grid`, with no regard for `g`'s
- * parent.
- *
- * This is a helper of `modifyWidth`. No one should ever call this.
- *
- * @param {Grid} g
- * @param {number} n The amount to expand horizontally.
- */
-function modifySubtreeWidth(g, n) {
-    switch(g.type) {
-    case "Vert": {
-        // Both of our children need to be expanded.
-        modifySubtreeWidth(g.left, n);
-        modifySubtreeWidth(g.right, n);
-        g.dims.width += n;
-    } break;
-    case "Horz": {
-        // Expand our left-side to the right. This is an arbitrary
-        // choice.
-        modifySubtreeWidth(g.left, n);
-        g.dims.width += n;
-    } break;
-    case "Leaf": {
-        g.dims.width += n;
-    } break;
-    }
-}
-
-/**
- * Modify the focused `Grid`'s width.
- *
- * @param {Grid} g The root node of the grid.
- * @param {number} n The amount expand horizontally.
- * @param {Grid} focus The grid cell to modify.
- * @returns {Grid} The grid.
- */
-export function modifyWidth(g, n, focus) {
-    modifySubtreeWidth(focus, n);
-
-    // Walk up the parent chain, performing repairs to the dimensions
-    // along the way.
-    let last = focus;
-    const chain = findParentChain(g, focus);
-    for(const splt of chain) {
-        switch(splt.type) {
-        case "Vert": {
-            if(splt.left === last) {
-                // We've come from the left branch. Expand the right to match.
-                modifySubtreeWidth(splt.right, n);
-            } else {
-                // We've come from the right branch. Expand the left to match.
-                modifySubtreeWidth(splt.left, n);
-            }
-        } break;
-        case "Horz": break; // Nothing to do.
-        }
-        splt.dims.width += n;
-
-        last = splt;
-    }
-
-    return g;
 }
 
 /**
@@ -588,4 +584,260 @@ export function distanceToLeftEdge(g, focus) {
     }
 
     return d;
+}
+
+/**
+ * @typedef {{
+ *   children: Tree[]
+ *   leaf: Leaf
+ * }} Tree
+ */
+
+/**
+ * Attach the `leaves` at every leaf of `tree`.
+ *
+ * @param {Tree} tree
+ * @param {Tree[]} leaves
+ */
+function attachAtLeaves(tree, leaves) {
+    if(tree.children.length === 0) {
+        tree.children.push(...leaves);
+    } else {
+        tree.children.forEach(child => attachAtLeaves(child, leaves));
+    }
+}
+
+/**
+ * Construct a set of dependency trees from a `Grid`, which represent
+ * the dependency between leaves needed to establish the _location of
+ * the left edge_ of each leaf.
+ *
+ * Each leaf in `g` will be annotated with a `tree` field, which
+ * records the tree node which was constructed to represent the leaf.
+ *
+ * @param {Grid} g The grid whose dependency trees to generate.
+ * @returns {Tree[]} The dependency trees (roots are leftmost leaves).
+ */
+export function constructDependencyTrees(g) {
+    switch(g.type) {
+    case "Horz": {
+        const lefts = constructDependencyTrees(g.left);
+        const rights = constructDependencyTrees(g.right);
+
+        // Right children depend on left children.
+        lefts.forEach(left => {
+            attachAtLeaves(left, rights);
+        });
+        return lefts;
+    }
+    case "Vert": {
+        const lefts  = constructDependencyTrees(g.left);
+        const rights = constructDependencyTrees(g.right);
+        return lefts.concat(rights);
+    }
+    case "Leaf": {
+        return [{ children: [], leaf: g }];
+    }
+    }
+}
+
+/**
+ * Print a debug representation of a dependency tree.
+ * @param {Tree[]} deps
+ * @returns {string}
+ */
+export function debugPrintDeps(deps) {
+    let nextFreshId = 0;
+    const freshId = () => nextFreshId++;
+
+    /** @param {Tree} t */
+    const go = (t) => {
+        const label = t.leaf.label ?? ("leaf" + freshId())
+
+        if(t.children.length === 0) {
+            return label;
+        } else {
+            return "(" + label + " " + t.children.map(go).join(" ") + ")"
+        }
+    };
+
+    return deps.map(go).join("\n");
+}
+
+/**
+ * Find all of the paths from root to leaf in the given `tree`.
+ *
+ * @param {Tree} tree
+ * @returns {Leaf[][]} The paths.
+ */
+export function allPaths(tree) {
+    if(tree.children.length === 0) {
+        return [[tree.leaf]];
+    }
+
+    const paths = [];
+    for(const child of tree.children) {
+        const childPaths = allPaths(child);
+        for(const childPath of childPaths) {
+            paths.push([tree.leaf, ...childPath]);
+        }
+    }
+    return paths;
+}
+
+/**
+ * Modify the focused `Grid`'s width.
+ *
+ * @see constructDependencyTrees
+ *
+ * @param {Grid} g The root node of the grid.
+ * @param {number} w The amount expand horizontally.
+ * @param {Grid} focus The grid cell to modify.
+ * @param {any} glpk The GLPK instance to use for solving.
+ * @param {Tree[]} [deps] A set of dependency trees recording the
+ *                        horizontal positioning relationships in the
+ *                        grid. If it is not provided, a dependency
+ *                        tree will be generated from scratch.
+ * @param {Leaf[][]} [constraints] Sets of leaves which should have
+ *                                 the same relative position and/or
+ *                                 same size after the width has been
+ *                                 modified.
+ * @returns {Promise<Grid>} The grid.
+ */
+export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
+    if(deps === undefined) {
+        deps = constructDependencyTrees(g);
+    }
+
+    if(constraints === undefined) {
+        constraints = [];
+    }
+
+    // Step 1: Get all leaves
+    const leaves = [...allLeaves(g)];
+    const leafToIdx = new Map();
+    leaves.forEach((leaf, idx) => leafToIdx.set(leaf, idx));
+
+    const focusIdx = leafToIdx.get(focus);
+    if(focusIdx === undefined) {
+        throw new Error("Focus leaf not found in grid");
+    }
+
+    // Step 3: Build the LP problem
+
+    // Create variable names: s_0, s_1, ..., s_n-1, e_0, e_1, ..., e_n-1
+    const vars = [];
+    const subjectTo = [];
+
+    // Variables for each leaf (shift and expand)
+    for(let i = 0; i < leaves.length; i++) {
+        vars.push({ name: `s_${i}`, coef: 0 });
+        vars.push({ name: `e_${i}`, coef: 0 });
+    }
+
+    // Constraint: s_focus = 0
+    subjectTo.push({
+        name: `focus_shift`,
+        vars: [{ name: `s_${focusIdx}`, coef: 1 }],
+        bnds: { type: glpk.GLP_FX, ub: 0, lb: 0 }
+    });
+
+    // Constraint: e_focus = n
+    subjectTo.push({
+        name: `focus_expand`,
+        vars: [{ name: `e_${focusIdx}`, coef: 1 }],
+        bnds: { type: glpk.GLP_FX, ub: w, lb: w }
+    });
+
+    // Constraint: For each connected component, and each path of the
+    // connected component, sum of shifts and expansions = n
+    deps.forEach((cc, ccIdx) => {
+        allPaths(cc).forEach(path => {
+            const pathVars = path.flatMap(leaf => {
+                const idx = leafToIdx.get(leaf);
+                return [ { name: `s_${idx}`, coef: 1 }, { name: `e_${idx}`, coef: 1 } ];
+            });
+
+            subjectTo.push({
+                name: `cc_${ccIdx}`,
+                vars: pathVars,
+                bnds: { type: glpk.GLP_FX, ub: w, lb: w }
+            });
+        });
+    });
+
+    // Constraint: For each alignment set, shifts are equal and expansions are equal
+    constraints.forEach((alignSet, setIdx) => {
+        if(alignSet.length < 2) return;
+
+        const firstIdx = leafToIdx.get(alignSet[0]);
+        for(let i = 1; i < alignSet.length; i++) {
+            const idx = leafToIdx.get(alignSet[i]);
+            // s_first - s_i = 0
+            subjectTo.push({
+                name: `align_s_${setIdx}_${i}`,
+                vars: [
+                    { name: `s_${firstIdx}`, coef: 1 },
+                    { name: `s_${idx}`, coef: -1 }
+                ],
+                bnds: { type: glpk.GLP_FX, ub: 0, lb: 0 }
+            });
+            // e_first - e_i = 0
+            subjectTo.push({
+                name: `align_e_${setIdx}_${i}`,
+                vars: [
+                    { name: `e_${firstIdx}`, coef: 1 },
+                    { name: `e_${idx}`, coef: -1 }
+                ],
+                bnds: { type: glpk.GLP_FX, ub: 0, lb: 0 }
+            });
+        }
+    });
+
+    // Solve the MILP with integer variables
+    const result = await glpk.solve({
+        name: 'ModifyWidth',
+        objective: {
+            direction: glpk.GLP_MIN,
+            name: 'obj',
+            vars: vars
+        },
+        subjectTo: subjectTo,
+        generals: vars.map(v => v.name)
+    });
+
+    if(result.result.status !== glpk.GLP_OPT) {
+        throw new Error("invalid constraint set");
+    }
+
+    // Step 4: Apply expansions to leaves
+    leaves.forEach((leaf, idx) => {
+        const expand = result.result.vars[`e_${idx}`];
+        if(expand > 0) {
+            leaf.dims.width += expand;
+        }
+    });
+
+    // Step 5: Update tree dimensions
+    /** @param {Grid} g */
+    const updateDims = (g) => {
+        switch(g.type) {
+        case "Vert": {
+            updateDims(g.left);
+            updateDims(g.right);
+            g.dims.width = g.left.dims.width;
+            g.dims.height = g.left.dims.height + g.right.dims.height;
+        } break;
+        case "Horz": {
+            updateDims(g.left);
+            updateDims(g.right);
+            g.dims.width = g.left.dims.width + g.right.dims.width;
+            g.dims.height = g.left.dims.height;
+        } break;
+        case "Leaf": return;
+        }
+    }
+
+    updateDims(g);
+    return g;
 }
