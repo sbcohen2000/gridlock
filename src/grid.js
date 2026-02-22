@@ -867,11 +867,94 @@ export function leafUnderPoint(g, p) {
         }
     }
     case "Leaf": {
-        if(p.x < g.dims.width && p.y < g.dims.height) {
+        if(p.x <= g.dims.width && p.y <= g.dims.height) {
             return g;
         } else {
             return undefined;
         }
     }
     }
+}
+
+/**
+ * Render the grid as an SVG.
+ *
+ * @param {Grid} g The grid to render.
+ * @param {number} leading The distance between baselines.
+ * @param {number} charWidth The width of a single character.
+ * @returns {string} The SVG element text.
+ */
+export function toSVG(g, leading, charWidth) {
+    let out = "";
+
+    /**
+     * Draw a horizontal line in `out`.
+     *
+     * @param {number} xBegin
+     * @param {number} xEnd
+     * @param {number} y
+     */
+    const drawHorzLine = (xBegin, xEnd, y) => {
+        const x1 = xBegin * charWidth;
+        const x2 = xEnd * charWidth;
+        const y1 = y * leading;
+        out += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y1}" stroke="black" />\n`;
+    }
+
+    /**
+     * Draw a vertical line in `out`.
+     *
+     * @param {number} x
+     * @param {number} yBegin
+     * @param {number} yEnd
+     */
+    const drawVertLine = (x, yBegin, yEnd) => {
+        const x1 = x * charWidth;
+        const y1 = yBegin * leading;
+        const y2 = yEnd * leading;
+        out += `<line x1="${x1}" y1="${y1}" x2="${x1}" y2="${y2}" stroke="black" />\n`;
+    }
+
+    /**
+     * Draw a square in `chars`.
+     *
+     * @param {number} xBegin
+     * @param {number} yBegin
+     * @param {number} xEnd
+     * @param {number} yEnd
+     */
+    const drawSquare = (xBegin, yBegin, xEnd, yEnd) => {
+        drawHorzLine(xBegin, xEnd, yBegin);
+        drawHorzLine(xBegin, xEnd, yEnd);
+        drawVertLine(xBegin, yBegin, yEnd);
+        drawVertLine(xEnd, yBegin, yEnd);
+    }
+
+    /**
+     * @param {Grid} g The current node in the grid.
+     * @param {point.P2} topLeft The top-left corner of the current context.
+     */
+    const go = (g, topLeft) => {
+        switch (g.type) {
+        case "Vert": {
+            drawHorzLine(topLeft.x, topLeft.x + g.dims.width, topLeft.y + partition(g));
+            go(g.left, topLeft);
+            go(g.right, point.offset(topLeft, point.mkV2(0, partition(g))));
+        } break;
+        case "Horz": {
+            drawVertLine(topLeft.x + partition(g), topLeft.y, topLeft.y + g.dims.height);
+            go(g.left, topLeft);
+            go(g.right, point.offset(topLeft, point.mkV2(partition(g), 0)));
+        } break;
+        case "Leaf": break;
+        }
+    }
+
+    go(g, point.mkOrigin());
+    drawSquare(0, 0, g.dims.width, g.dims.height);
+
+    const width = g.dims.width * charWidth;
+    const height = g.dims.height * leading;
+
+    return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">\n${out}</svg>`;
 }
