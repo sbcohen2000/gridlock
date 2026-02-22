@@ -841,3 +841,37 @@ export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
     updateDims(g);
     return g;
 }
+
+/**
+ * Find the leaf node of the grid `g` under the point `p`, or
+ * `undefined` if there is no leaf underneath `p`.
+ *
+ * @param {Grid} g
+ * @param {point.P2} p
+ * @returns {Grid | undefined}
+ */
+export function leafUnderPoint(g, p) {
+    switch(g.type) {
+    case "Vert": {
+        if(p.y < g.left.dims.height) {
+            return leafUnderPoint(g.left, p);
+        } else {
+            return leafUnderPoint(g.right, point.offset(p, point.mkV2(0, -g.left.dims.height)))
+        }
+    }
+    case "Horz": {
+        if(p.x < g.left.dims.width) {
+            return leafUnderPoint(g.left, p);
+        } else {
+            return leafUnderPoint(g.right, point.offset(p, point.mkV2(-g.left.dims.width, 0)))
+        }
+    }
+    case "Leaf": {
+        if(p.x < g.dims.width && p.y < g.dims.height) {
+            return g;
+        } else {
+            return undefined;
+        }
+    }
+    }
+}

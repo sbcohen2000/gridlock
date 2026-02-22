@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import * as grid from "../src/grid.js";
+import * as point from "../src/point.js";
 import * as arbg from "./arbitrary-grid.js";
 import * as fc from "fast-check";
 import GLPK from "glpk.js/node";
@@ -678,5 +679,38 @@ describe("distanceToLeftEdge", () => {
         expect(grid.distanceToLeftEdge(g, g.right.left)).to.equal(2);
         expect(grid.distanceToLeftEdge(g, g.right.right.left)).to.equal(5);
         expect(grid.distanceToLeftEdge(g, g.right.right.right)).to.equal(9);
+    });
+});
+
+describe("leafUnderPoint", () => {
+    it("Handles boundary points correctly", () => {
+        const src =
+            "+-+-+\n" +
+            "|a|b|\n" +
+            "+-+-+\n" +
+            "|c|d|\n" +
+            "+-+-+";
+
+        const g = grid.debugParse(src);
+        const a = grid.findLeafWithLabel(g, "a");
+        const b = grid.findLeafWithLabel(g, "b");
+        const c = grid.findLeafWithLabel(g, "c");
+        const d = grid.findLeafWithLabel(g, "d");
+
+        // Points in 'a' (top-left, width=2, height=2)
+        expect(grid.leafUnderPoint(g, point.mkP2(0, 0))).to.equal(a);
+        expect(grid.leafUnderPoint(g, point.mkP2(1, 1))).to.equal(a);
+
+        // Points in 'b' (top-right, starts at x=2)
+        expect(grid.leafUnderPoint(g, point.mkP2(2, 0))).to.equal(b);
+        expect(grid.leafUnderPoint(g, point.mkP2(3, 1))).to.equal(b);
+
+        // Points in 'c' (bottom-left, starts at y=2)
+        expect(grid.leafUnderPoint(g, point.mkP2(0, 2))).to.equal(c);
+        expect(grid.leafUnderPoint(g, point.mkP2(1, 3))).to.equal(c);
+
+        // Points in 'd' (bottom-right, starts at x=2, y=2)
+        expect(grid.leafUnderPoint(g, point.mkP2(2, 2))).to.equal(d);
+        expect(grid.leafUnderPoint(g, point.mkP2(3, 3))).to.equal(d);
     });
 });
