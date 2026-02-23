@@ -8,33 +8,38 @@ import * as point from "./point.js";
  */
 
 /**
+ * @template A
  * @typedef {{
  *   type:      "Vert" | "Horz";
  *   dims:      Size;
- *   left:      Grid;
- *   right:     Grid;
+ *   left:      Grid<A>;
+ *   right:     Grid<A>;
  * }} Split
  */
 
 /**
+ * @template A
  * @typedef {{
  *   type:    "Leaf";
  *   dims:    Size;
- *   tree?:   Tree;
+ *   tree?:   Tree<A>;
  *   label?:  string;
+ *   data?:   A
  * }} Leaf
  */
 
 /**
- * @typedef {Split | Leaf} Grid;
+ * @template A
+ * @typedef {Split<A> | Leaf<A>} Grid<A>;
  */
 
 /**
  * Construct a new `GridSquare` with the provided dimensions.
  *
+ * @template A
  * @param {number} width The width of the `GridSquare`.
  * @param {number} height The height of the `GridSquare`.
- * @returns {Grid}
+ * @returns {Grid<A>}
  */
 export function mk(width, height) {
     return {
@@ -46,9 +51,10 @@ export function mk(width, height) {
 /**
  * Produce a deep-copy of a grid.
  *
- * @param {Grid} g The grid to copy.
- * @returns {Grid} A new `Grid`, identical to `g`, but sharing no
- *                 pointers with it.
+ * @template A
+ * @param {Grid<A>} g The grid to copy.
+ * @returns {Grid<A>} A new `Grid`, identical to `g`, but sharing no
+ *                    pointers with it.
  */
 export function clone(g) {
     switch(g.type) {
@@ -61,7 +67,8 @@ export function clone(g) {
 /**
  * Compute the partition point of a `Split`.
  *
- * @param {Split} s The split whose partition to calculate.
+ * @template A
+ * @param {Split<A>} s The split whose partition to calculate.
  * @returns {number}
  */
 export function partition(s) {
@@ -90,7 +97,8 @@ export function partition(s) {
  * _right_ child, not the _left_. That is, the _right_ child has a width
  * of 4 units, and the _left_ child has a width of 2 units.
  *
- * @param {Grid} g The grid.
+ * @template A
+ * @param {Grid<A>} g The grid.
  * @returns {string} A string representation of the grid.
  */
 export function debugPrint(g) {
@@ -162,7 +170,7 @@ export function debugPrint(g) {
     }
 
     /**
-     * @param {Grid} g The current node in the grid.
+     * @param {Grid<A>} g The current node in the grid.
      * @param {point.P2} topLeft The top-left corner of the current context.
      */
     const go = (g, topLeft) => {
@@ -253,7 +261,7 @@ function findi(f, as, skip) {
  * drawings that this function can parse.
  *
  * @param {string} src The source to parse.
- * @returns {Grid} The parsed grid.
+ * @returns {Grid<void>} The parsed grid.
  * @throws If a parse error occurred.
  */
 export function debugParse(src) {
@@ -283,7 +291,7 @@ export function debugParse(src) {
      * it takes as argument a list of lines, rather than a string.
      *
      * @param {string[]} rows
-     * @returns {Grid}
+     * @returns {Grid<void>}
      */
     const goLines = (rows) => {
         // The first and last lines should be edges.
@@ -340,7 +348,7 @@ export function debugParse(src) {
                       .join("")
                       .trim();
 
-                /** @type{Leaf} */
+                /** @type{Leaf<void>} */
                 const leaf = {
                     type: "Leaf",
                     dims
@@ -375,8 +383,9 @@ export function debugParse(src) {
 /**
  * Collect all nodes in a grid.
  *
- * @param {Grid} g
- * @returns {IteratorObject<Grid>}
+ * @template A
+ * @param {Grid<A>} g
+ * @returns {IteratorObject<Grid<A>>}
  */
 export function* allNodes(g) {
     switch(g.type) {
@@ -397,8 +406,9 @@ export function* allNodes(g) {
 /**
  * Collect all leaves in a grid.
  *
- * @param {Grid} g
- * @returns {IteratorObject<Leaf>}
+ * @template A
+ * @param {Grid<A>} g
+ * @returns {IteratorObject<Leaf<A>>}
  */
 export function allLeaves(g) {
     return allNodes(g).filter((n) => n.type === "Leaf");
@@ -408,9 +418,10 @@ export function allLeaves(g) {
  * Find the leaf node in `g` with a particular label, or return
  * `undefined` if no such leaf was found.
  *
- * @param {Grid} g
+ * @template A
+ * @param {Grid<A>} g
  * @param {string} label
- * @returns {Leaf | undefined}
+ * @returns {Leaf<A> | undefined}
  */
 export function findLeafWithLabel(g, label) {
     return allLeaves(g).find(l => l.label === label);
@@ -420,8 +431,9 @@ export function findLeafWithLabel(g, label) {
  * Check that for each node in the `Grid` `g`, the dimensions of the
  * node's children sum to the dimensions of its parent.
  *
- * @param {Grid} g The grid on which to check consistency of
- *                 dimensions.
+ * @template A
+ * @param {Grid<A>} g The grid on which to check consistency of
+ *                    dimensions.
  * @returns {boolean} `true` if the dimensions are consistent, and
  *                    `false` otherwise.
  */
@@ -447,21 +459,22 @@ export function debugCheckGridDimsConsistency(g) {
  * Find a list of `Grid`s, each element a node which must be traversed
  * to go from node `grid` to node `focus`.
  *
- * @param {Grid} g The root of the grid.
- * @param {Grid} focus The focused child of `g`.
- * @returns {Split[] | undefined} A list of grids, in the first of
- *                   which is the parent of `focus`, and the last of
- *                   which is `g`.  If `focus` is not a child of `g`,
- *                   then undefined is returned.
+ * @template A
+ * @param {Grid<A>} g The root of the grid.
+ * @param {Grid<A>} focus The focused child of `g`.
+ * @returns {Split<A>[] | undefined} A list of grids, in the first of
+ *                        which is the parent of `focus`, and the last
+ *                        of which is `g`.  If `focus` is not a child
+ *                        of `g`, then undefined is returned.
  */
 export function findParentChain(g, focus) {
     /**
-     * @type {Split[]}
+     * @type {Split<A>[]}
      */
     const out = [];
     /**
-     * @param {Grid} g
-     * @returns {Split[] | undefined}
+     * @param {Grid<A>} g
+     * @returns {Split<A>[] | undefined}
      */
     const go = (g) => {
         if(g === focus) {
@@ -493,7 +506,8 @@ export function findParentChain(g, focus) {
  *
  * This is a helper of `modifyHeight`. No one should ever call this.
  *
- * @param {Grid} g
+ * @template A
+ * @param {Grid<A>} g
  * @param {number} n The amount to expand vertically.
  */
 function modifySubtreeHeight(g, n) {
@@ -519,10 +533,11 @@ function modifySubtreeHeight(g, n) {
 /**
  * Modify the focused `Grid`'s height.
  *
- * @param {Grid} g The root node of the grid.
+ * @template A
+ * @param {Grid<A>} g The root node of the grid.
  * @param {number} n The amount to expand vertically.
- * @param {Grid} focus The grid cell to modify.
- * @returns {Grid} The grid.
+ * @param {Grid<A>} focus The grid cell to modify.
+ * @returns {Grid<A>} The grid.
  */
 export function modifyHeight(g, n, focus) {
     modifySubtreeHeight(focus, n);
@@ -556,9 +571,10 @@ export function modifyHeight(g, n, focus) {
  * Find the distance from the left edge of the `focus` to the left
  * margin.
  *
- * @param {Grid} g The root node of the grid.
- * @param {Grid} focus The grid cell whose left edge we'd like to
- *                     measure.
+ * @template A
+ * @param {Grid<A>} g The root node of the grid.
+ * @param {Grid<A>} focus The grid cell whose left edge we'd like to
+ *                        measure.
  * @returns {number} The distance from the left edge of `focus` to the
  *                   left margin.
  */
@@ -587,17 +603,19 @@ export function distanceToLeftEdge(g, focus) {
 }
 
 /**
+ * @template A
  * @typedef {{
- *   children: Tree[]
- *   leaf: Leaf
+ *   children: Tree<A>[]
+ *   leaf: Leaf<A>
  * }} Tree
  */
 
 /**
  * Attach the `leaves` at every leaf of `tree`.
  *
- * @param {Tree} tree
- * @param {Tree[]} leaves
+ * @template A
+ * @param {Tree<A>} tree
+ * @param {Tree<A>[]} leaves
  */
 function attachAtLeaves(tree, leaves) {
     if(tree.children.length === 0) {
@@ -615,8 +633,9 @@ function attachAtLeaves(tree, leaves) {
  * Each leaf in `g` will be annotated with a `tree` field, which
  * records the tree node which was constructed to represent the leaf.
  *
- * @param {Grid} g The grid whose dependency trees to generate.
- * @returns {Tree[]} The dependency trees (roots are leftmost leaves).
+ * @template A
+ * @param {Grid<A>} g The grid whose dependency trees to generate.
+ * @returns {Tree<A>[]} The dependency trees (roots are leftmost leaves).
  */
 export function constructDependencyTrees(g) {
     switch(g.type) {
@@ -643,14 +662,15 @@ export function constructDependencyTrees(g) {
 
 /**
  * Print a debug representation of a dependency tree.
- * @param {Tree[]} deps
+ * @template A
+ * @param {Tree<A>[]} deps
  * @returns {string}
  */
 export function debugPrintDeps(deps) {
     let nextFreshId = 0;
     const freshId = () => nextFreshId++;
 
-    /** @param {Tree} t */
+    /** @param {Tree<A>} t */
     const go = (t) => {
         const label = t.leaf.label ?? ("leaf" + freshId())
 
@@ -667,8 +687,9 @@ export function debugPrintDeps(deps) {
 /**
  * Find all of the paths from root to leaf in the given `tree`.
  *
- * @param {Tree} tree
- * @returns {Leaf[][]} The paths.
+ * @template A
+ * @param {Tree<A>} tree
+ * @returns {Leaf<A>[][]} The paths.
  */
 export function allPaths(tree) {
     if(tree.children.length === 0) {
@@ -690,19 +711,21 @@ export function allPaths(tree) {
  *
  * @see constructDependencyTrees
  *
- * @param {Grid} g The root node of the grid.
+ * @template A
+ * @param {Grid<A>} g The root node of the grid.
  * @param {number} w The amount expand horizontally.
- * @param {Grid} focus The grid cell to modify.
+ * @param {Grid<A>} focus The grid cell to modify.
  * @param {any} glpk The GLPK instance to use for solving.
- * @param {Tree[]} [deps] A set of dependency trees recording the
- *                        horizontal positioning relationships in the
- *                        grid. If it is not provided, a dependency
- *                        tree will be generated from scratch.
- * @param {Leaf[][]} [constraints] Sets of leaves which should have
- *                                 the same relative position and/or
- *                                 same size after the width has been
- *                                 modified.
- * @returns {Promise<Grid>} The grid.
+ * @param {Tree<A>[]} [deps] A set of dependency trees recording the
+ *                           horizontal positioning relationships in
+ *                           the grid. If it is not provided, a
+ *                           dependency tree will be generated from
+ *                           scratch.
+ * @param {Leaf<A>[][]} [constraints] Sets of leaves which should have
+ *                                    the same relative position
+ *                                    and/or same size after the width
+ *                                    has been modified.
+ * @returns {Promise<Grid<A>>} The grid.
  */
 export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
     if(deps === undefined) {
@@ -819,7 +842,7 @@ export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
     });
 
     // Step 5: Update tree dimensions
-    /** @param {Grid} g */
+    /** @param {Grid<A>} g */
     const updateDims = (g) => {
         switch(g.type) {
         case "Vert": {
@@ -846,9 +869,10 @@ export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
  * Find the leaf node of the grid `g` under the point `p`, or
  * `undefined` if there is no leaf underneath `p`.
  *
- * @param {Grid} g
+ * @template A
+ * @param {Grid<A>} g
  * @param {point.P2} p
- * @returns {Leaf | undefined}
+ * @returns {Leaf<A> | undefined}
  */
 export function leafUnderPoint(g, p) {
     switch(g.type) {
@@ -879,7 +903,8 @@ export function leafUnderPoint(g, p) {
 /**
  * Render the grid as an SVG.
  *
- * @param {Grid} g The grid to render.
+ * @template A
+ * @param {Grid<A>} g The grid to render.
  * @param {number} leading The distance between baselines.
  * @param {number} charWidth The width of a single character.
  * @returns {string} The SVG element text.
@@ -931,7 +956,7 @@ export function toSVG(g, leading, charWidth) {
     }
 
     /**
-     * @param {Grid} g The current node in the grid.
+     * @param {Grid<A>} g The current node in the grid.
      * @param {point.P2} topLeft The top-left corner of the current context.
      */
     const go = (g, topLeft) => {
