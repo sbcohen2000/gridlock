@@ -39,13 +39,21 @@ import * as point from "./point.js";
  * @template A
  * @param {number} width The width of the `GridSquare`.
  * @param {number} height The height of the `GridSquare`.
- * @returns {Grid<A>}
+ * @param {A} [data] The data to associate with this leaf.
+ * @returns {Leaf<A>}
  */
-export function mk(width, height) {
-    return {
+export function mk(width, height, data) {
+    /** @type {Leaf<A>} */
+    const leaf = {
         type: "Leaf",
-        dims: { width, height }
+        dims: { width, height },
+    };
+
+    if(data !== undefined) {
+        leaf.data = data;
     }
+
+    return leaf;
 }
 
 /**
@@ -385,21 +393,34 @@ export function debugParse(src) {
  *
  * @template A
  * @param {Grid<A>} g
- * @returns {IteratorObject<Grid<A>>}
+ * @param {point.P2} [p]
+ * @returns {IteratorObject<[Grid<A>, point.P2]>}
  */
-export function* allNodes(g) {
+export function* allNodes(g, p) {
+    if(!p) {
+        p = point.mkOrigin();
+    }
+
     switch(g.type) {
-    case "Vert":
-    case "Horz": {
-        yield g;
-        for(const c of allNodes(g.left)) {
+    case "Vert": {
+        yield [g, p];
+        for(const c of allNodes(g.left, p)) {
             yield c;
         }
-        for(const c of allNodes(g.right)) {
+        for(const c of allNodes(g.right, point.offset(p, point.mkV2(0, g.left.dims.height)))) {
             yield c;
         }
     } break;
-    case "Leaf": yield g; break;
+    case "Horz": {
+        yield [g, p];
+        for(const c of allNodes(g.left, p)) {
+            yield c;
+        }
+        for(const c of allNodes(g.right, point.offset(p, point.mkV2(g.left.dims.width, 0)))) {
+            yield c;
+        }
+    } break;
+    case "Leaf": yield [g, p]; break;
     }
 }
 
@@ -411,7 +432,8 @@ export function* allNodes(g) {
  * @returns {IteratorObject<Leaf<A>>}
  */
 export function allLeaves(g) {
-    return allNodes(g).filter((n) => n.type === "Leaf");
+    return /** @type{IteratorObject<Leaf<A>>} */ (allNodes(g).flatMap(([n, _]) =>
+        n.type === "Leaf" ? [n] : []));
 }
 
 /**

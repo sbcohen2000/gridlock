@@ -650,7 +650,7 @@ describe("modifyHeight", () => {
                     const nodes = grid.allNodes(g);
                     return fc.record({
                         g: fc.constant(g),
-                        focus: fc.constantFrom(...nodes),
+                        focus: fc.constantFrom(...nodes.map(n => n[0])),
                         n: fc.integer({ min: 1, max: 5 })
                     });
                 }),

@@ -51,3 +51,18 @@ export function mkP2(x, y) {
 export function mkV2(dx, dy) {
     return { dx, dy };
 }
+
+/**
+ * Linearly interpolate.
+ *
+ * @param {number} omin The minimum output value.
+ * @param {number} omax The maximum output value.
+ * @param {number} imin The minimum input value (maps to omin).
+ * @param {number} xx   The input.
+ * @param {number} imax The maximum output value (maps to omax).
+ * @returns {number}
+ */
+export function lerp(omin, omax, imin, xx, imax) {
+    const t = (xx - imin) / (imax - imin);
+    return (1 - t) * omin + t * omax;
+}

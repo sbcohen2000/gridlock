@@ -1,3 +1,21 @@
 html {
     background-color: tan;
 }
+
+#editor-root {
+    font-family: monospace;
+}
+
+.editor-leaf {
+    outline: 1px solid black;
+    outline-offset: -0.5px;
+}
+
+.editor-cursor {
+    pointer-events: none;
+    width: 1ch;
+    height: 1em;
+    mix-blend-mode: difference;
+    background-color: white;
+    z-index: 100;
+}
