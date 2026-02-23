@@ -848,7 +848,7 @@ export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
  *
  * @param {Grid} g
  * @param {point.P2} p
- * @returns {Grid | undefined}
+ * @returns {Leaf | undefined}
  */
 export function leafUnderPoint(g, p) {
     switch(g.type) {

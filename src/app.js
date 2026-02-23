@@ -1,5 +1,6 @@
 import * as grid from "./grid.js";
 import * as point from "./point.js";
+import { EditorState, StateField, Transaction, Annotation, AnnotationType } from "@codemirror/state"
 import { EditorView, keymap, ViewPlugin, ViewUpdate } from "@codemirror/view"
 import { defaultKeymap } from "@codemirror/commands"
 
@@ -43,60 +44,84 @@ async function initializeParser() {
 }
 
 /**
+ * Define a type which represents an insertion into a leaf of the
+ * grid.
+ *
+ * @typedef {{
+ *   type: "Insertion",
+ *   leaf: grid.Leaf,
+ *   n: number
+ * }} Insertion
+ */
+
+/**
+ * Define a type which represents insertion of a newline to a leaf of
+ * the grid.
+ *
+ * @typedef {{
+ *   type: "Newline",
+ *   leaf: grid.Leaf,
+ * }} Newline
+ */
+
+/**
+ * Define a type which represents a deletion from a leaf in the grid.
+ *
+ * @typedef {{
+ *   type: "Deletion",
+ *   leaf: grid.Leaf,
+ *   n: number
+ * }} Deletion
+ */
+
+/**
+ * @typedef {Insertion | Newline | Deletion} GridUpdate
+ */
+
+/**
+ * @type {AnnotationType<GridUpdate>}
+ */
+const gridUpdateAnno = Annotation.define();
+
+const gridField = StateField.define({
+    /**
+     * @param {EditorState} state
+     * @returns {grid.Grid}
+     */
+    create(state) {
+        const nLines = state.doc.lines;
+        // Find the width of the maximum line.
+        let maxLineLen = 0;
+        for(const line of state.doc.iterLines()) {
+            maxLineLen = Math.max(maxLineLen, line.length);
+        }
+        return grid.mk(maxLineLen, nLines);
+    },
+
+    /**
+     * @param {grid.Grid} value
+     * @param {Transaction} transaction
+     * @returns {grid.Grid}
+     */
+    update(value, transaction) {
+        const ann = transaction.annotation(gridUpdateAnno);
+        console.log(ann);
+        return value;
+    }
+});
+
+/**
  * @param {HTMLElement} gridContainer
  */
 const gridViewPlugin = (gridContainer) => ViewPlugin.fromClass(class {
     /**
-     * @type {grid.Grid}
-     */
-    #grid
-
-    constructor() {
-        this.#grid = grid.mk(0, 1);
-    }
-
-    /**
      * @param {ViewUpdate} update
      */
     update(update) {
-        update.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
-            // fromA-toA is the range in the original document, and
-            // fromB-toB is the range that replaces it in the new
-            // document.
-
-            // TODO: Need to classify the kinds of changes here. First
-            // order of business: 1-character insertions and
-            // deletions.
-            //
-            // Maybe we can use a transaction filter to actually
-            // disallow other kinds of updates for now.
-
-            const fromALine = update.startState.doc.lineAt(fromA);
-            const fromARow = fromALine.number - 1;
-            const fromACol = fromA - fromALine.from;
-
-            const toBLine = update.state.doc.lineAt(toB);
-            const toBRow = toBLine.number - 1;
-            const toBCol = toB - toBLine.from;
-
-            const fromLeaf = grid.leafUnderPoint(this.#grid, point.mkP2(fromACol, fromARow));
-
-            const diffCol = toBCol - fromACol;
-            const diffRow = toBRow - fromARow;
-
-            console.log(diffCol, diffRow);
-
-            if(Math.abs(diffCol) > 1 || Math.abs(diffRow) > 1) {
-                console.error("I don't know how to deal with large insertions yet! The grid is almost certainly out of sync now.");
-                return;
-            }
-
-            // console.log(diff);
-        });
-
+        const grid = update.state.field(gridField);
         const leading = update.view.defaultLineHeight;
         const charWidth = update.view.defaultCharacterWidth;
-        this.#updateSVGUnderlay(this.#grid, leading, charWidth);
+        this.#updateSVGUnderlay(grid, leading, charWidth);
     }
 
     /**
@@ -132,8 +157,50 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const editorView = new EditorView({
         extensions: [
-            keymap.of(defaultKeymap),
+            gridField.extension,
             gridViewPlugin(gridContainer),
+            keymap.of(defaultKeymap),
+            EditorView.inputHandler.of((view, from, to, text, insert) => {
+                // Here, we intercept input events so that we can
+                // classify them, and make sure that they won't get
+                // the grid out of sync.
+                //
+                // insert, when called, returns the default
+                // transaction that corresponds to this event.
+                const g = view.state.field(gridField);
+                const fromLine = view.state.doc.lineAt(from);
+                const fromRow  = fromLine.number;
+                const fromCol  = from - fromLine.from;
+
+                const leaf = grid.leafUnderPoint(g, point.mkP2(fromCol, fromRow));
+
+                /** @type {Insertion} */
+                const anno = {
+                    type: "Insertion",
+                    leaf,
+                    n: text.length
+                };
+
+                const tr = insert();
+
+                /**
+                 * We augment the transaction that we would've
+                 * dispatched with an extra annotation which tells us
+                 * to insert a character into the relevant grid cell.
+                 *
+                 * @type {import("@codemirror/state").TransactionSpec}
+                 */
+                const trSpec = {
+                    changes: tr.changes,
+                    selection: tr.selection,
+                    effects: tr.effects,
+                    scrollIntoView: tr.scrollIntoView,
+                    annotations: [ gridUpdateAnno.of(anno) ]
+                };
+
+                view.dispatch(trSpec);
+                return true;
+            }),
             // These are necessary to get the SVG underlay to line up
             // with the text properly.
             EditorView.theme({
