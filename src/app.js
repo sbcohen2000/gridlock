@@ -84,6 +84,7 @@ function viewEditorState(root, st) {
         for(const line of node.data.lines) {
             const thisRow = row;
             const lineElem = document.createElement("div");
+            lineElem.className = "editor-line";
             lineElem.innerText = line;
             lineElem.onmousedown = (e) => {
                 const rect = lineElem.getBoundingClientRect();
@@ -154,7 +155,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     setDirty();
     viewIfDirty();
 
-
     document.addEventListener("keydown", async (e) => {
         if(e.key.length === 1) {
             await state.insertString(e.key, st, glpk);
@@ -162,7 +162,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             switch(e.key) {
             case "Backspace": state.removeCharBeforePoint(st); setDirty(); break;
-            case "Enter": console.log("enter"); break;
+            case "Enter": {
+                if(e.metaKey) {
+                    state.newRowBelowPoint(st);
+                    setDirty();
+                } else {
+                    await state.makeGlobalNewline("", st, glpk);
+                    setDirty();
+                }
+            } break;
             default: break;
             }
         }

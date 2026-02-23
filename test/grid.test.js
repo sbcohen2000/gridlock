@@ -682,6 +682,39 @@ describe("distanceToLeftEdge", () => {
     });
 });
 
+describe("findLeafLocation", () => {
+    it("Can find the location of a root leaf", () => {
+        const src =
+              "+-+\n" +
+              "| |\n" +
+              "| |\n" +
+              "+-+";
+
+        const g = grid.debugParse(src);
+        expect(grid.findLeafLocation(g, g)).to.deep.equal({ x: 0, y: 0 });
+    });
+
+    it("Can find the location of leaves in a nested grid", () => {
+        const src =
+              "+--+-+\n" +
+              "|a | |\n" +
+              "|  |b|\n" +
+              "|  | |\n" +
+              "+--+ |\n" +
+              "|c | |\n" +
+              "+--+-+";
+
+        const g = grid.debugParse(src);
+        const a = grid.findLeafWithLabel(g, "a");
+        const b = grid.findLeafWithLabel(g, "b");
+        const c = grid.findLeafWithLabel(g, "c");
+
+        expect(grid.findLeafLocation(g, a)).to.deep.equal({ x: 0, y: 0 });
+        expect(grid.findLeafLocation(g, b)).to.deep.equal({ x: 3, y: 0 });
+        expect(grid.findLeafLocation(g, c)).to.deep.equal({ x: 0, y: 4 });
+    });
+});
+
 describe("leafUnderPoint", () => {
     it("Handles boundary points correctly", () => {
         const src =
