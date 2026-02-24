@@ -437,6 +437,18 @@ export function allLeaves(g) {
 }
 
 /**
+ * Collect all leaves in a grid, along with their global positions.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @returns {IteratorObject<[Leaf<A>, point.P2]>}
+ */
+export function allLeavesWithPosition(g) {
+    return /** @type{IteratorObject<[Leaf<A>, point.P2]>} */ (allNodes(g).flatMap((np) =>
+        np[0].type === "Leaf" ? [np] : []));
+}
+
+/**
  * Find the leaf node in `g` with a particular label, or return
  * `undefined` if no such leaf was found.
  *

@@ -65,10 +65,9 @@ function viewEditorState(root, st) {
     root.style.gridTemplateRows = "1em";
     root.innerHTML = "";
 
-    const nodes = grid.allNodes(st.grid);
-    for(const [node, p] of nodes) {
-        if(node.type !== "Leaf") continue;
-        const sz = node.dims;
+    const leaves = grid.allLeavesWithPosition(st.grid);
+    for(const [leaf, p] of leaves) {
+        const sz = leaf.dims;
 
         // Specify the position of the cell using CSS grid syntax.
         const gridSpec = `${p.y + 1}/${p.x + 1}/span ${sz.height}/span ${sz.width}`;
@@ -81,7 +80,7 @@ function viewEditorState(root, st) {
 
         // Construct the inside of the cell.
         let row = 0;
-        for(const line of node.data.lines) {
+        for(const line of leaf.data.lines) {
             const thisRow = row;
             const lineElem = document.createElement("div");
             lineElem.className = "editor-line";
@@ -90,7 +89,7 @@ function viewEditorState(root, st) {
                 const rect = lineElem.getBoundingClientRect();
                 // Find the portion of the `lineElem` which is
                 // actually occupied by text.
-                const pctFilled = line.length / node.dims.width;
+                const pctFilled = line.length / leaf.dims.width;
 
                 const x = e.clientX;
                 const i = Math.floor(point.lerp(
@@ -101,7 +100,7 @@ function viewEditorState(root, st) {
                     rect.left + rect.width * pctFilled
                 ));
 
-                state.updateSingleSelection(node, point.mkP2(i, thisRow), st);
+                state.updateSingleSelection(leaf, point.mkP2(i, thisRow), st);
                 viewEditorState(root, st);
             };
             leafElem.appendChild(lineElem);
@@ -117,7 +116,7 @@ function viewEditorState(root, st) {
         cursorElem.style.display = "none";
 
         // If the leaf is selected, we need to draw the cursor.
-        if(st.selection.type === "Single" && st.selection.leaf === node) {
+        if(st.selection.type === "Single" && st.selection.leaf === leaf) {
             const ptDoc    = st.selection.pt;
             const xScreen  = `${ptDoc.x}ch`;
             const yScreen  = `${ptDoc.y}em`;

@@ -37,17 +37,24 @@ import GLPK from "glpk.js";
 /**
  * Construct a new `EditorState`.
  *
+ * @param {grid.Grid<Cell>} [g] The cell grid.
  * @returns {EditorState}
  */
-export function mk() {
-    const l = grid.mk(8, 1, {
-        lines: ["text"]
-    });
+export function mk(g) {
+    if(!g) {
+        let src = "empty"
+        g = grid.mk(src.length, 1, {
+            lines: [src]
+        });
+    }
+
+    const firstLeaf = grid.leafUnderPoint(g, point.mkOrigin());
+
     return {
-        grid: l,
+        grid: g,
         selection: {
             type: "Single",
-            leaf: l,
+            leaf: firstLeaf,
             pt: point.mkOrigin()
         }
     }

@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "watch": "esbuild 'src/**/*.js' 'src/**/*.css' --bundle --outdir=www --watch --servedir=www",
-        "test": "mocha"
+        "test": "mocha --recursive"
     },
     "author": "Sam Cohen",
     "license": "ISC",
