@@ -139,7 +139,7 @@ async function main() {
     let i = 0;
     for (const sample of samples) {
         console.log(`== Sample ${++i} =======================`);
-        console.log(printer.debugPrint(sample));
+        console.log(printer.printASCII(sample));
     }
 }
 

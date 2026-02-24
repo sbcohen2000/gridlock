@@ -109,7 +109,7 @@ export function partition(s) {
  * @param {Grid<A>} g The grid.
  * @returns {string} A string representation of the grid.
  */
-export function debugPrint(g) {
+export function printASCII(g) {
     // Build a 2d array of characters with the same size as the
     // dimensions of the outermost grid node.
     const chars = [];
@@ -265,14 +265,14 @@ function findi(f, as, skip) {
 /**
  * Parse a `Grid` from a string.
  *
- * See the description in `debugPrint` for how to interpret the
+ * See the description in `printASCII` for how to interpret the
  * drawings that this function can parse.
  *
  * @param {string} src The source to parse.
  * @returns {Grid<void>} The parsed grid.
  * @throws If a parse error occurred.
  */
-export function debugParse(src) {
+export function parseASCII(src) {
     // Match a horizontal edge in the table (a sequence of + or -
     // characters).  We use '^' and '$' to ensure that testing against
     // this regular expression will determine if the _entire_ string
@@ -295,7 +295,7 @@ export function debugParse(src) {
     };
 
     /**
-     * A recursive helper which behaves the same as debugParse, except
+     * A recursive helper which behaves the same as parseASCII, except
      * it takes as argument a list of lines, rather than a string.
      *
      * @param {string[]} rows

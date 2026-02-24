@@ -25,9 +25,9 @@ describe("transposeLines", () => {
     });
 });
 
-describe("debugPrint", () => {
+describe("printASCII", () => {
     it("Can print a leaf", () => {
-        const act = grid.debugPrint(grid.mk(2, 3));
+        const act = grid.printASCII(grid.mk(2, 3));
         const exp =
               "+-+\n" +
               "| |\n" +
@@ -37,7 +37,7 @@ describe("debugPrint", () => {
     });
 
     it("Can print a more complex tree", () => {
-        const act = grid.debugPrint({
+        const act = grid.printASCII({
             "type": "Horz",
             "dims": {
                 "width": 5,
@@ -86,12 +86,12 @@ describe("debugPrint", () => {
     });
 });
 
-describe("debugParse", () => {
+describe("parseASCII", () => {
     it("Can parse a small leaf", () => {
         const src =
               "++\n" +
               "++";
-        const g = grid.debugParse(src)
+        const g = grid.parseASCII(src)
         expect(g).to.deep.equal({
             type: "Leaf",
             dims: { width: 1, height: 1 }
@@ -104,7 +104,7 @@ describe("debugParse", () => {
               "| |\n" +
               "| |\n" +
               "+-+";
-        const g = grid.debugParse(src)
+        const g = grid.parseASCII(src)
         expect(g).to.deep.equal({
             type: "Leaf",
             dims: { width: 2, height: 3 }
@@ -117,7 +117,7 @@ describe("debugParse", () => {
               "| |   |\n" +
               "+-+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         expect(g).to.deep.equal({
             type: "Horz",
             dims: { width: 6, height: 2 },
@@ -138,7 +138,7 @@ describe("debugParse", () => {
               "+-----+\n" +
               "+-----+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         expect(g).to.deep.equal({
             type: "Vert",
             dims: { width: 6, height: 2 },
@@ -160,7 +160,7 @@ describe("debugParse", () => {
               "| |   |\n" +
               "+-+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         expect(g).to.deep.equal({
             type: "Horz",
             dims: { width: 6, height: 3 },
@@ -190,7 +190,7 @@ describe("debugParse", () => {
               "|a| b |\n" +
               "+-+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         const a = grid.findLeafWithLabel(g, "a");
         expect(a.dims).to.deep.equal({ width: 2, height: 3 });
 
@@ -201,21 +201,21 @@ describe("debugParse", () => {
         expect(c).to.be.undefined;
     });
 
-    it("It can parse trees printed by debugPrint", () => {
+    it("It can parse trees printed by printASCII", () => {
         fc.assert(
             fc.property(arbg.grid.tree, (g0) => {
-                const src0 = grid.debugPrint(g0);
-                const g1 = grid.debugParse(src0);
-                const src1 = grid.debugPrint(g1);
+                const src0 = grid.printASCII(g0);
+                const g1 = grid.parseASCII(src0);
+                const src1 = grid.printASCII(g1);
                 expect(src0).to.equal(src1);
             }),
             {
                 reporter(out) {
                     if(!out.failed) return;
                     const genericErrorMessage = fc.defaultReportMessage(out);
-                    const src0 = grid.debugPrint(out.counterexample[0]);
-                    const g1   = grid.debugParse(src0);
-                    const src1 = grid.debugPrint(g1);
+                    const src0 = grid.printASCII(out.counterexample[0]);
+                    const g1   = grid.parseASCII(src0);
+                    const src1 = grid.printASCII(g1);
 
                     throw new Error(`${genericErrorMessage}\nOriginal grid:\n${src0}\nAs parsed:\n${src1}`);
                 }
@@ -307,7 +307,7 @@ describe("constructDependencyTrees", () => {
               "|  | c |\n" +
               "+--+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         const deps = grid.constructDependencyTrees(g);
 
         expect(grid.debugPrintDeps(deps))
@@ -322,7 +322,7 @@ describe("constructDependencyTrees", () => {
               "| c | d |\n" +
               "+---+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         const deps = grid.constructDependencyTrees(g);
 
         expect(grid.debugPrintDeps(deps))
@@ -425,9 +425,9 @@ describe("modifyWidth", () => {
               "| |   |\n" +
               "+-+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         await grid.modifyWidth(g, 2, g.left, glpk);
-        expect(grid.debugPrint(g)).to.equal(
+        expect(grid.printASCII(g)).to.equal(
             "+---+---+\n" +
             "|   +---+\n" +
             "|   |   |\n" +
@@ -443,9 +443,9 @@ describe("modifyWidth", () => {
               "| |   |\n" +
               "+-+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         await grid.modifyWidth(g, 2, g.right.left, glpk);
-        expect(grid.debugPrint(g)).to.equal(
+        expect(grid.printASCII(g)).to.equal(
             "+-+-----+\n" +
             "| +-----+\n" +
             "| |     |\n" +
@@ -461,9 +461,9 @@ describe("modifyWidth", () => {
               "| |   |\n" +
               "+-+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         await grid.modifyWidth(g, 2, g.right.right, glpk);
-        expect(grid.debugPrint(g)).to.equal(
+        expect(grid.printASCII(g)).to.equal(
             "+-+-----+\n" +
             "| +-----+\n" +
             "| |     |\n" +
@@ -501,7 +501,7 @@ describe("modifyWidth", () => {
               "|z|w |b|\n" +
               "+-+--+-+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
 
         const a = grid.findLeafWithLabel(g, "a");
         const b = grid.findLeafWithLabel(g, "b");
@@ -530,7 +530,7 @@ describe("modifyWidth", () => {
               "| |    | |\n" +
               "+-+----+-+";
 
-        expect(grid.debugPrint(g)).to.be.oneOf([alt1, alt2]);
+        expect(grid.printASCII(g)).to.be.oneOf([alt1, alt2]);
         expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
 
         // Increase the width of leaf `a` by one. This should induce a
@@ -554,7 +554,7 @@ describe("modifyWidth", () => {
               "| |    |  |\n" +
               "+-+----+--+";
 
-        expect(grid.debugPrint(g)).to.be.oneOf([alt3, alt4]);
+        expect(grid.printASCII(g)).to.be.oneOf([alt3, alt4]);
         expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
     });
 
@@ -593,9 +593,9 @@ describe("modifyHeight", () => {
               "| |   |\n" +
               "+-+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         grid.modifyHeight(g, 2, g.right.left);
-        expect(grid.debugPrint(g)).to.equal(
+        expect(grid.printASCII(g)).to.equal(
             "+-+---+\n" +
             "| |   |\n" +
             "| |   |\n" +
@@ -612,9 +612,9 @@ describe("modifyHeight", () => {
               "| |   |\n" +
               "+-+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         grid.modifyHeight(g, 2, g.right.right);
-        expect(grid.debugPrint(g)).to.equal(
+        expect(grid.printASCII(g)).to.equal(
             "+-+---+\n" +
             "| +---+\n" +
             "| |   |\n" +
@@ -631,9 +631,9 @@ describe("modifyHeight", () => {
               "| |   |\n" +
               "+-+---+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         grid.modifyHeight(g, 2, g.left);
-        expect(grid.debugPrint(g)).to.equal(
+        expect(grid.printASCII(g)).to.equal(
             "+-+---+\n" +
             "| |   |\n" +
             "| |   |\n" +
@@ -673,7 +673,7 @@ describe("distanceToLeftEdge", () => {
         let src =
             "+-+--+---+----+\n" +
             "+-+--+---+----+"
-        let g = grid.debugParse(src);
+        let g = grid.parseASCII(src);
 
         expect(grid.distanceToLeftEdge(g, g.left)).to.equal(0);
         expect(grid.distanceToLeftEdge(g, g.right.left)).to.equal(2);
@@ -690,7 +690,7 @@ describe("findLeafLocation", () => {
               "| |\n" +
               "+-+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         expect(grid.findLeafLocation(g, g)).to.deep.equal({ x: 0, y: 0 });
     });
 
@@ -704,7 +704,7 @@ describe("findLeafLocation", () => {
               "|c | |\n" +
               "+--+-+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         const a = grid.findLeafWithLabel(g, "a");
         const b = grid.findLeafWithLabel(g, "b");
         const c = grid.findLeafWithLabel(g, "c");
@@ -724,7 +724,7 @@ describe("leafUnderPoint", () => {
             "|c|d|\n" +
             "+-+-+";
 
-        const g = grid.debugParse(src);
+        const g = grid.parseASCII(src);
         const a = grid.findLeafWithLabel(g, "a");
         const b = grid.findLeafWithLabel(g, "b");
         const c = grid.findLeafWithLabel(g, "c");
