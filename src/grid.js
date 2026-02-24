@@ -967,3 +967,40 @@ export function leafUnderPoint(g, p) {
     }
     }
 }
+
+/**
+ * Remove from the grid all leaf nodes which have zero width or
+ * height.
+ *
+ * @template A
+ * @param {Grid<A>} g The grid whose empty leaves to remove.
+ * @returns {[Grid<A> | undefined, Leaf<A>[]]} The new grid, along with a list of
+ *                                             the removed leaves.
+ */
+export function removeEmptyLeaves(g) {
+    switch(g.type) {
+    case "Vert":
+    case "Horz": {
+        const [left,   removedFromLeft] = removeEmptyLeaves(g.left);
+        const [right, removedFromRight] = removeEmptyLeaves(g.right);
+        const allRemoved = removedFromLeft.concat(removedFromRight);
+
+        if(!left) {
+            return [right, allRemoved];
+        }
+
+        if(!right) {
+            return [left, allRemoved];
+        }
+
+        return [{...g, left, right}, allRemoved];
+    }
+    case "Leaf": {
+        if(g.dims.width === 0 || g.dims.height === 0) {
+            return [undefined, [g]];
+        } else {
+            return [g, []];
+        }
+    }
+    }
+}

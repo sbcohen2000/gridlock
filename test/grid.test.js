@@ -747,3 +747,58 @@ describe("leafUnderPoint", () => {
         expect(grid.leafUnderPoint(g, point.mkP2(3, 3))).to.equal(d);
     });
 });
+
+describe("removeEmptyLeaves", () => {
+    it("Removes a child with zero width", () => {
+        const left = { type: "Leaf", dims: { width: 0, height: 2 } };
+        const right = { type: "Leaf", dims: { width: 3, height: 2 } };
+        const g = {
+            type: "Horz",
+            dims: { width: 3, height: 2 },
+            left,
+            right
+        };
+
+        const [result, removed] = grid.removeEmptyLeaves(g);
+        expect(result).to.equal(right);
+        expect(removed).to.deep.equal([left]);
+    });
+
+    it("Removes nested empty leaves", () => {
+        const innerRight = { type: "Leaf", dims: { width: 0, height: 3 } };
+        const outerRight = { type: "Leaf", dims: { width: 4, height: 0 } };
+        const survivor = { type: "Leaf", dims: { width: 4, height: 3 } };
+        const g = {
+            type: "Vert",
+            dims: { width: 4, height: 5 },
+            left: {
+                type: "Horz",
+                dims: { width: 4, height: 3 },
+                left: survivor,
+                right: innerRight
+            },
+            right: outerRight
+        };
+
+        const [result, removed] = grid.removeEmptyLeaves(g);
+        expect(result).to.equal(survivor);
+        expect(removed).to.have.members([innerRight, outerRight]);
+        expect(removed).to.have.lengthOf(2);
+    });
+
+    it("Removes both children when both are empty", () => {
+        const left = { type: "Leaf", dims: { width: 0, height: 3 } };
+        const right = { type: "Leaf", dims: { width: 0, height: 3 } };
+        const g = {
+            type: "Horz",
+            dims: { width: 0, height: 3 },
+            left,
+            right
+        };
+
+        const [result, removed] = grid.removeEmptyLeaves(g);
+        expect(result).to.be.undefined;
+        expect(removed).to.have.members([left, right]);
+        expect(removed).to.have.lengthOf(2);
+    });
+});
