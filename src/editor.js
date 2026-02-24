@@ -162,9 +162,20 @@ export async function insertString(s, st, glpk) {
 }
 
 /**
- * Remove the line referenced by the current point, putting the point
- * on the last character of the previous line, even if that line belongs
- * to a different cell.
+ * Put the point after the last character of the current line, even if
+ * that line belongs to a different cell.
+ *
+ * If there is a multi-selection, this function does nothing.
+ *
+ * @param {EditorState} st The editor state.
+ */
+export function putPointAtEndOfGlobalLine(st) {
+    throw new Error("TODO");
+}
+
+/**
+ * Put the point on the last character of the previous line, even if
+ * that line belongs to a different cell.
  *
  * If there is a multi-selection, this function does nothing. If there
  * are no lines above the line referred to by the point, this function
@@ -172,13 +183,47 @@ export async function insertString(s, st, glpk) {
  *
  * @param {EditorState} st The editor state.
  */
-export function removeLineAndPutPointOnPrevLine(st) {
+export function putPointAtEndOfGlobalPrevLine(st) {
+    if(st.selection.type === "Multi") {
+        return;
+    }
+}
+
+/**
+ * Remove the line referred to by the current point, across all
+ * leaves, removing newly empty leaves.
+ *
+ * If the current selection is a multi-selection, then this function
+ * does nothing.
+ *
+ * @param {EditorState} st The editor state.
+ */
+export function removeGlobalLine(st) {
     if(st.selection.type === "Multi") {
         return;
     }
 
-    // TODO
-    return;
+    throw new Error("TODO");
+}
+
+/**
+ * Remove the line referred to by the current point, across all
+ * leaves, removing newly empty leaves, but only if the line is
+ * empty across all leaves.
+ *
+ * If the current selection is a multi-selection, then this function
+ * does nothing.
+ *
+ * @param {EditorState} st The editor state.
+ * @returns {boolean} `true` if the line was removed, and `false`
+ *                    otherwise.
+ */
+export function removeGlobalLineIfEmpty(st) {
+    if(st.selection.type === "Multi") {
+        return false;
+    }
+
+    throw new Error("TODO");
 }
 
 /**
@@ -200,7 +245,14 @@ export function removeCharBeforePoint(st) {
 
     if(line === "") {
         // Remove the line, if we can.
-        return removeLineAndPutPointOnPrevLine(st);
+        const didRemove = removeGlobalLineIfEmpty(st);
+        if(didRemove) {
+            return;
+        } else {
+            // Move the point to the end of the global line.
+            throw new Error("TODO");
+            return;
+        }
     } else if(sel.pt.x === 0) {
         return;
     }
@@ -242,7 +294,7 @@ async function insertLineAtLeaf(leaf, row, s, st, glpk) {
  * @param {EditorState} st   The editor state.
  * @param {any}         glpk The glpk instance.
  */
-export async function makeGlobalNewline(s, st, glpk) {
+export async function insertGlobalNewline(s, st, glpk) {
     if(st.selection.type === "Multi") {
         return;
     }

@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     state.newRowBelowPoint(st);
                     setDirty();
                 } else {
-                    await state.makeGlobalNewline("", st, glpk);
+                    await state.insertGlobalNewline("", st, glpk);
                     setDirty();
                 }
             } break;

@@ -95,18 +95,92 @@ describe("insertString", () => {
     });
 });
 
-describe("removeLineAndPutPointOnPrevLine", () => {
+describe("insertGlobalNewline", () => {
+    it("Can insert a newline at the end of a single-line leaf", async () => {
+        const src =
+              "hello\n" +
+              "+-----+\n" +
+              "+-----+";
 
-});
+        const st = serialize.editorStateFromString(src);
+        // Update the selection to point past the last letter in
+        // `hello`.
+        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
+        state.updateSingleSelection(leaf, point.mkP2(5, 0), st);
+        await state.insertGlobalNewline("next line", st, glpk);
 
-describe("removeCharBeforePoint", () => {
+        const exp =
+              "hello\n"        +
+              "next line\n"    +
+              "+--------+\n" +
+              "|        |\n" +
+              "+--------+"
 
-});
+        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+    });
 
-describe("makeGlobalNewline", () => {
+    it("Can insert a newline at the end of a multi-leaf document", async () => {
+        const src =
+              "hellothere\n"  +
+              "+----+----+\n" +
+              "+----+----+";
 
-});
+        const st = serialize.editorStateFromString(src);
+        // Update the selection to point past the last letter in
+        // `hello`.
+        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
+        state.updateSingleSelection(leaf, point.mkP2(5, 0), st);
+        await state.insertGlobalNewline("world", st, glpk);
 
-describe("newRowBelowPoint", () => {
+        const exp =
+              "hellothere\n"  +
+              "world\n"       +
+              "+----+----+\n" +
+              "|    |    |\n" +
+              "+----+----+";
 
+        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+    });
+
+    it("Can split a row of leaves.", async () => {
+        const src =
+              "one  two  three\n"  +
+              "one  two  three\n"  +
+              "+----+----+----+\n" +
+              "|    |    |    |\n" +
+              "+----+----+----+";
+
+        const st = serialize.editorStateFromString(src);
+        // Update the selection to point past the last letter in the
+        // top `one`.
+        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
+        state.updateSingleSelection(leaf, point.mkP2(3, 0), st);
+        await state.insertGlobalNewline("", st, glpk);
+
+        const exp0 =
+              "one  two  three\n"  +
+              "\n"                 +
+              "one  two  three\n"  +
+              "+----+----+----+\n" +
+              "|    |    |    |\n" +
+              "|    |    |    |\n" +
+              "+----+----+----+";
+
+        expect(serialize.printCellGrid(st.grid)).to.equal(exp0);
+
+        // Ensure that the point is in the correct place by inserting
+        // some text.
+        await state.insertString("some text", st, glpk);
+
+        const exp1 =
+              "one      two  three\n"  +
+              "some text\n"            +
+              "one      two  three\n"  +
+              "+--------+----+----+\n" +
+              "|        |    |    |\n" +
+              "|        |    |    |\n" +
+              "+--------+----+----+";
+
+        expect(serialize.printCellGrid(st.grid)).to.equal(exp1);
+    });
 });
