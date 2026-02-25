@@ -100,7 +100,7 @@ function viewEditorState(root, st) {
                     rect.left + rect.width * pctFilled
                 ));
 
-                state.updateSingleSelection(leaf, point.mkP2(i, thisRow), st);
+                state.setSelectionPoint(leaf, point.mkP2(i, thisRow), st);
                 viewEditorState(root, st);
             };
             leafElem.appendChild(lineElem);

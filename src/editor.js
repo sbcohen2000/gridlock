@@ -68,7 +68,7 @@ export function mk(g) {
  * @param {point.P2}        pt   The point within the `leaf` to select.
  * @param {EditorState}     st   The current editor state.
  */
-export function updateSingleSelection(leaf, pt, st) {
+export function setSelectionPoint(leaf, pt, st) {
     // Ensure that the row and column are within bounds of the line.
     pt.y = Math.max(0, Math.min(pt.y, leaf.data.lines.length - 1));
     pt.x = Math.max(0, Math.min(pt.x, leaf.data.lines[pt.y].length));
@@ -188,7 +188,7 @@ function* eachLeafOnRow(row, st) {
  */
 function findGlobalPoint(g, sel) {
     return point.offset(
-        grid.findLeafLocation(g, sel.leaf),
+        grid.posOfLeaf(g, sel.leaf),
         point.mkV2(sel.pt.x, sel.pt.y)
     );
 }
@@ -214,7 +214,7 @@ export function putPointAtEndOfGlobalLine(st) {
         return;
     }
 
-    const lastPos = grid.findLeafLocation(st.grid, last);
+    const lastPos = grid.posOfLeaf(st.grid, last);
     const relRow = globalRow - lastPos.y;
     const col = last.data.lines[relRow].length;
 
@@ -237,6 +237,8 @@ export function putPointAtEndOfGlobalPrevLine(st) {
     if(st.selection.type === "Multi") {
         return;
     }
+
+    // First, put the point on the beginning of the previous line.
 }
 
 /**
@@ -380,7 +382,7 @@ export async function insertGlobalNewline(s, st, glpk) {
  *
  * @param {EditorState} st The editor state.
  */
-export function newRowBelowPoint(st) {
+export function insertRowBelowPoint(st) {
     if(st.selection.type === "Multi") {
         return;
     }

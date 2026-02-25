@@ -191,13 +191,13 @@ describe("parseASCII", () => {
               "+-+---+";
 
         const g = grid.parseASCII(src);
-        const a = grid.findLeafWithLabel(g, "a");
+        const a = grid.leafWithLabel(g, "a");
         expect(a.dims).to.deep.equal({ width: 2, height: 3 });
 
-        const b = grid.findLeafWithLabel(g, "b");
+        const b = grid.leafWithLabel(g, "b");
         expect(b.dims).to.deep.equal({ width: 4, height: 2 });
 
-        const c = grid.findLeafWithLabel(g, "c");
+        const c = grid.leafWithLabel(g, "c");
         expect(c).to.be.undefined;
     });
 
@@ -234,7 +234,7 @@ describe("arbitrary-grid", () => {
     });
 });
 
-describe("findParentChain", () => {
+describe("parentChain", () => {
     it("Can find the parent chain of a simple tree", () => {
         const tree = {
             type: "Horz",
@@ -258,7 +258,7 @@ describe("findParentChain", () => {
         };
 
         const focus = tree.right.left;
-        const chain = grid.findParentChain(tree, focus);
+        const chain = grid.parentChain(tree, focus);
 
         expect(chain).to.deep.equal([
             tree.right, tree
@@ -292,7 +292,7 @@ describe("findParentChain", () => {
             dims: { width: 4, height: 2 }
         };
 
-        const chain = grid.findParentChain(tree, irrelevant);
+        const chain = grid.parentChain(tree, irrelevant);
 
         expect(chain).to.be.undefined;
     });
@@ -503,9 +503,9 @@ describe("modifyWidth", () => {
 
         const g = grid.parseASCII(src);
 
-        const a = grid.findLeafWithLabel(g, "a");
-        const b = grid.findLeafWithLabel(g, "b");
-        const x = grid.findLeafWithLabel(g, "x");
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
+        const x = grid.leafWithLabel(g, "x");
         const deps = grid.constructDependencyTrees(g);
 
         // Increase the width of leaf `x` by two. This should induce a
@@ -682,7 +682,7 @@ describe("distanceToLeftEdge", () => {
     });
 });
 
-describe("findLeafLocation", () => {
+describe("posOfLeaf", () => {
     it("Can find the location of a root leaf", () => {
         const src =
               "+-+\n" +
@@ -691,7 +691,7 @@ describe("findLeafLocation", () => {
               "+-+";
 
         const g = grid.parseASCII(src);
-        expect(grid.findLeafLocation(g, g)).to.deep.equal({ x: 0, y: 0 });
+        expect(grid.posOfLeaf(g, g)).to.deep.equal({ x: 0, y: 0 });
     });
 
     it("Can find the location of leaves in a nested grid", () => {
@@ -705,13 +705,13 @@ describe("findLeafLocation", () => {
               "+--+-+";
 
         const g = grid.parseASCII(src);
-        const a = grid.findLeafWithLabel(g, "a");
-        const b = grid.findLeafWithLabel(g, "b");
-        const c = grid.findLeafWithLabel(g, "c");
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
+        const c = grid.leafWithLabel(g, "c");
 
-        expect(grid.findLeafLocation(g, a)).to.deep.equal({ x: 0, y: 0 });
-        expect(grid.findLeafLocation(g, b)).to.deep.equal({ x: 3, y: 0 });
-        expect(grid.findLeafLocation(g, c)).to.deep.equal({ x: 0, y: 4 });
+        expect(grid.posOfLeaf(g, a)).to.deep.equal({ x: 0, y: 0 });
+        expect(grid.posOfLeaf(g, b)).to.deep.equal({ x: 3, y: 0 });
+        expect(grid.posOfLeaf(g, c)).to.deep.equal({ x: 0, y: 4 });
     });
 });
 
@@ -725,10 +725,10 @@ describe("leafUnderPoint", () => {
             "+-+-+";
 
         const g = grid.parseASCII(src);
-        const a = grid.findLeafWithLabel(g, "a");
-        const b = grid.findLeafWithLabel(g, "b");
-        const c = grid.findLeafWithLabel(g, "c");
-        const d = grid.findLeafWithLabel(g, "d");
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
+        const c = grid.leafWithLabel(g, "c");
+        const d = grid.leafWithLabel(g, "d");
 
         // Points in 'a' (top-left, width=2, height=2)
         expect(grid.leafUnderPoint(g, point.mkP2(0, 0))).to.equal(a);
@@ -839,13 +839,13 @@ describe("reassociateLeaves", () => {
                 "+-----+--+";
 
             const g  = grid.parseASCII(src);
-            const la = grid.findLeafWithLabel(g, "a");
-            const lb = grid.findLeafWithLabel(g, "b");
-            const lc = grid.findLeafWithLabel(g, "c");
-            const ld = grid.findLeafWithLabel(g, "d");
-            const le = grid.findLeafWithLabel(g, "e");
-            const lf = grid.findLeafWithLabel(g, "f");
-            const lg = grid.findLeafWithLabel(g, "g");
+            const la = grid.leafWithLabel(g, "a");
+            const lb = grid.leafWithLabel(g, "b");
+            const lc = grid.leafWithLabel(g, "c");
+            const ld = grid.leafWithLabel(g, "d");
+            const le = grid.leafWithLabel(g, "e");
+            const lf = grid.leafWithLabel(g, "f");
+            const lg = grid.leafWithLabel(g, "g");
 
             const leaves = grid.allLeavesWithPosition(g);
             const { lrSweeps, udSweeps } = grid.compileSweepEvents(leaves);
@@ -902,8 +902,8 @@ describe("checkLeavesAdjacent", () => {
             "|a| b|\n" +
             "+-+--+"
         );
-        const a = grid.findLeafWithLabel(g, "a");
-        const b = grid.findLeafWithLabel(g, "b");
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
         expect(grid.checkLeavesAdjacent(g, a, b)).to.be.true;
         expect(grid.checkLeavesAdjacent(g, b, a)).to.be.true;
     });
@@ -916,8 +916,8 @@ describe("checkLeavesAdjacent", () => {
             "|b |\n" +
             "+--+"
         );
-        const a = grid.findLeafWithLabel(g, "a");
-        const b = grid.findLeafWithLabel(g, "b");
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
         expect(grid.checkLeavesAdjacent(g, a, b)).to.be.true;
         expect(grid.checkLeavesAdjacent(g, b, a)).to.be.true;
     });
@@ -928,8 +928,8 @@ describe("checkLeavesAdjacent", () => {
             "|a|b|c|\n" +
             "+-+-+-+"
         );
-        const a = grid.findLeafWithLabel(g, "a");
-        const c = grid.findLeafWithLabel(g, "c");
+        const a = grid.leafWithLabel(g, "a");
+        const c = grid.leafWithLabel(g, "c");
         expect(grid.checkLeavesAdjacent(g, a, c)).to.be.false;
     });
 
@@ -941,9 +941,9 @@ describe("checkLeavesAdjacent", () => {
             "|  |c |\n" +
             "+--+--+"
         );
-        const a = grid.findLeafWithLabel(g, "a");
-        const b = grid.findLeafWithLabel(g, "b");
-        const c = grid.findLeafWithLabel(g, "c");
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
+        const c = grid.leafWithLabel(g, "c");
         expect(grid.checkLeavesAdjacent(g, a, b)).to.be.false;
         expect(grid.checkLeavesAdjacent(g, a, c)).to.be.false;
         expect(grid.checkLeavesAdjacent(g, b, c)).to.be.true;
@@ -976,8 +976,8 @@ describe("mergeLeaves", () => {
               "+-+---+";
 
         const g = grid.parseASCII(src);
-        const la = grid.findLeafWithLabel(g, "a");
-        const lb = grid.findLeafWithLabel(g, "b");
+        const la = grid.leafWithLabel(g, "a");
+        const lb = grid.leafWithLabel(g, "b");
 
         const exp =
               "+-----+\n" +
@@ -999,14 +999,14 @@ describe("mergeLeaves", () => {
             "+-----+--+";
 
         const g  = grid.parseASCII(src);
-        const lc = grid.findLeafWithLabel(g, "c");
-        const le = grid.findLeafWithLabel(g, "e");
+        const lc = grid.leafWithLabel(g, "c");
+        const le = grid.leafWithLabel(g, "e");
 
-        const lb = grid.findLeafWithLabel(g, "b");
-        const ld = grid.findLeafWithLabel(g, "d");
+        const lb = grid.leafWithLabel(g, "b");
+        const ld = grid.leafWithLabel(g, "d");
 
-        const lf = grid.findLeafWithLabel(g, "f");
-        const lg = grid.findLeafWithLabel(g, "g");
+        const lf = grid.leafWithLabel(g, "f");
+        const lg = grid.leafWithLabel(g, "g");
 
         // ----------------------------------------------------------
         let exp1 =

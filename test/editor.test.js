@@ -35,7 +35,7 @@ describe("insertString", () => {
         // Update the selection to point past the last letter in
         // `hello`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.updateSingleSelection(leaf, point.mkP2(5, 0), st);
+        state.setSelectionPoint(leaf, point.mkP2(5, 0), st);
         await state.insertString(" world", st, glpk);
 
         const exp =
@@ -57,7 +57,7 @@ describe("insertString", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point underneath the `h`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.updateSingleSelection(leaf, point.mkP2(0, 1), st);
+        state.setSelectionPoint(leaf, point.mkP2(0, 1), st);
         await state.insertString("world", st, glpk);
 
         {
@@ -100,7 +100,7 @@ describe("insertString", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point underneath the `h`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.updateSingleSelection(leaf, point.mkP2(0, 1), st);
+        state.setSelectionPoint(leaf, point.mkP2(0, 1), st);
         await state.insertString("A long second line", st, glpk);
 
         const exp =
@@ -158,7 +158,7 @@ describe("putPointAtEndOfGlobalLine", () => {
         const st = serialize.editorStateFromString(src);
         // Move to second row in the left leaf.
         const leftLeaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.updateSingleSelection(leftLeaf, point.mkP2(0, 1), st);
+        state.setSelectionPoint(leftLeaf, point.mkP2(0, 1), st);
 
         state.putPointAtEndOfGlobalLine(st);
 
@@ -181,7 +181,7 @@ describe("insertGlobalNewline", () => {
         // Update the selection to point past the last letter in
         // `hello`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.updateSingleSelection(leaf, point.mkP2(5, 0), st);
+        state.setSelectionPoint(leaf, point.mkP2(5, 0), st);
         await state.insertGlobalNewline("next line", st, glpk);
 
         const exp =
@@ -204,7 +204,7 @@ describe("insertGlobalNewline", () => {
         // Update the selection to point past the last letter in
         // `hello`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.updateSingleSelection(leaf, point.mkP2(5, 0), st);
+        state.setSelectionPoint(leaf, point.mkP2(5, 0), st);
         await state.insertGlobalNewline("world", st, glpk);
 
         const exp =
@@ -229,7 +229,7 @@ describe("insertGlobalNewline", () => {
         // Update the selection to point past the last letter in the
         // top `one`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.updateSingleSelection(leaf, point.mkP2(3, 0), st);
+        state.setSelectionPoint(leaf, point.mkP2(3, 0), st);
         await state.insertGlobalNewline("", st, glpk);
 
         const exp0 =

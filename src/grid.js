@@ -457,7 +457,7 @@ export function allLeavesWithPosition(g) {
  * @param {string} label
  * @returns {Leaf<A> | undefined}
  */
-export function findLeafWithLabel(g, label) {
+export function leafWithLabel(g, label) {
     return allLeaves(g).find(l => l.label === label);
 }
 
@@ -501,7 +501,7 @@ export function debugCheckGridDimsConsistency(g) {
  *                        of which is `g`.  If `focus` is not a child
  *                        of `g`, then undefined is returned.
  */
-export function findParentChain(g, focus) {
+export function parentChain(g, focus) {
     /**
      * @type {Split<A>[]}
      */
@@ -544,9 +544,9 @@ export function findParentChain(g, focus) {
  *                                 corner, or `undefined` if the
  *                                 `focus`ed node couldn't be found.
  */
-export function findLeafLocation(g, focus) {
+export function posOfLeaf(g, focus) {
     let p = point.mkOrigin();
-    const chain = findParentChain(g, focus);
+    const chain = parentChain(g, focus);
     if(chain === undefined) {
         return undefined;
     }
@@ -613,7 +613,7 @@ export function modifyHeight(g, n, focus) {
     // Walk up the parent chain, performing repairs to the dimensions
     // along the way.
     let last = focus;
-    const chain = findParentChain(g, focus);
+    const chain = parentChain(g, focus);
     for(const splt of chain) {
         switch(splt.type) {
         case "Horz": {
@@ -647,7 +647,7 @@ export function modifyHeight(g, n, focus) {
  *                   left margin.
  */
 export function distanceToLeftEdge(g, focus) {
-    const chain = findParentChain(g, focus);
+    const chain = parentChain(g, focus);
 
     let last = focus;
     let d = 0;
@@ -1262,8 +1262,8 @@ function _checkLeavesAdjacent([leafA, leafALoc], [leafB, leafBLoc]) {
  * @returns {boolean}
  */
 export function checkLeavesAdjacent(g, a, b) {
-    const aLoc = findLeafLocation(g, a);
-    const bLoc = findLeafLocation(g, b);
+    const aLoc = posOfLeaf(g, a);
+    const bLoc = posOfLeaf(g, b);
     return _checkLeavesAdjacent([a, aLoc], [b, bLoc]);
 }
 
@@ -1295,8 +1295,8 @@ export function mergeLeaves(g, leafA, leafB, mergeData, mergeLabel) {
         mergeLabel = (a, _) => a;
     }
 
-    const leafALoc = findLeafLocation(g, leafA);
-    const leafBLoc = findLeafLocation(g, leafB);
+    const leafALoc = posOfLeaf(g, leafA);
+    const leafBLoc = posOfLeaf(g, leafB);
 
     if(!_checkLeavesAdjacent([leafA, leafALoc], [leafB, leafBLoc])) {
         return g;
