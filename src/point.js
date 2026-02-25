@@ -63,6 +63,10 @@ export function mkV2(dx, dy) {
  * @returns {number}
  */
 export function lerp(omin, omax, imin, xx, imax) {
+    if(imax - imin === 0) {
+        return omin;
+    }
+
     const t = (xx - imin) / (imax - imin);
     return (1 - t) * omin + t * omax;
 }

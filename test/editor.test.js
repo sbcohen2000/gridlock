@@ -60,14 +60,33 @@ describe("insertString", () => {
         state.updateSingleSelection(leaf, point.mkP2(0, 1), st);
         await state.insertString("world", st, glpk);
 
-        const exp =
-              "hello\n"   +
-              "world\n"   +
-              "+-----+\n" +
-              "|     |\n" +
-              "+-----+";
+        {
+            const exp =
+                  "hello\n"   +
+                  "world\n"   +
+                  "+-----+\n" +
+                  "|     |\n" +
+                  "+-----+";
 
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+        }
+
+        // Insert an additional letter to ensure that the cursor is where
+        // we expect (at the end of the new line).
+
+        {
+            state.insertString("x", st, glpk);
+
+            const exp =
+                  "hello\n"   +
+                  "worldx\n"  +
+                  "+-----+\n" +
+                  "|     |\n" +
+                  "+-----+";
+
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+        }
+
     });
 
     it("Can insert a string in a multi-leaf document", async () => {
@@ -93,6 +112,62 @@ describe("insertString", () => {
 
         expect(serialize.printCellGrid(st.grid)).to.equal(exp);
     });
+});
+
+describe("putPointAtEndOfGlobalLine", () => {
+    it("Moves to end of line in a single-leaf document", () => {
+        const src =
+              "hello\n" +
+              "+-----+\n" +
+              "+-----+";
+
+        const st = serialize.editorStateFromString(src);
+        // Point starts at (0, 0).
+        state.putPointAtEndOfGlobalLine(st);
+
+        expect(st.selection.type).to.equal("Single");
+        expect(st.selection.pt.x).to.equal(5);
+        expect(st.selection.pt.y).to.equal(0);
+    });
+
+    it("Moves to end of rightmost leaf on the same row", () => {
+        const src =
+              "hellothere\n" +
+              "+----+----+\n" +
+              "+----+----+";
+
+        const st = serialize.editorStateFromString(src);
+        // Point starts at (0, 0) in the left leaf.
+        state.putPointAtEndOfGlobalLine(st);
+
+        // Should land at end of "there" (col 5) in the right leaf.
+        const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(5, 0));
+        expect(st.selection.leaf).to.equal(rightLeaf);
+        expect(st.selection.pt.x).to.equal(5);
+        expect(st.selection.pt.y).to.equal(0);
+    });
+
+    it("Stays on the correct row in a multi-row document", () => {
+        const src =
+              "top   top\n"    +
+              "bot   bot\n"    +
+              "+-----+---+\n"  +
+              "|     |   |\n"  +
+              "+-----+---+";
+
+        const st = serialize.editorStateFromString(src);
+        // Move to second row in the left leaf.
+        const leftLeaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
+        state.updateSingleSelection(leftLeaf, point.mkP2(0, 1), st);
+
+        state.putPointAtEndOfGlobalLine(st);
+
+        const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(6, 0));
+        expect(st.selection.leaf).to.equal(rightLeaf);
+        expect(st.selection.pt.x).to.equal(3);
+        expect(st.selection.pt.y).to.equal(1);
+    });
+
 });
 
 describe("insertGlobalNewline", () => {

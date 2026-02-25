@@ -1,6 +1,6 @@
 import * as grid from "./grid.js";
 import * as point from "./point.js";
-import GLPK from "glpk.js";
+import * as util from "./util.js";
 
 /**
  * @typedef {Object} Cell
@@ -162,6 +162,38 @@ export async function insertString(s, st, glpk) {
 }
 
 /**
+ * Return an iterator over the leaves on `row`.
+ *
+ * @param {number} row
+ * @param {EditorState} st The editor state.
+ * @returns {IteratorObject<grid.Leaf<Cell>>}
+ */
+function* eachLeafOnRow(row, st) {
+    let curCol = 0;
+    while(curCol < st.grid.dims.width) {
+        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(curCol, row));
+        yield leaf;
+        curCol += leaf.dims.width;
+    }
+}
+
+/**
+ * Find the row and column of the current selection in global
+ * coordinate space.
+ *
+ * @param {grid.Grid<Cell>} g The grid.
+ * @param {SingleSelection} sel The current (single) selection.
+ * @returns {point.P2} The location of the single selection, in global
+ *                     coordinates.
+ */
+function findGlobalPoint(g, sel) {
+    return point.offset(
+        grid.findLeafLocation(g, sel.leaf),
+        point.mkV2(sel.pt.x, sel.pt.y)
+    );
+}
+
+/**
  * Put the point after the last character of the current line, even if
  * that line belongs to a different cell.
  *
@@ -170,7 +202,25 @@ export async function insertString(s, st, glpk) {
  * @param {EditorState} st The editor state.
  */
 export function putPointAtEndOfGlobalLine(st) {
-    throw new Error("TODO");
+    if(st.selection.type === "Multi") {
+        return;
+    }
+
+    const globalRow = findGlobalPoint(st.grid, st.selection).y;
+    const last = util.iterLast(eachLeafOnRow(globalRow, st));
+    if(last === undefined) {
+        // Somehow, there's no last child on this row, so do nothing.
+        console.warn(`No last child on row ${globalRow}`);
+        return;
+    }
+
+    const lastPos = grid.findLeafLocation(st.grid, last);
+    const relRow = globalRow - lastPos.y;
+    const col = last.data.lines[relRow].length;
+
+    st.selection.leaf = last;
+    st.selection.pt.y = relRow;
+    st.selection.pt.x = col;
 }
 
 /**
@@ -300,14 +350,8 @@ export async function insertGlobalNewline(s, st, glpk) {
     }
 
     // Find the location of the cursor in the global coordinate space.
-    const globalPt =
-          point.offset(
-              grid.findLeafLocation(st.grid, st.selection.leaf),
-              point.mkV2(st.selection.pt.x, st.selection.pt.y)
-          );
-
+    const globalPt = findGlobalPoint(st.grid, st.selection);
     let row = globalPt.y + 1;
-    let curCol = 0;
 
     // If there's no leaf underneath the point, we want to add a row
     // to the last line of each existing leaf. So, decrement `row`.
@@ -315,17 +359,10 @@ export async function insertGlobalNewline(s, st, glpk) {
     if(fstLeaf === undefined) --row;
 
     // Add a line to each leaf _at_ `row`.
-    //
-    // Note that we must do this one-at-a-time and re-query the tree
-    // each time since the act of inserting a newline can shift the
-    // tree around.
     let isFst = true;
-    while(curCol < st.grid.dims.width) {
-        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(curCol, row));
+    for(const leaf of eachLeafOnRow(row, st)) {
         await insertLineAtLeaf(leaf, row, isFst ? s : "", st, glpk);
-
         isFst = false;
-        curCol += leaf.dims.width;
     }
 
     st.selection = {
