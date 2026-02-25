@@ -785,17 +785,17 @@ export function allPaths(tree) {
  * @param {Grid<A>} focus The grid cell to modify.
  * @param {any} glpk The GLPK instance to use for solving.
  * @param {Tree<A>[]} [deps] A set of dependency trees recording the
- *                           horizontal positioning relationships in
- *                           the grid. If it is not provided, a
- *                           dependency tree will be generated from
- *                           scratch.
+ *     horizontal positioning relationships in the grid. If it is not
+ *     provided, a dependency tree will be generated from scratch.
  * @param {Leaf<A>[][]} [constraints] Sets of leaves which should have
- *                                    the same relative position
- *                                    and/or same size after the width
- *                                    has been modified.
+ *     the same relative position and/or same size after the width has
+ *     been modified.
  * @returns {Promise<Grid<A>>} The grid.
  */
 export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
+    const sign = Math.sign(w);
+    w = Math.abs(w);
+
     if(deps === undefined) {
         deps = constructDependencyTrees(g);
     }
@@ -905,7 +905,7 @@ export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
     leaves.forEach((leaf, idx) => {
         const expand = result.result.vars[`e_${idx}`];
         if(expand > 0) {
-            leaf.dims.width += expand;
+            leaf.dims.width += expand * sign;
         }
     });
 
@@ -1482,4 +1482,31 @@ export function splitLeafHorizontally(g, focus, col, splitData, splitLabel) {
     }
 
     return g;
+}
+
+/**
+ * Delete the focused leaf. If the focused leaf is the root of the
+ * tree, the tree is returned unchanged.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} focus
+ * @param {any}     glpk
+ * @param {Tree<A>[]} [deps] A set of dependency trees recording the
+ *     horizontal positioning relationships in the grid. If it is not
+ *     provided, a dependency tree will be generated from scratch.
+ * @param {Leaf<A>[][]} [constraints] Sets of leaves which should have
+ *     the same relative position and/or same size after the width has
+ *     been modified.
+ * @returns {Promise<Grid<A>>} The grid.
+ */
+export async function deleteLeaf(g, focus, glpk, deps, constraints) {
+    if(g === focus) {
+        return g;
+    }
+
+    // Shrink the width of the focused node to zero, then collect
+    // empty leaves.
+    let g1 = await modifyWidth(g, -focus.dims.width, focus, glpk, deps, constraints);
+    return removeEmptyLeaves(g1)[0];
 }

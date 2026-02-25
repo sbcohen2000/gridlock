@@ -10,23 +10,55 @@ import * as state from "./state.js";
 import * as util from "../util.js";
 
 /**
+ * Update the last global column to the currently selected column.
+ *
+ * @param {state.EditingLeaf} st The current editor state.
+ */
+export function updateLastGlobalCol(st) {
+    const globalCol = findGlobalPoint(st).x;
+    st.singleSelection.lastGlobalCol = globalCol;
+}
+
+/**
  * Mutate the editor state so that it has a single selection
  * into the given `leaf` at position `pt`.
  *
- * @param {grid.Leaf<state.Cell>} leaf The leaf to select.
- * @param {point.P2}              pt   The point within the `leaf` to select.
- * @param {state.EditingLeaf}     st   The current editor state.
+ * @param {grid.Leaf<state.Cell>} leaf           The leaf to select.
+ * @param {point.P2}              pt             The point within the `leaf` to select.
+ * @param {state.EditingLeaf}     st             The current editor state.
+ * @param {number} [newGlobalCol] The new global column position. If
+ *    omitted, it is unchanged.
  */
-export function setSelectionPoint(leaf, pt, st) {
+export function putPointOnLocalPosition(leaf, pt, st, newGlobalCol) {
     // Ensure that the row and column are within bounds of the line.
     pt.y = Math.max(0, Math.min(pt.y, leaf.data.lines.length - 1));
     pt.x = Math.max(0, Math.min(pt.x, leaf.data.lines[pt.y].length));
 
     st.singleSelection = {
-        type: "Single",
+        ...st.singleSelection,
         leaf,
         pt
     };
+
+    if(newGlobalCol !== undefined) {
+        st.singleSelection.lastGlobalCol = newGlobalCol;
+    }
+}
+
+
+/**
+ * Try to put the point near to the `lastGlobalCol`, but do not leave
+ * the current leaf while trying to do so.
+ *
+ * @param {state.EditingLeaf} st The current editor state.
+ */
+export function putPointOnLastGlobalColumnInLeaf(st) {
+    // Find the location of the global column, relative to the
+    // currently selected leaf.
+    const leaf = st.singleSelection.leaf;
+    const leafPos = grid.posOfLeaf(st.grid, leaf);
+    const lastLocalCol = st.singleSelection.lastGlobalCol - leafPos.x;
+    putPointOnLocalPosition(leaf, point.mkP2(lastLocalCol, st.singleSelection.pt.y), st);
 }
 
 /**
@@ -34,16 +66,23 @@ export function setSelectionPoint(leaf, pt, st) {
  * point. If there isn't a leaf under the global point, this function
  * does nothing.
  *
- * @param {point.P2}    pt The global point to select.
+ * @param {point.P2}          pt The global point to select.
  * @param {state.EditingLeaf} st The current editor state.
+ * @param {boolean} [updateGlobalCol] If `true`, it updates the
+ *     `lastGlobalCol` property of the selection to the new point. If
+ *     it is omitted, it defaults to `true`.
  */
-export function putPointOnGlobalPosition(pt, st) {
+export function putPointOnGlobalPosition(pt, st, updateGlobalCol) {
+    if(updateGlobalCol === undefined) {
+        updateGlobalCol = true;
+    }
+
     const leaf       = grid.leafUnderPoint(st.grid, pt);
     if(!leaf) return;
 
     const leafPos    = grid.posOfLeaf(st.grid, leaf);
     const relLeafPos = point.mkP2(pt.x - leafPos.x, pt.y - leafPos.y);
-    setSelectionPoint(leaf, relLeafPos, st);
+    putPointOnLocalPosition(leaf, relLeafPos, st, updateGlobalCol ? pt.x : undefined);
 }
 
 /**
@@ -123,6 +162,23 @@ export function putPointAtStartOfGlobalLine(st) {
 }
 
 /**
+ * Put the point at the first character of the line in the current leaf.
+ *
+ * @param {state.EditingLeaf} st The editor state.
+ * @returns {boolean} `true` if the point moved, and `false` otherwise.
+ */
+export function putPointAtStartOfLine(st) {
+    if(st.singleSelection.pt.x === 0) {
+        st.singleSelection.lastGlobalCol = 0;
+        return false;
+    }
+
+    st.singleSelection.pt.x = 0;
+    updateLastGlobalCol(st);
+    return true;
+}
+
+/**
  * Put the point after the last character of the current line, even if
  * that line belongs to a different cell.
  *
@@ -147,6 +203,25 @@ export function putPointAtEndOfGlobalLine(st) {
 }
 
 /**
+ * Put the point at the end of the currently selected line of the leaf.
+ *
+ * @param {state.EditingLeaf} st The editor state.
+ * @returns {boolean} `true` if the point was moved, and `false` otherwise.
+ */
+export function putPointAtEndOfLine(st) {
+    const row    = st.singleSelection.pt.y;
+    const line   = st.singleSelection.leaf.data.lines[row];
+    const endCol = line.length;
+    if(st.singleSelection.pt.x === endCol) {
+        return false;
+    }
+    st.singleSelection.pt.x = endCol;
+
+    updateLastGlobalCol(st);
+    return true;
+}
+
+/**
  * Put the point directly below the current point, if possible, even
  * if the next row is not part of the current leaf.
  *
@@ -158,9 +233,31 @@ export function putPointOnNextGlobalLine(st) {
     }
 
     putPointOnGlobalPosition(
-        point.offset(st.singleSelection.pt, point.mkV2(0, 1)),
-        st
+        point.mkP2(
+            st.singleSelection.lastGlobalCol,
+            st.singleSelection.pt.y + 1
+        ),
+        st,
+        false
     );
+}
+
+/**
+ * Put the point on the next line of the current leaf.
+ *
+ * @param {state.EditingLeaf} st The editor state.
+ * @returns {boolean} `true` if the point was moved, and `false` otherwise.
+ */
+export function putPointOnNextLine(st) {
+    const localRow = st.singleSelection.pt.y;
+    if(localRow >= st.singleSelection.leaf.data.lines.length - 1) {
+        return false;
+    }
+
+    st.singleSelection.pt.y += 1;
+
+    putPointOnLastGlobalColumnInLeaf(st);
+    return true;
 }
 
 /**
@@ -175,9 +272,30 @@ export function putPointOnPrevGlobalLine(st) {
     }
 
     putPointOnGlobalPosition(
-        point.offset(st.singleSelection.pt, point.mkV2(0, -1)),
-        st
+        point.mkP2(
+            st.singleSelection.lastGlobalCol,
+            st.singleSelection.pt.y - 1
+        ),
+        st,
+        false
     );
+}
+
+/**
+ * Put the point on the previous line of the current leaf.
+ *
+ * @param {state.EditingLeaf} st The editor state.
+ * @returns {boolean} `true` if the point was moved, and `false` otherwise.
+ */
+export function putPointOnPrevLine(st) {
+    if(st.singleSelection.pt.y === 0) {
+        return false;
+    }
+
+    st.singleSelection.pt.y -= 1;
+
+    putPointOnLastGlobalColumnInLeaf(st);
+    return true;
 }
 
 /**
@@ -191,10 +309,29 @@ export function putPointOnNextGlobalCol(st) {
         return;
     }
 
-    putPointOnGlobalPosition(
-        point.offset(st.singleSelection.pt, point.mkV2(1, 0)),
-        st
-    );
+    putPointOnGlobalPosition(point.offset(st.singleSelection.pt, point.mkV2(1, 0)), st);
+}
+
+/**
+ * Put the point directly to the right of the current point, but not
+ * leaving the current leaf.
+ *
+ * @param {state.EditingLeaf} st
+ * @returns {boolean} `true` if the point moved, and `false` otherwise.
+ */
+export function putPointOnNextCol(st) {
+    const localRow = st.singleSelection.pt.y;
+    const localCol = st.singleSelection.pt.x;
+    const line     = st.singleSelection.leaf.data.lines[localRow];
+
+    if(localCol === line.length) {
+        return false;
+    }
+
+    st.singleSelection.pt.x += 1;
+
+    updateLastGlobalCol(st);
+    return true;
 }
 
 /**
@@ -209,10 +346,25 @@ export function putPointOnPrevGlobalCol(st) {
         return;
     }
 
-    putPointOnGlobalPosition(
-        point.offset(st.singleSelection.pt, point.mkV2(-1, 0)),
-        st
-    );
+    putPointOnGlobalPosition(point.offset(st.singleSelection.pt, point.mkV2(-1, 0)), st);
+}
+
+/**
+ * Put the point directly to the left of the current point, but not
+ * leaving the current leaf.
+ *
+ * @param {state.EditingLeaf} st
+ * @returns {boolean} `true` if the point moved, and `false` otherwise.
+ */
+export function putPointOnPrevCol(st) {
+    if(st.singleSelection.pt.x === 0) {
+        return false;
+    }
+
+    st.singleSelection.pt.x -= 1;
+
+    updateLastGlobalCol(st);
+    return true;
 }
 
 /*****************************************************************************/
@@ -332,11 +484,14 @@ export function removeGlobalLine(st) {
 }
 
 /**
- * Remove the character before the point.
+ * Remove the `n` characters of text before the point. This function
+ * will not leave the context of its leaf, even if `n` exceeds the
+ * length of the current line.
  *
+ * @param {number} n The number of characters to remove.
  * @param {state.EditingLeaf} st The editor state.
  */
-export function removeCharBeforePoint(st) {
+export function removeString(n, st) {
     const sel = st.singleSelection;
 
     const row    = sel.pt.y;
@@ -347,12 +502,12 @@ export function removeCharBeforePoint(st) {
         return;
     }
 
-    const before = line.slice(0, col - 1);
+    const before = line.slice(0, col - n);
     const after  = line.slice(col);
     sel.leaf.data.lines[row] = before + after;
 
-    // Move the cursor left by one place.
-    sel.pt.x -= 1;
+    // Move the cursor left by the number of characters removed.
+    sel.pt.x -= n;
 }
 
 /*****************************************************************************/
@@ -405,7 +560,8 @@ export async function insertGlobalNewline(s, st, glpk) {
     st.singleSelection = {
         type: "Single",
         pt: point.mkP2(0, globalPt.y + 1),
-        leaf: fstLeaf
+        leaf: fstLeaf,
+        lastGlobalCol: 0
     };
 }
 
@@ -436,13 +592,13 @@ export async function insertString(s, st, glpk) {
 /** Cell-Slicing Primitives                                                 **/
 
 /**
- * Slice the cell vertically at the current point, so that the
- * character under the point and those characters to the right of the
- * point in the same cell occupy their own cell.
+ * Slice the cell vertically above the row of the current point.
+ * If the cell has only one row, then this function does nothing.
  *
  * @param {state.EditingLeaf} st
  */
 export function splitCellVerticallyAtPoint(st) {
+    const globalPoint = findGlobalPoint(st);
     const localRow = st.singleSelection.pt.y;
     st.grid = grid.splitLeafVertically(
         st.grid,
@@ -453,15 +609,20 @@ export function splitCellVerticallyAtPoint(st) {
             { lines: data.lines.slice(localRow) },
         ]
     );
+    // Recalculate selection.
+    putPointOnGlobalPosition(globalPoint, st);
 }
 
+
 /**
- * Slice the cell horizontally above the row of the current point.
- * If the cell has only one row, then this function does nothing.
+ * Slice the cell horizontally at the current point, so that the
+ * character under the point and those characters to the right of the
+ * point in the same cell occupy their own cell.
  *
  * @param {state.EditingLeaf} st
  */
 export function splitCellHorizontallyAtPoint(st) {
+    const globalPoint = findGlobalPoint(st);
     const localCol = st.singleSelection.pt.x;
     st.grid = grid.splitLeafHorizontally(
         st.grid,
@@ -472,4 +633,6 @@ export function splitCellHorizontallyAtPoint(st) {
             { lines: data.lines.map(line => line.slice(localCol)) },
         ]
     );
+    // Recalculate selection.
+    putPointOnGlobalPosition(globalPoint, st);
 }

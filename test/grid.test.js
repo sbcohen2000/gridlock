@@ -454,6 +454,24 @@ describe("modifyWidth", () => {
         expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
     });
 
+    it("Can modify the width of a leaf in a small tree, using a negative width", async () => {
+        const src =
+              "+-+---+\n" +
+              "| +---+\n" +
+              "| |   |\n" +
+              "+-+---+";
+
+        const g = grid.parseASCII(src);
+        await grid.modifyWidth(g, -2, g.right.left, glpk);
+        expect(grid.printASCII(g)).to.equal(
+            "+-+-+\n" +
+            "| +-+\n" +
+            "| | |\n" +
+            "+-+-+"
+        );
+        expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
+    });
+
     it("Can modify the width of a leaf in a small tree (3)", async () => {
         const src =
               "+-+---+\n" +
@@ -1208,5 +1226,52 @@ describe("splitLeafHorizontally", () => {
             () => [undefined, undefined],
         );
         expect(grid.printASCII(g)).to.equal(before);
+    });
+});
+
+describe("deleteLeaf", () => {
+    it("Deletes a leaf from a two-leaf grid", async () => {
+        const g = grid.parseASCII(
+            "+--+--+\n" +
+            "|a |b |\n" +
+            "+--+--+"
+        );
+
+        const a = grid.leafWithLabel(g, "a");
+        const result = await grid.deleteLeaf(g, a, glpk);
+
+        const exp =
+            "+--+\n" +
+            "|  |\n" +
+            "+--+";
+
+        expect(grid.printASCII(result)).to.equal(exp);
+    });
+
+    it("Deletes a leaf from a larger grid", async () => {
+        const g = grid.parseASCII(
+            "+--+--+--+\n" +
+            "|a |b |c |\n" +
+            "+--+--+--+"
+        );
+
+        const b = grid.leafWithLabel(g, "b");
+        const result = await grid.deleteLeaf(g, b, glpk);
+
+        // b's width should be redistributed to neighbors
+        expect([...grid.allLeaves(result)]).to.have.lengthOf(2);
+    });
+
+    it("Does nothing when deleting the root leaf", async () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "|  |\n" +
+            "+--+"
+        );
+
+        const before = grid.printASCII(g);
+        const result = await grid.deleteLeaf(g, g, glpk);
+
+        expect(grid.printASCII(result)).to.equal(before);
     });
 });

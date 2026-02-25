@@ -1,11 +1,11 @@
 {
-  "compilerOptions": {
-    "checkJs": true,
-    "target": "esnext",
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "noEmit": true
-  },
-  "include": ["src/**/*.js", "src/**/*.d.ts"],
-  "exclude": ["node_modules", "www"]
+    "compilerOptions": {
+        "checkJs": true,
+        "target": "esnext",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "noEmit": true
+    },
+    "include": ["src/**/*.js", "src/**/*.d.ts", "test/**/*.js"],
+    "exclude": ["node_modules", "www"]
 }

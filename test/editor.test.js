@@ -25,6 +25,26 @@ describe("insertString", () => {
         expect(serialize.printCellGrid(st.grid)).to.equal(exp);
     });
 
+    it("Can insert individual spaces before a leaf", async () => {
+        const src =
+              "world\n" +
+              "+-----+\n" +
+              "+-----+";
+
+        const st = serialize.editorStateFromString(src);
+        await state.insertString(" ", st, glpk);
+        await state.insertString(" ", st, glpk);
+        await state.insertString(" ", st, glpk);
+        await state.insertString(" ", st, glpk);
+
+        const exp =
+              "    world\n" +
+              "+--------+\n" +
+              "+--------+";
+
+        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+    });
+
     it("Can insert a string at the end of a single-line leaf", async () => {
         const src =
               "hello\n" +
@@ -35,7 +55,7 @@ describe("insertString", () => {
         // Update the selection to point past the last letter in
         // `hello`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.setSelectionPoint(leaf, point.mkP2(5, 0), st);
+        state.putPointOnLocalPosition(leaf, point.mkP2(5, 0), st);
         await state.insertString(" world", st, glpk);
 
         const exp =
@@ -57,7 +77,7 @@ describe("insertString", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point underneath the `h`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.setSelectionPoint(leaf, point.mkP2(0, 1), st);
+        state.putPointOnLocalPosition(leaf, point.mkP2(0, 1), st);
         await state.insertString("world", st, glpk);
 
         {
@@ -86,7 +106,6 @@ describe("insertString", () => {
 
             expect(serialize.printCellGrid(st.grid)).to.equal(exp);
         }
-
     });
 
     it("Can insert a string in a multi-leaf document", async () => {
@@ -100,7 +119,7 @@ describe("insertString", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point underneath the `h`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.setSelectionPoint(leaf, point.mkP2(0, 1), st);
+        state.putPointOnLocalPosition(leaf, point.mkP2(0, 1), st);
         await state.insertString("A long second line", st, glpk);
 
         const exp =
@@ -158,7 +177,7 @@ describe("putPointAtEndOfGlobalLine", () => {
         const st = serialize.editorStateFromString(src);
         // Move to second row in the left leaf.
         const leftLeaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.setSelectionPoint(leftLeaf, point.mkP2(0, 1), st);
+        state.putPointOnLocalPosition(leftLeaf, point.mkP2(0, 1), st);
 
         state.putPointAtEndOfGlobalLine(st);
 
@@ -181,7 +200,7 @@ describe("insertGlobalNewline", () => {
         // Update the selection to point past the last letter in
         // `hello`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.setSelectionPoint(leaf, point.mkP2(5, 0), st);
+        state.putPointOnLocalPosition(leaf, point.mkP2(5, 0), st);
         await state.insertGlobalNewline("next line", st, glpk);
 
         const exp =
@@ -204,7 +223,7 @@ describe("insertGlobalNewline", () => {
         // Update the selection to point past the last letter in
         // `hello`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.setSelectionPoint(leaf, point.mkP2(5, 0), st);
+        state.putPointOnLocalPosition(leaf, point.mkP2(5, 0), st);
         await state.insertGlobalNewline("world", st, glpk);
 
         const exp =
@@ -229,7 +248,7 @@ describe("insertGlobalNewline", () => {
         // Update the selection to point past the last letter in the
         // top `one`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.setSelectionPoint(leaf, point.mkP2(3, 0), st);
+        state.putPointOnLocalPosition(leaf, point.mkP2(3, 0), st);
         await state.insertGlobalNewline("", st, glpk);
 
         const exp0 =
@@ -257,5 +276,79 @@ describe("insertGlobalNewline", () => {
               "+--------+----+----+";
 
         expect(serialize.printCellGrid(st.grid)).to.equal(exp1);
+    });
+});
+
+describe("splitCellVerticallyAtPoint", () => {
+    it("Splits a single cell at the cursor row", () => {
+        const src =
+              "hello\n" +
+              "world\n" +
+              "+-----+\n" +
+              "|     |\n" +
+              "+-----+";
+
+        const st = serialize.editorStateFromString(src);
+        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
+        state.putPointOnLocalPosition(leaf, point.mkP2(0, 1), st);
+
+        state.splitCellVerticallyAtPoint(st);
+
+        const exp =
+              "hello\n" +
+              "world\n" +
+              "+-----+\n" +
+              "+-----+\n" +
+              "+-----+";
+
+        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+    });
+
+    it("Does nothing when cursor is on the first row", () => {
+        const src =
+              "hello\n" +
+              "+-----+\n" +
+              "+-----+";
+
+        const st = serialize.editorStateFromString(src);
+
+        state.splitCellVerticallyAtPoint(st);
+
+        expect(serialize.printCellGrid(st.grid)).to.equal(src);
+    });
+});
+
+describe("splitCellHorizontallyAtPoint", () => {
+    it("Splits a single cell at the cursor column", () => {
+        const src =
+              "hello world\n" +
+              "+----------+\n" +
+              "+----------+";
+
+        const st = serialize.editorStateFromString(src);
+        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
+        state.putPointOnLocalPosition(leaf, point.mkP2(6, 0), st);
+
+        state.splitCellHorizontallyAtPoint(st);
+
+        const exp =
+              "hello world\n" +
+              "+-----+----+\n" +
+              "+-----+----+";
+
+        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+    });
+
+    it("Does nothing when cursor is at column zero", () => {
+        const src =
+              "hello\n" +
+              "+-----+\n" +
+              "+-----+";
+
+        const st = serialize.editorStateFromString(src);
+
+        state.splitCellHorizontallyAtPoint(st);
+
+        expect(serialize.printCellGrid(st.grid)).to.equal(src);
     });
 });

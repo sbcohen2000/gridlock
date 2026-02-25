@@ -100,7 +100,7 @@ function viewEditorState(root, st) {
                     rect.left + rect.width * pctFilled
                 ));
 
-                state.setSelectionPoint(leaf, point.mkP2(i, thisRow), st);
+                state.putPointOnLocalPosition(leaf, point.mkP2(i, thisRow), st);
                 viewEditorState(root, st);
             };
             leafElem.appendChild(lineElem);
@@ -154,16 +154,63 @@ document.addEventListener("DOMContentLoaded", async () => {
     setDirty();
     viewIfDirty();
 
+    function handleCommand() {
+        const cmd = st.commandState;
+        if(cmd === null) {
+            // If there's no command, do nothing.
+            return;
+        }
+
+        // First, remove the command text from the document.
+    }
+
     document.addEventListener("keydown", async (e) => {
         if(e.key.length === 1) {
-            await state.insertString(e.key, st, glpk);
-            setDirty();
-        } else {
-            switch(e.key) {
-            case "Backspace": state.removeCharBeforePoint(st); setDirty(); break;
-            case "Enter": {
-                await state.insertGlobalNewline("", st, glpk);
+            if(e.ctrlKey) {
+                switch(e.key) {
+                case "a": state.putPointAtStartOfLine(st); setDirty(); break;
+                case "e": state.putPointAtEndOfLine(st);   setDirty(); break;
+                case "n": state.putPointOnNextLine(st);    setDirty(); break;
+                case "p": state.putPointOnPrevLine(st);    setDirty(); break;
+                case "b": state.putPointOnPrevCol(st);     setDirty(); break;
+                case "f": state.putPointOnNextCol(st);     setDirty(); break;
+                }
+            } else if(e.key === "\\") {
+                // Enter command state. First, we insert a backslash,
+                // Then, isolate the backslash in its own cell, then
+                // navigate to the new cell.
+                await state.insertString("\\", st, glpk);
+                state.splitCellHorizontallyAtPoint(st);
+                state.putPointOnPrevGlobalCol(st);
+                state.splitCellHorizontallyAtPoint(st);
+                state.putPointOnNextCol(st);
+
+                st.commandState = {
+                    commandText: "",
+                    commandLeaf: st.singleSelection.leaf
+                };
+
                 setDirty();
+            } else {
+                await state.insertString(e.key, st, glpk);
+                setDirty();
+            }
+        } else if(st.commandState === null) {
+            // Only if there's no command state do we allow the
+            // processing of non-letter characters.
+
+            switch(e.key) {
+            case "Backspace": {
+                state.removeString(1, st);
+                setDirty();
+            }break;
+            case "Enter": {
+                if(st.commandState) {
+                    handleCommand();
+                } else {
+                    await state.insertGlobalNewline("", st, glpk);
+                    setDirty();
+                }
             } break;
             default: break;
             }
