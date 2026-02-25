@@ -81,6 +81,23 @@ export function setSelectionPoint(leaf, pt, st) {
 }
 
 /**
+ * Mutate the editor state, setting the selection to the given global
+ * point. If there isn't a leaf under the global point, this function
+ * does nothing.
+ *
+ * @param {point.P2}    pt The global point to select.
+ * @param {EditorState} st The current editor state.
+ */
+export function putPointOnGlobalPosition(pt, st) {
+    const leaf       = grid.leafUnderPoint(st.grid, pt);
+    if(!leaf) return;
+
+    const leafPos    = grid.posOfLeaf(st.grid, leaf);
+    const relLeafPos = point.mkP2(pt.x - leafPos.x, pt.y - leafPos.y);
+    setSelectionPoint(leaf, relLeafPos, st);
+}
+
+/**
  * Ensure that the given state represents a `SingleSelection`. If it
  * doesn't, set the selection to the first position in the first
  * selected leaf.
@@ -136,39 +153,13 @@ async function expandLeafIfNecessary(g, leaf, glpk) {
 }
 
 /**
- * Insert a string at the current cursor, updating the cursor. If the
- * selection is a multi-selection, then it is converted to a single
- * selection prior to insertion.
- *
- * @param {string}      s    The string to insert.
- * @param {EditorState} st   The editor state.
- * @param {any}         glpk The GLPK instance.
- */
-export async function insertString(s, st, glpk) {
-    const sel = ensureSingleSelection(st);
-
-    // Insert text into the row.
-    const row    = sel.pt.y;
-    const col    = sel.pt.x;
-    const line   = sel.leaf.data.lines[row];
-    const before = line.slice(0, col);
-    const after  = line.slice(col);
-    sel.leaf.data.lines[row] = before + s + after;
-
-    // Advance the cursor by the length of the string.
-    sel.pt.x += s.length;
-
-    await expandLeafIfNecessary(st.grid, sel.leaf, glpk);
-}
-
-/**
- * Return an iterator over the leaves on `row`.
+ * Return an iterator over the leaves on a global `row`.
  *
  * @param {number} row
  * @param {EditorState} st The editor state.
  * @returns {IteratorObject<grid.Leaf<Cell>>}
  */
-function* eachLeafOnRow(row, st) {
+function* eachLeafOnGlobalRow(row, st) {
     let curCol = 0;
     while(curCol < st.grid.dims.width) {
         const leaf = grid.leafUnderPoint(st.grid, point.mkP2(curCol, row));
@@ -193,6 +184,26 @@ function findGlobalPoint(g, sel) {
     );
 }
 
+/*****************************************************************************/
+/** Primitive Point-Positioning Functions                                   **/
+
+/**
+ * Put the point at the first character of the current line, even if
+ * that line belongs to a different cell.
+ *
+ * If there is a multi-selection, this function does nothing.
+ *
+ * @param {EditorState} st The editor state.
+ */
+export function putPointAtStartOfGlobalLine(st) {
+    if(st.selection.type === "Multi") {
+        return;
+    }
+
+    const globalRow = findGlobalPoint(st.grid, st.selection).y;
+    putPointOnGlobalPosition(point.mkP2(0, globalRow), st);
+}
+
 /**
  * Put the point after the last character of the current line, even if
  * that line belongs to a different cell.
@@ -207,7 +218,7 @@ export function putPointAtEndOfGlobalLine(st) {
     }
 
     const globalRow = findGlobalPoint(st.grid, st.selection).y;
-    const last = util.iterLast(eachLeafOnRow(globalRow, st));
+    const last = util.iterLast(eachLeafOnGlobalRow(globalRow, st));
     if(last === undefined) {
         // Somehow, there's no last child on this row, so do nothing.
         console.warn(`No last child on row ${globalRow}`);
@@ -215,8 +226,8 @@ export function putPointAtEndOfGlobalLine(st) {
     }
 
     const lastPos = grid.posOfLeaf(st.grid, last);
-    const relRow = globalRow - lastPos.y;
-    const col = last.data.lines[relRow].length;
+    const relRow  = globalRow - lastPos.y;
+    const col     = last.data.lines[relRow].length;
 
     st.selection.leaf = last;
     st.selection.pt.y = relRow;
@@ -224,22 +235,209 @@ export function putPointAtEndOfGlobalLine(st) {
 }
 
 /**
- * Put the point on the last character of the previous line, even if
- * that line belongs to a different cell.
+ * Put the point directly below the current point, if possible, even
+ * if the next row is not part of the current leaf.
  *
- * If there is a multi-selection, this function does nothing. If there
- * are no lines above the line referred to by the point, this function
- * also does nothing.
+ * If there is a multi-selection, this function does nothing.
  *
  * @param {EditorState} st The editor state.
  */
-export function putPointAtEndOfGlobalPrevLine(st) {
+export function putPointOnNextGlobalLine(st) {
     if(st.selection.type === "Multi") {
         return;
     }
 
-    // First, put the point on the beginning of the previous line.
+    if(pointOnLastGlobalRow(st)) {
+        return;
+    }
+
+    putPointOnGlobalPosition(
+        point.offset(st.selection.pt, point.mkV2(0, 1)),
+        st
+    );
 }
+
+/**
+ * Put the point directly below the current point, if possible, even
+ * if the next row is not part of the current leaf.
+ *
+ * If there is a multi-selection, this function does nothing.
+ *
+ * @param {EditorState} st The editor state.
+ */
+export function putPointOnPrevGlobalLine(st) {
+    if(st.selection.type === "Multi") {
+        return;
+    }
+
+    if(pointOnFirstGlobalRow(st)) {
+        return;
+    }
+
+    putPointOnGlobalPosition(
+        point.offset(st.selection.pt, point.mkV2(0, -1)),
+        st
+    );
+}
+
+/**
+ * Put the point directly to the right of the current point, if
+ * possible, even if the next column is not part of the current leaf.
+ *
+ * If there is a multi-selection, this function does nothing.
+ *
+ * @param {EditorState} st The editor state.
+ */
+export function putPointOnNextGlobalCol(st) {
+    if(st.selection.type === "Multi") {
+        return;
+    }
+
+    if(pointAtEndOfGlobalLine(st)) {
+        return;
+    }
+
+    putPointOnGlobalPosition(
+        point.offset(st.selection.pt, point.mkV2(1, 0)),
+        st
+    );
+}
+
+/**
+ * Put the point directly to the left of the current point, if
+ * possible, even if the previous column is not part of the current
+ * leaf.
+ *
+ * If there is a multi-selection, this function does nothing.
+ *
+ * @param {EditorState} st The editor state.
+ */
+export function putPointOnPrevGlobalCol(st) {
+    if(st.selection.type === "Multi") {
+        return;
+    }
+
+    if(pointAtBeginningOfGlobalLine(st)) {
+        return;
+    }
+
+    putPointOnGlobalPosition(
+        point.offset(st.selection.pt, point.mkV2(-1, 0)),
+        st
+    );
+}
+
+/*****************************************************************************/
+/** Point-Querying Functions                                                **/
+
+/**
+ * Test if the point of the current single selection is at the end of
+ * the global line.
+ *
+ * @param {EditorState} st
+ * @returns {boolean}
+ */
+export function pointAtEndOfGlobalLine(st) {
+    if(st.selection.type === "Multi") {
+        return false;
+    }
+
+    // Check that we're at the end of our own local line.
+    const localRow  = st.selection.pt.y;
+    const localCol  = st.selection.pt.x;
+    const localLine = st.selection.leaf.data.lines[localRow];
+    if(localLine.length !== localCol) {
+        return false;
+    }
+
+    // Check that there's no cell to the right of us.
+    const globalPt = findGlobalPoint(st.grid, st.selection);
+    return undefined === grid.leafUnderPoint(
+        st.grid,
+        point.offset(globalPt, point.mkV2(1, 0))
+    );
+}
+
+/**
+ * Test if the point of the current single selection is at the
+ * beginning of the global line.
+ *
+ * @param {EditorState} st
+ * @returns {boolean}
+ */
+export function pointAtBeginningOfGlobalLine(st) {
+    if(st.selection.type === "Multi") {
+        return false;
+    }
+
+    return findGlobalPoint(st.grid, st.selection).x === 0;
+}
+
+/**
+ * Test if the point of the current single selection is on the first
+ * global row.
+ *
+ * @param {EditorState} st
+ * @returns {boolean}
+ */
+export function pointOnFirstGlobalRow(st) {
+    if(st.selection.type === "Multi") {
+        return false;
+    }
+
+    return findGlobalPoint(st.grid, st.selection).y === 0;
+}
+
+/**
+ * Test if the point of the current single selection is on the last
+ * global row.
+ *
+ * @param {EditorState} st
+ * @returns {boolean}
+ */
+export function pointOnLastGlobalRow(st) {
+    if(st.selection.type === "Multi") {
+        return false;
+    }
+
+    // Check that we're on the last row of our local cell.
+    if(st.selection.pt.y < st.selection.leaf.dims.height - 1) {
+        return false;
+    }
+
+    // Check that there's no cell below us.
+    const globalPt = findGlobalPoint(st.grid, st.selection);
+    return undefined === grid.leafUnderPoint(
+        st.grid,
+        point.offset(globalPt, point.mkV2(0, 1))
+    );
+}
+
+/*****************************************************************************/
+/** Line-Querying Functions                                                 **/
+
+/**
+ * Test if the current global line is empty.
+ *
+ * @param {EditorState} st
+ * @returns {boolean}
+ */
+export function globalLineIsEmpty(st) {
+    if(st.selection.type === "Multi") {
+        return false;
+    }
+
+    const globalPt = findGlobalPoint(st.grid, st.selection);
+    return eachLeafOnGlobalRow(globalPt.y, st).every(leaf => {
+        const leafPos = grid.posOfLeaf(st.grid, leaf);
+        const relRow = globalPt.y - leafPos.y;
+
+        return leaf.data.lines[relRow].length === 0;
+    });
+}
+
+/*****************************************************************************/
+/** Primitive Text Removal Functions                                        **/
 
 /**
  * Remove the line referred to by the current point, across all
@@ -255,27 +453,21 @@ export function removeGlobalLine(st) {
         return;
     }
 
-    throw new Error("TODO");
-}
+    const globalPt = findGlobalPoint(st.grid, st.selection);
+    for(const leaf of eachLeafOnGlobalRow(globalPt.y, st)) {
+        const leafPos = grid.posOfLeaf(st.grid, leaf);
+        const relRow = globalPt.y - leafPos.y;
 
-/**
- * Remove the line referred to by the current point, across all
- * leaves, removing newly empty leaves, but only if the line is
- * empty across all leaves.
- *
- * If the current selection is a multi-selection, then this function
- * does nothing.
- *
- * @param {EditorState} st The editor state.
- * @returns {boolean} `true` if the line was removed, and `false`
- *                    otherwise.
- */
-export function removeGlobalLineIfEmpty(st) {
-    if(st.selection.type === "Multi") {
-        return false;
+        leaf.data.lines.splice(relRow, 1);
+        grid.modifyHeight(st.grid, -1, leaf);
     }
 
-    throw new Error("TODO");
+    const [newGrid, _removedLeaves] = grid.removeEmptyLeaves(st.grid);
+    st.grid = newGrid;
+
+    // We need to set the selection here again since the selected leaf
+    // might now be gone.
+    putPointOnGlobalPosition(point.mkP2(0, globalPt.y), st);
 }
 
 /**
@@ -295,17 +487,7 @@ export function removeCharBeforePoint(st) {
     const col    = sel.pt.x;
     const line   = sel.leaf.data.lines[row];
 
-    if(line === "") {
-        // Remove the line, if we can.
-        const didRemove = removeGlobalLineIfEmpty(st);
-        if(didRemove) {
-            return;
-        } else {
-            // Move the point to the end of the global line.
-            throw new Error("TODO");
-            return;
-        }
-    } else if(sel.pt.x === 0) {
+    if(line === "" || sel.pt.x === 0) {
         return;
     }
 
@@ -316,6 +498,9 @@ export function removeCharBeforePoint(st) {
     // Move the cursor left by one place.
     sel.pt.x -= 1;
 }
+
+/*****************************************************************************/
+/** Primitive Text Insertion Functions                                      **/
 
 /**
  * Insert a line at `row` in `leaf`, with contents `s`.
@@ -362,7 +547,7 @@ export async function insertGlobalNewline(s, st, glpk) {
 
     // Add a line to each leaf _at_ `row`.
     let isFst = true;
-    for(const leaf of eachLeafOnRow(row, st)) {
+    for(const leaf of eachLeafOnGlobalRow(row, st)) {
         await insertLineAtLeaf(leaf, row, isFst ? s : "", st, glpk);
         isFst = false;
     }
@@ -375,17 +560,83 @@ export async function insertGlobalNewline(s, st, glpk) {
 }
 
 /**
- * Similar to `nextLine`, except it always creates a new leaf below
- * the selected leaf, and puts the point in it.
+ * Insert a string at the current cursor, updating the cursor. If the
+ * selection is a multi-selection, then it is converted to a single
+ * selection prior to insertion.
  *
- * If there is a multi-selection, this function does nothing.
- *
- * @param {EditorState} st The editor state.
+ * @param {string}      s    The string to insert.
+ * @param {EditorState} st   The editor state.
+ * @param {any}         glpk The GLPK instance.
  */
-export function insertRowBelowPoint(st) {
+export async function insertString(s, st, glpk) {
+    const sel = ensureSingleSelection(st);
+
+    // Insert text into the row.
+    const row    = sel.pt.y;
+    const col    = sel.pt.x;
+    const line   = sel.leaf.data.lines[row];
+    const before = line.slice(0, col);
+    const after  = line.slice(col);
+    sel.leaf.data.lines[row] = before + s + after;
+
+    // Advance the cursor by the length of the string.
+    sel.pt.x += s.length;
+
+    await expandLeafIfNecessary(st.grid, sel.leaf, glpk);
+}
+
+/*****************************************************************************/
+/** Cell-Slicing Primitives                                                 **/
+
+/**
+ * Slice the cell vertically at the current point, so that the
+ * character under the point and those characters to the right of the
+ * point in the same cell occupy their own cell.
+ *
+ * If the selection is a multi-selection, then this function does
+ * nothing.
+ *
+ * @param {EditorState} st
+ */
+export function splitCellVerticallyAtPoint(st) {
     if(st.selection.type === "Multi") {
         return;
     }
 
-    // TODO
+    const localRow = st.selection.pt.y;
+    st.grid = grid.splitLeafVertically(
+        st.grid,
+        st.selection.leaf,
+        localRow,
+        (data) => [
+            { lines: data.lines.slice(0, localRow) },
+            { lines: data.lines.slice(localRow) },
+        ]
+    );
+}
+
+/**
+ * Slice the cell horizontally above the row of the current point.
+ * If the cell has only one row, then this function does nothing.
+ *
+ * If the selection is a multi-selection, then this function does
+ * nothing.
+ *
+ * @param {EditorState} st
+ */
+export function splitCellHorizontallyAtPoint(st) {
+    if(st.selection.type === "Multi") {
+        return;
+    }
+
+    const localCol = st.selection.pt.x;
+    st.grid = grid.splitLeafHorizontally(
+        st.grid,
+        st.selection.leaf,
+        localCol,
+        (data) => [
+            { lines: data.lines.map(line => line.slice(0, localCol)) },
+            { lines: data.lines.map(line => line.slice(localCol)) },
+        ]
+    );
 }
