@@ -261,7 +261,7 @@ export function putPointOnNextLine(st) {
 }
 
 /**
- * Put the point directly below the current point, if possible, even
+ * Put the point directly above the current point, if possible, even
  * if the next row is not part of the current leaf.
  *
  * @param {state.EditingLeaf} st The editor state.
@@ -418,12 +418,12 @@ export function pointOnFirstGlobalRow(st) {
 
 /**
  * Test if the point of the current single selection is on the last
- * global row.
+ * global line.
  *
  * @param {state.EditingLeaf} st
  * @returns {boolean}
  */
-export function pointOnLastGlobalRow(st) {
+export function pointOnLastGlobalLine(st) {
     // Check that we're on the last row of our local cell.
     if(st.singleSelection.pt.y < st.singleSelection.leaf.dims.height - 1) {
         return false;
@@ -480,7 +480,7 @@ export function removeGlobalLine(st) {
 
     // We need to set the selection here again since the selected leaf
     // might now be gone.
-    putPointOnGlobalPosition(point.mkP2(0, globalPt.y), st);
+    putPointOnGlobalPosition(point.mkP2(0, globalPt.y - 1), st);
 }
 
 /**
@@ -542,27 +542,17 @@ async function insertLineAtLeaf(leaf, row, s, st, glpk) {
  */
 export async function insertGlobalNewline(s, st, glpk) {
     // Find the location of the cursor in the global coordinate space.
-    const globalPt = findGlobalPoint(st);
-    let row = globalPt.y + 1;
-
-    // If there's no leaf underneath the point, we want to add a row
-    // to the last line of each existing leaf. So, decrement `row`.
-    const fstLeaf = grid.leafUnderPoint(st.grid, point.mkP2(0, row));
-    if(fstLeaf === undefined) --row;
+    const globalRow = findGlobalPoint(st).y;
 
     // Add a line to each leaf _at_ `row`.
     let isFst = true;
-    for(const leaf of eachLeafOnGlobalRow(row, st)) {
-        await insertLineAtLeaf(leaf, row, isFst ? s : "", st, glpk);
+    for(const leaf of eachLeafOnGlobalRow(globalRow, st)) {
+        const localRow = globalRow - grid.posOfLeaf(st.grid, leaf).y + 1;
+        await insertLineAtLeaf(leaf, localRow, isFst ? s : "", st, glpk);
         isFst = false;
     }
 
-    st.singleSelection = {
-        type: "Single",
-        pt: point.mkP2(0, globalPt.y + 1),
-        leaf: fstLeaf,
-        lastGlobalCol: 0
-    };
+    putPointOnGlobalPosition(point.mkP2(0, globalRow + 1), st);
 }
 
 /**

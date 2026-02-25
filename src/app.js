@@ -201,7 +201,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             switch(e.key) {
             case "Backspace": {
-                state.removeString(1, st);
+                if(state.pointAtBeginningOfGlobalLine(st)) {
+                    if(state.globalLineIsEmpty(st)) {
+                        // Then, remove the entire line.
+                        state.removeGlobalLine(st);
+                    } else {
+                        // Then, move the point to the end of the line.
+                        state.putPointAtEndOfGlobalLine(st);
+                    }
+                } else {
+                    state.removeString(1, st);
+                }
+
                 setDirty();
             }break;
             case "Enter": {

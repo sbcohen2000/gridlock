@@ -959,7 +959,7 @@ export function leafUnderPoint(g, p) {
         }
     }
     case "Leaf": {
-        if(p.x <= g.dims.width && p.y <= g.dims.height) {
+        if(p.x < g.dims.width && p.y < g.dims.height) {
             return g;
         } else {
             return undefined;
