@@ -201,7 +201,7 @@ describe("insertGlobalNewline", () => {
         // `hello`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
         state.putPointOnLocalPosition(leaf, point.mkP2(5, 0), st);
-        await state.insertGlobalNewline(st, glpk);
+        state.insertGlobalNewline(st);
 
         const exp =
               "hello\n"      +
@@ -224,7 +224,7 @@ describe("insertGlobalNewline", () => {
         // `hello`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
         state.putPointOnLocalPosition(leaf, point.mkP2(5, 0), st);
-        await state.insertGlobalNewline(st, glpk);
+        state.insertGlobalNewline(st);
 
         const exp =
               "hello\n"  +
@@ -245,7 +245,7 @@ describe("insertGlobalNewline", () => {
         const st = serialize.editorStateFromString(src);
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
         state.putPointOnLocalPosition(leaf, point.mkP2(3, 0), st);
-        await state.insertGlobalNewline(st, glpk);
+        state.insertGlobalNewline(st);
 
         const exp =
               "hel\n"         +
@@ -270,7 +270,7 @@ describe("insertGlobalNewline", () => {
         // top `one`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
         state.putPointOnLocalPosition(leaf, point.mkP2(3, 0), st);
-        await state.insertGlobalNewline(st, glpk);
+        state.insertGlobalNewline(st);
 
         const exp0 =
               "one\n"  +
@@ -371,5 +371,29 @@ describe("splitCellHorizontallyAtPoint", () => {
         state.splitCellHorizontallyAtPoint(st);
 
         expect(serialize.printCellGrid(st.grid)).to.equal(src);
+    });
+});
+
+describe("removeGlobalLine", () => {
+    it("Can remove the last line from a tiny two-line document", () => {
+        const src =
+              "ab\n"  +
+              "\n"    +
+              "+++\n" +
+              "|||\n" +
+              "+++"
+
+        const st = serialize.editorStateFromString(src);
+        // Put the cursor at the bottom left.
+        state.putPointOnGlobalPosition(point.mkP2(0, 1), st);
+        // Remove the line.
+        state.removeGlobalLine(st);
+
+        const exp =
+              "ab\n"  +
+              "+++\n" +
+              "+++"
+
+        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
     });
 });

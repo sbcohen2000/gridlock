@@ -236,6 +236,7 @@ describe("arbitrary-grid", () => {
 
 describe("parentChain", () => {
     it("Can find the parent chain of a simple tree", () => {
+        /** @type {grid.Grid<void>} */
         const tree = {
             type: "Horz",
             dims: { width: 6, height: 3 },
@@ -248,7 +249,8 @@ describe("parentChain", () => {
                 dims: { width: 4, height: 3 },
                 left: {
                     type: "Leaf",
-                    dims: { width: 4, height: 1 }
+                    dims: { width: 4, height: 1 },
+                    label: "a",
                 },
                 right: {
                     type: "Leaf",
@@ -257,7 +259,7 @@ describe("parentChain", () => {
             }
         };
 
-        const focus = tree.right.left;
+        const focus = grid.leafWithLabel(tree, "a");
         const chain = grid.parentChain(tree, focus);
 
         expect(chain).to.deep.equal([
@@ -266,6 +268,7 @@ describe("parentChain", () => {
     });
 
     it("Returns undefined when the focus isn't in the tree", () => {
+        /** @type {grid.Grid<void>} */
         const tree = {
             type: "Horz",
             dims: { width: 6, height: 3 },
@@ -287,6 +290,7 @@ describe("parentChain", () => {
             }
         };
 
+        /** @type {grid.Grid<void>} */
         const irrelevant = {
             type: "Leaf",
             dims: { width: 4, height: 2 }
@@ -421,12 +425,13 @@ describe("modifyWidth", () => {
     it("Can modify the width of a leaf in a small tree (1)", async () => {
         const src =
               "+-+---+\n" +
-              "| +---+\n" +
+              "|a+---+\n" +
               "| |   |\n" +
               "+-+---+";
 
         const g = grid.parseASCII(src);
-        await grid.modifyWidth(g, 2, g.left, glpk);
+        const a = grid.leafWithLabel(g, "a");
+        await grid.modifyWidth(g, 2, a, glpk);
         expect(grid.printASCII(g)).to.equal(
             "+---+---+\n" +
             "|   +---+\n" +
@@ -439,14 +444,17 @@ describe("modifyWidth", () => {
     it("Can modify the width of a leaf in a small tree (2)", async () => {
         const src =
               "+-+---+\n" +
+              "| |a  |\n" +
               "| +---+\n" +
               "| |   |\n" +
               "+-+---+";
 
         const g = grid.parseASCII(src);
-        await grid.modifyWidth(g, 2, g.right.left, glpk);
+        const a = grid.leafWithLabel(g, "a");
+        await grid.modifyWidth(g, 2, a, glpk);
         expect(grid.printASCII(g)).to.equal(
             "+-+-----+\n" +
+            "| |     |\n" +
             "| +-----+\n" +
             "| |     |\n" +
             "+-+-----+"
@@ -458,11 +466,12 @@ describe("modifyWidth", () => {
         const src =
               "+-+---+\n" +
               "| +---+\n" +
-              "| |   |\n" +
+              "| |a  |\n" +
               "+-+---+";
 
         const g = grid.parseASCII(src);
-        await grid.modifyWidth(g, -2, g.right.left, glpk);
+        const a = grid.leafWithLabel(g, "a");
+        await grid.modifyWidth(g, -2, a, glpk);
         expect(grid.printASCII(g)).to.equal(
             "+-+-+\n" +
             "| +-+\n" +
@@ -476,11 +485,12 @@ describe("modifyWidth", () => {
         const src =
               "+-+---+\n" +
               "| +---+\n" +
-              "| |   |\n" +
+              "| |a  |\n" +
               "+-+---+";
 
         const g = grid.parseASCII(src);
-        await grid.modifyWidth(g, 2, g.right.right, glpk);
+        const a = grid.leafWithLabel(g, "a");
+        await grid.modifyWidth(g, 2, a, glpk);
         expect(grid.printASCII(g)).to.equal(
             "+-+-----+\n" +
             "| +-----+\n" +
@@ -502,7 +512,7 @@ describe("modifyWidth", () => {
                     });
                 }),
                 ({ g, focus, n }) => {
-                    grid.modifyWidth(g, n, focus);
+                    grid.modifyWidth(g, n, focus[0]);
                     expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
                 }
             )
@@ -588,116 +598,13 @@ describe("modifyWidth", () => {
                     });
                 }),
                 ({ g, focus, n }) => {
-                    grid.modifyWidth(g, n, focus);
+                    grid.modifyWidth(g, n, focus[0]);
                     expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
                 }
             )
         );
     });
 
-});
-
-describe("modifyHeight", () => {
-    it("Can modify the height of a leaf", () => {
-        const g = grid.mk(2, 3);
-        grid.modifyHeight(g, 2, g);
-        expect(g.dims.height).to.equal(5);
-    });
-
-    it("Can modify the height of a leaf in a small tree (1)", () => {
-        const src =
-              "+-+---+\n" +
-              "| +---+\n" +
-              "| |   |\n" +
-              "+-+---+";
-
-        const g = grid.parseASCII(src);
-        grid.modifyHeight(g, 2, g.right.left);
-        expect(grid.printASCII(g)).to.equal(
-            "+-+---+\n" +
-            "| |   |\n" +
-            "| |   |\n" +
-            "| +---+\n" +
-            "| |   |\n" +
-            "+-+---+"
-        );
-    });
-
-    it("Can modify the height of a leaf in a small tree (2)", () => {
-        const src =
-              "+-+---+\n" +
-              "| +---+\n" +
-              "| |   |\n" +
-              "+-+---+";
-
-        const g = grid.parseASCII(src);
-        grid.modifyHeight(g, 2, g.right.right);
-        expect(grid.printASCII(g)).to.equal(
-            "+-+---+\n" +
-            "| +---+\n" +
-            "| |   |\n" +
-            "| |   |\n" +
-            "| |   |\n" +
-            "+-+---+"
-        );
-    });
-
-    it("Can modify the height of a leaf in a small tree (3)", () => {
-        const src =
-              "+-+---+\n" +
-              "| +---+\n" +
-              "| |   |\n" +
-              "+-+---+";
-
-        const g = grid.parseASCII(src);
-        grid.modifyHeight(g, 2, g.left);
-        expect(grid.printASCII(g)).to.equal(
-            "+-+---+\n" +
-            "| |   |\n" +
-            "| |   |\n" +
-            "| +---+\n" +
-            "| |   |\n" +
-            "+-+---+"
-        );
-    });
-
-    it("Produces grids with consistent dimensions", () => {
-        fc.assert(
-            fc.property(
-                arbg.grid.tree.chain(g => {
-                    const nodes = grid.allNodes(g);
-                    return fc.record({
-                        g: fc.constant(g),
-                        focus: fc.constantFrom(...nodes.map(n => n[0])),
-                        n: fc.integer({ min: 1, max: 5 })
-                    });
-                }),
-                ({ g, focus, n }) => {
-                    grid.modifyHeight(g, n, focus);
-                    expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
-                }
-            )
-        );
-    });
-});
-
-describe("distanceToLeftEdge", () => {
-    it("Can find the distance to the left edge of a leaf", () => {
-        const g = grid.mk(2, 3);
-        expect(grid.distanceToLeftEdge(g, g)).to.equal(0);
-    });
-
-    it("Can find the distance to the left edge of nodes in a simple grid", () => {
-        let src =
-            "+-+--+---+----+\n" +
-            "+-+--+---+----+"
-        let g = grid.parseASCII(src);
-
-        expect(grid.distanceToLeftEdge(g, g.left)).to.equal(0);
-        expect(grid.distanceToLeftEdge(g, g.right.left)).to.equal(2);
-        expect(grid.distanceToLeftEdge(g, g.right.right.left)).to.equal(5);
-        expect(grid.distanceToLeftEdge(g, g.right.right.right)).to.equal(9);
-    });
 });
 
 describe("posOfLeaf", () => {
@@ -768,8 +675,11 @@ describe("leafUnderPoint", () => {
 
 describe("removeEmptyLeaves", () => {
     it("Removes a child with zero width", () => {
+        /** @type {grid.Grid<void>} */
         const left = { type: "Leaf", dims: { width: 0, height: 2 } };
+        /** @type {grid.Grid<void>} */
         const right = { type: "Leaf", dims: { width: 3, height: 2 } };
+        /** @type {grid.Grid<void>} */
         const g = {
             type: "Horz",
             dims: { width: 3, height: 2 },
@@ -783,9 +693,13 @@ describe("removeEmptyLeaves", () => {
     });
 
     it("Removes nested empty leaves", () => {
+        /** @type {grid.Grid<void>} */
         const innerRight = { type: "Leaf", dims: { width: 0, height: 3 } };
+        /** @type {grid.Grid<void>} */
         const outerRight = { type: "Leaf", dims: { width: 4, height: 0 } };
+        /** @type {grid.Grid<void>} */
         const survivor = { type: "Leaf", dims: { width: 4, height: 3 } };
+        /** @type {grid.Grid<void>} */
         const g = {
             type: "Vert",
             dims: { width: 4, height: 5 },
@@ -805,8 +719,11 @@ describe("removeEmptyLeaves", () => {
     });
 
     it("Removes both children when both are empty", () => {
+        /** @type {grid.Grid<void>} */
         const left = { type: "Leaf", dims: { width: 0, height: 3 } };
+        /** @type {grid.Grid<void>} */
         const right = { type: "Leaf", dims: { width: 0, height: 3 } };
+        /** @type {grid.Grid<void>} */
         const g = {
             type: "Horz",
             dims: { width: 0, height: 3 },
@@ -1102,7 +1019,7 @@ describe("splitLeafVertically", () => {
         );
 
         const result = grid.splitLeafVertically(
-            g, g, 2,
+            g, /** @type {grid.Leaf<void>} */(g), 2,
             () => [undefined, undefined],
         );
 
@@ -1148,13 +1065,13 @@ describe("splitLeafVertically", () => {
 
         const before = grid.printASCII(g);
         grid.splitLeafVertically(
-            g, g, 0,
+            g, /** @type {grid.Leaf<void>} */(g), 0,
             () => [undefined, undefined],
         );
         expect(grid.printASCII(g)).to.equal(before);
 
         grid.splitLeafVertically(
-            g, g, 2,
+            g, /** @type {grid.Leaf<void>} */(g), 2,
             () => [undefined, undefined],
         );
         expect(grid.printASCII(g)).to.equal(before);
@@ -1170,7 +1087,7 @@ describe("splitLeafHorizontally", () => {
         );
 
         const result = grid.splitLeafHorizontally(
-            g, g, 2,
+            g, /** @type {grid.Leaf<void>} */(g), 2,
             () => [undefined, undefined],
         );
 
@@ -1216,13 +1133,13 @@ describe("splitLeafHorizontally", () => {
 
         const before = grid.printASCII(g);
         grid.splitLeafHorizontally(
-            g, g, 0,
+            g, /** @type {grid.Leaf<void>} */(g), 0,
             () => [undefined, undefined],
         );
         expect(grid.printASCII(g)).to.equal(before);
 
         grid.splitLeafHorizontally(
-            g, g, 3,
+            g, /** @type {grid.Leaf<void>} */(g), 3,
             () => [undefined, undefined],
         );
         expect(grid.printASCII(g)).to.equal(before);
@@ -1270,8 +1187,107 @@ describe("deleteLeaf", () => {
         );
 
         const before = grid.printASCII(g);
-        const result = await grid.deleteLeaf(g, g, glpk);
+        const result = await grid.deleteLeaf(g, /** @type {grid.Leaf<void>} */(g), glpk);
 
         expect(grid.printASCII(result)).to.equal(before);
+    });
+});
+
+describe("modifyHeightOfLeaves", () => {
+    it("Grows a single leaf that spans the full width", () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "|  |\n" +
+            "+--+"
+        );
+
+        grid.modifyHeightOfLeaves(g, 2, [g]);
+
+        const exp =
+            "+--+\n" +
+            "|  |\n" +
+            "|  |\n" +
+            "|  |\n" +
+            "+--+";
+
+        expect(grid.printASCII(g)).to.equal(exp);
+        expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
+    });
+
+    it("Grows multiple leaves on the same row", () => {
+        const g = grid.parseASCII(
+            "+--+--+--+\n" +
+            "|a |b |c |\n" +
+            "+--+--+--+"
+        );
+
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
+        const c = grid.leafWithLabel(g, "c");
+        grid.modifyHeightOfLeaves(g, 1, [a, b, c]);
+
+        const exp =
+            "+--+--+--+\n" +
+            "|  |  |  |\n" +
+            "|  |  |  |\n" +
+            "+--+--+--+";
+
+        expect(grid.printASCII(g)).to.equal(exp);
+        expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
+    });
+
+    it("Shrinks multiple leaves on the same row", () => {
+        const g = grid.parseASCII(
+            "+--+--+\n" +
+            "|a |b |\n" +
+            "|  |  |\n" +
+            "+--+--+\n" +
+            "|c    |\n" +
+            "+-----+"
+        );
+
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
+        grid.modifyHeightOfLeaves(g, -1, [a, b]);
+
+        const exp =
+            "+--+--+\n" +
+            "|  |  |\n" +
+            "+--+--+\n" +
+            "|     |\n" +
+            "+-----+";
+
+        expect(grid.printASCII(g)).to.equal(exp);
+        expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
+    });
+
+    it("Throws when leaves do not cover the full width", () => {
+        const g = grid.parseASCII(
+            "+--+--+\n" +
+            "|a |b |\n" +
+            "+--+--+"
+        );
+
+        const a = grid.leafWithLabel(g, "a");
+        expect(() => grid.modifyHeightOfLeaves(g, 1, [a])).to.throw(
+            "the leaves passed to modifyHeightOfLeaves do not cover the grid"
+        );
+    });
+
+    it("Throws when leaves overlap horizontally", () => {
+        const g = grid.parseASCII(
+            "+--+--+\n" +
+            "|a |b |\n" +
+            "+--+--+\n" +
+            "|c    |\n" +
+            "+-----+"
+        );
+
+        // a and c overlap in the x-range [0, 3)
+        const a = grid.leafWithLabel(g, "a");
+        const c = grid.leafWithLabel(g, "c");
+        expect(() => grid.modifyHeightOfLeaves(g, 1, [a, c])).to.throw(
+            "horizontally overlapping leaves passed to modifyHeightOfLeaves"
+        );
     });
 });

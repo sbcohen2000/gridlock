@@ -84,6 +84,35 @@ export function partition(s) {
 }
 
 /**
+ * Recalculate the dimensions of all of the `Split` nodes in a grid.
+ * This function must be used with care, because it does not make any
+ * effort to enforce the invariant that the child dimensions match up
+ * with the parents; it forces the property to hold when you're
+ * already positive that it does.
+ *
+ * @template A
+ * @param {Grid<A>} g The grid whose intermediate dimensions to
+ *     recalculate.
+ */
+function recalculateSplitDimensions(g) {
+    switch(g.type) {
+    case "Vert": {
+        recalculateSplitDimensions(g.left);
+        recalculateSplitDimensions(g.right);
+        g.dims.width = g.left.dims.width;
+        g.dims.height = g.left.dims.height + g.right.dims.height;
+    } break;
+    case "Horz": {
+        recalculateSplitDimensions(g.left);
+        recalculateSplitDimensions(g.right);
+        g.dims.width = g.left.dims.width + g.right.dims.width;
+        g.dims.height = g.left.dims.height;
+    } break;
+    case "Leaf": return;
+    }
+}
+
+/**
  * Render a grid using ASCII characters for testing and debugging
  * purposes.
  *
@@ -569,105 +598,45 @@ export function posOfLeaf(g, focus) {
 }
 
 /**
- * Modify the height of the given `Grid`, with no regard for `g`'s
- * parent.
+ * Atomically modify the height of a list of leaves. The leaves
+ * provided must span the entire horizontal width of the grid with no
+ * overlap.
  *
- * This is a helper of `modifyHeight`. No one should ever call this.
- *
- * @template A
- * @param {Grid<A>} g
- * @param {number} n The amount to expand vertically.
- */
-function modifySubtreeHeight(g, n) {
-    switch(g.type) {
-    case "Horz": {
-        // Both of our children need to be expanded.
-        modifySubtreeHeight(g.left, n);
-        modifySubtreeHeight(g.right, n);
-        g.dims.height += n;
-    } break;
-    case "Vert": {
-        // Expand our left-side downward. This is an arbitrary
-        // choice.
-        modifySubtreeHeight(g.left, n);
-        g.dims.height += n;
-    } break;
-    case "Leaf": {
-        g.dims.height += n;
-    } break;
-    }
-}
-
-/**
- * Modify the focused `Grid`'s height.
+ * This property is checked for safety.
  *
  * @template A
  * @param {Grid<A>} g The root node of the grid.
- * @param {number} n The amount to expand vertically.
- * @param {Grid<A>} focus The grid cell to modify.
+ * @param {number}  n The amount to expand vertically.
+ * @param {Leaf<A>[]} leaves The leaves whose height to modify.
  * @returns {Grid<A>} The grid.
  */
-export function modifyHeight(g, n, focus) {
-    modifySubtreeHeight(focus, n);
+export function modifyHeightOfLeaves(g, n, leaves) {
+    // Find the position of each leaf.
+    /** @type {[Leaf<A>, point.P2][]} */
+    const positioned = leaves.map(leaf => [leaf, posOfLeaf(g, leaf)]);
 
-    // Walk up the parent chain, performing repairs to the dimensions
-    // along the way.
-    let last = focus;
-    const chain = parentChain(g, focus);
-    for(const splt of chain) {
-        switch(splt.type) {
-        case "Horz": {
-            if(splt.left === last) {
-                // We've come from the left branch. Expand the right to match.
-                modifySubtreeHeight(splt.right, n);
-            } else {
-                // We've come from the right branch. Expand the left to match.
-                modifySubtreeHeight(splt.left, n);
-            }
-        } break;
-        case "Vert": break; // Nothing to do.
+    // Sort the leaves by increasing `x` position.
+    positioned.sort((a, b) => a[1].x - b[1].x);
+
+    // Ensure that there are no gaps, and that the leaves cover the
+    // entire width of the grid.
+    let x = 0;
+    for(const [leaf, p] of positioned) {
+        if(p.x < x) {
+            throw new Error("horizontally overlapping leaves passed to modifyHeightOfLeaves");
         }
-        splt.dims.height += n;
+        x += leaf.dims.width;
 
-        last = splt;
+        leaf.dims.height += n;
     }
 
+    if(x !== g.dims.width) {
+        throw new Error("the leaves passed to modifyHeightOfLeaves do not cover the grid");
+    }
+
+    // Now, re-calculate the grid dimensions and return the grid.
+    recalculateSplitDimensions(g);
     return g;
-}
-
-/**
- * Find the distance from the left edge of the `focus` to the left
- * margin.
- *
- * @template A
- * @param {Grid<A>} g The root node of the grid.
- * @param {Grid<A>} focus The grid cell whose left edge we'd like to
- *                        measure.
- * @returns {number} The distance from the left edge of `focus` to the
- *                   left margin.
- */
-export function distanceToLeftEdge(g, focus) {
-    const chain = parentChain(g, focus);
-
-    let last = focus;
-    let d = 0;
-    for(const splt of chain) {
-        switch(splt.type) {
-        case "Horz": {
-            // Only if we've come from the right branch should we
-            // account for the distance of this `Split`'s _left_
-            // child.
-            if(splt.right === last) {
-                d += splt.left.dims.width;
-            }
-        } break;
-        case "Vert": break; // Nothing to do.
-        }
-
-        last = splt;
-    }
-
-    return d;
 }
 
 /**
@@ -911,25 +880,7 @@ export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
 
     // Step 5: Update tree dimensions
     /** @param {Grid<A>} g */
-    const updateDims = (g) => {
-        switch(g.type) {
-        case "Vert": {
-            updateDims(g.left);
-            updateDims(g.right);
-            g.dims.width = g.left.dims.width;
-            g.dims.height = g.left.dims.height + g.right.dims.height;
-        } break;
-        case "Horz": {
-            updateDims(g.left);
-            updateDims(g.right);
-            g.dims.width = g.left.dims.width + g.right.dims.width;
-            g.dims.height = g.left.dims.height;
-        } break;
-        case "Leaf": return;
-        }
-    }
-
-    updateDims(g);
+    recalculateSplitDimensions(g);
     return g;
 }
 

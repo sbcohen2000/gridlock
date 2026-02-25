@@ -96,20 +96,14 @@ function maximumLineLength(leaf) {
 }
 
 /**
- * Expand the `leaf` to fit its textual content, but only if necessary.
+ * Expand the `leaf` horizontally to fit its textual content, but only
+ * if necessary.
  *
  * @param {grid.Grid<state.Cell>} g    The root of the grid.
  * @param {grid.Leaf<state.Cell>} leaf The leaf to expand.
  * @param {any}                   glpk The glpk instance.
  */
-async function expandLeafIfNecessary(g, leaf, glpk) {
-    // Adjust the height of the leaf, if necessary.
-    const dH = leaf.data.lines.length - leaf.dims.height;
-    if(0 < dH) {
-        grid.modifyHeight(g, dH, leaf);
-    }
-
-    // Adjust the width of the leaf, if necessary.
+async function expandLeafWidthIfNecessary(g, leaf, glpk) {
     const dW = maximumLineLength(leaf) - leaf.dims.width;
     if(0 < dW) {
         await grid.modifyWidth(g, dW, leaf, glpk);
@@ -473,14 +467,18 @@ export function globalLineIsEmpty(st) {
 export function removeGlobalLine(st) {
     let contents = "";
     const globalPt = findGlobalPoint(st);
-    for(const leaf of eachLeafOnGlobalRow(globalPt.y, st)) {
+    const leaves = [...eachLeafOnGlobalRow(globalPt.y, st)];
+    for(const leaf of leaves) {
         const leafPos = grid.posOfLeaf(st.grid, leaf);
-        const relRow = globalPt.y - leafPos.y;
+        const relRow  = globalPt.y - leafPos.y;
 
         contents += leaf.data.lines[relRow];
         leaf.data.lines.splice(relRow, 1);
-        grid.modifyHeight(st.grid, -1, leaf);
     }
+
+    // Modify the leaf heights, now that we've removed a line from
+    // each.
+    grid.modifyHeightOfLeaves(st.grid, -1, leaves);
 
     const [newGrid, _removedLeaves] = grid.removeEmptyLeaves(st.grid);
     st.grid = newGrid;
@@ -524,39 +522,22 @@ export function removeString(n, st) {
 /** Primitive Text Insertion Functions                                      **/
 
 /**
- * Insert a line at `row` in `leaf`, with contents `s`.
- *
- * @param {grid.Leaf<state.Cell>} leaf The leaf at which to insert the new line.
- * @param {number}                row  The row number at which to insert the new line.
- * @param {string}                s    The contents of the new row.
- * @param {state.EditingLeaf}     st   The editor state.
- * @param {any}                   glpk The glpk instance.
- */
-async function insertLineAtLeaf(leaf, row, s, st, glpk) {
-    // Insert the new line.
-    const lines = leaf.data.lines;
-    lines.splice(row, 0, s);
-
-    await expandLeafIfNecessary(st.grid, leaf, glpk);
-}
-
-/**
  * Put the point on the next line, creating it, even if that line is
  * not in the currently selected leaf. If we're at the end of the
  * document, then this function also creates a new line in the current
  * leaf and sets the point to it.
  *
  * @param {state.EditingLeaf} st   The editor state.
- * @param {any}               glpk The glpk instance.
  */
-export async function insertGlobalNewline(st, glpk) {
+export function insertGlobalNewline(st) {
     // Find the location of the cursor in the global coordinate space.
     const globalPt  = findGlobalPoint(st);
     const globalRow = globalPt.y;
     const globalCol = globalPt.x;
 
     // Add a line to each leaf _at_ `row`.
-    for(const leaf of eachLeafOnGlobalRow(globalRow, st)) {
+    const leaves = [...eachLeafOnGlobalRow(globalRow, st)]
+    for(const leaf of leaves) {
         const leafUpperLeft = grid.posOfLeaf(st.grid, leaf);
         const localRow = globalRow - leafUpperLeft.y;
         const localCol = globalCol - leafUpperLeft.x;
@@ -569,8 +550,9 @@ export async function insertGlobalNewline(st, glpk) {
         const flush    = line.slice(util.clamp(0, localCol, line.length));
 
         leaf.data.lines[localRow] = preserve;
-        await insertLineAtLeaf(leaf, localRow + 1, flush, st, glpk);
+        leaf.data.lines.splice(localRow + 1, 0, flush);
     }
+    grid.modifyHeightOfLeaves(st.grid, 1, leaves);
 
     putPointOnGlobalPosition(point.mkP2(0, globalRow + 1), st, false);
 }
@@ -605,7 +587,7 @@ export async function insertString(s, st, glpk, advancePoint) {
         updateLastGlobalCol(st);
     }
 
-    await expandLeafIfNecessary(st.grid, st.singleSelection.leaf, glpk);
+    await expandLeafWidthIfNecessary(st.grid, st.singleSelection.leaf, glpk);
 }
 
 /*****************************************************************************/

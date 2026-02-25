@@ -154,16 +154,47 @@ document.addEventListener("DOMContentLoaded", async () => {
     setDirty();
     viewIfDirty();
 
+    const clearAll = () => {
+        state.clearFlag(
+            st.flags,
+            "pushedLeftEdge",
+            "pushedRightEdge",
+            "pushedTopEdge",
+            "pushedBottomEdge"
+        );
+    };
+
+    /**
+     * @param {(st: state.EditingLeaf) => boolean} cmd1
+     * @param {(st: state.EditingLeaf) => void} cmd2
+     * @param {keyof state.Flags} flag
+     */
+    const mkPersistentCommand = (cmd1, cmd2, flag) => {
+        if(!state.testFlag(st.flags, flag)) {
+            const succ = cmd1(st);
+            if(succ) {
+                clearAll();
+            } else {
+                state.setFlag(st.flags, flag);
+            }
+        } else {
+            cmd2(st);
+            clearAll();
+        }
+    };
+
     document.addEventListener("keydown", async (e) => {
         if(e.key.length === 1) {
             if(e.ctrlKey) {
                 switch(e.key) {
-                case "a": state.putPointAtStartOfLine(st); setDirty(); break;
-                case "e": state.putPointAtEndOfLine(st);   setDirty(); break;
-                case "n": state.putPointOnNextLine(st);    setDirty(); break;
-                case "p": state.putPointOnPrevLine(st);    setDirty(); break;
-                case "b": state.putPointOnPrevCol(st);     setDirty(); break;
-                case "f": state.putPointOnNextCol(st);     setDirty(); break;
+                case "a": mkPersistentCommand(state.putPointAtStartOfLine, state.putPointAtStartOfGlobalLine, "pushedLeftEdge");   setDirty(); break;
+                case "e": mkPersistentCommand(state.putPointAtEndOfLine,   state.putPointAtEndOfGlobalLine,   "pushedRightEdge");  setDirty(); break;
+                case "n": mkPersistentCommand(state.putPointOnNextLine,    state.putPointOnNextGlobalLine,    "pushedBottomEdge"); setDirty(); break;
+                case "p": mkPersistentCommand(state.putPointOnPrevLine,    state.putPointOnPrevGlobalLine,    "pushedTopEdge");    setDirty(); break;
+                case "b": mkPersistentCommand(state.putPointOnPrevCol,     state.putPointOnPrevGlobalCol,     "pushedLeftEdge");   setDirty(); break;
+                case "f": mkPersistentCommand(state.putPointOnNextCol,     state.putPointOnNextGlobalCol,     "pushedRightEdge");  setDirty(); break;
+                case "=": state.splitCellHorizontallyAtPoint(st);   setDirty(); break;
+                case "-": state.splitCellVerticallyAtPoint(st); setDirty(); break;
                 }
             } else {
                 await state.insertString(e.key, st, glpk);
