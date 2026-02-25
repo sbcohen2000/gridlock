@@ -154,16 +154,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     setDirty();
     viewIfDirty();
 
-    function handleCommand() {
-        const cmd = st.commandState;
-        if(cmd === null) {
-            // If there's no command, do nothing.
-            return;
-        }
-
-        // First, remove the command text from the document.
-    }
-
     document.addEventListener("keydown", async (e) => {
         if(e.key.length === 1) {
             if(e.ctrlKey) {
@@ -175,39 +165,21 @@ document.addEventListener("DOMContentLoaded", async () => {
                 case "b": state.putPointOnPrevCol(st);     setDirty(); break;
                 case "f": state.putPointOnNextCol(st);     setDirty(); break;
                 }
-            } else if(e.key === "\\") {
-                // Enter command state. First, we insert a backslash,
-                // Then, isolate the backslash in its own cell, then
-                // navigate to the new cell.
-                await state.insertString("\\", st, glpk);
-                state.splitCellHorizontallyAtPoint(st);
-                state.putPointOnPrevGlobalCol(st);
-                state.splitCellHorizontallyAtPoint(st);
-                state.putPointOnNextCol(st);
-
-                st.commandState = {
-                    commandText: "",
-                    commandLeaf: st.singleSelection.leaf
-                };
-
-                setDirty();
             } else {
                 await state.insertString(e.key, st, glpk);
                 setDirty();
             }
-        } else if(st.commandState === null) {
+        } else {
             // Only if there's no command state do we allow the
             // processing of non-letter characters.
 
             switch(e.key) {
             case "Backspace": {
                 if(state.pointAtBeginningOfGlobalLine(st)) {
-                    if(state.globalLineIsEmpty(st)) {
-                        // Then, remove the entire line.
-                        state.removeGlobalLine(st);
-                    } else {
-                        // Then, move the point to the end of the line.
+                    if(!state.pointOnFirstGlobalLine(st)) {
+                        const contents = state.removeGlobalLine(st);
                         state.putPointAtEndOfGlobalLine(st);
+                        await state.insertString(contents, st, glpk, false);
                     }
                 } else {
                     state.removeString(1, st);
@@ -216,12 +188,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 setDirty();
             }break;
             case "Enter": {
-                if(st.commandState) {
-                    handleCommand();
-                } else {
-                    await state.insertGlobalNewline("", st, glpk);
-                    setDirty();
-                }
+                await state.insertGlobalNewline(st, glpk);
+                setDirty();
             } break;
             default: break;
             }

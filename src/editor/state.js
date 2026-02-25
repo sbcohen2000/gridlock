@@ -31,13 +31,6 @@ import * as point from "../point.js";
  */
 
 /**
- * @typedef {{
- *   commandText: string
- *   commandLeaf: grid.Leaf<Cell>
- * }} CommandState
- */
-
-/**
  * @typedef {Object} Flags
  * @property {boolean} pushedLeftEdge
  * @property {boolean} pushedRightEdge
@@ -85,7 +78,6 @@ export function testFlag(flags, flag) {
  *  type: "EditingLeaf"
  *  singleSelection: SingleSelection,
  *  grid: grid.Grid<Cell>,
- *  commandState: CommandState | null,
  *  flags: Flags
  * }} EditingLeaf
  */
@@ -117,9 +109,8 @@ export function mk(g) {
             type: "Single",
             leaf: firstLeaf,
             pt: point.mkOrigin(),
-            globalCol: 0
+            lastGlobalCol: 0
         },
-        commandState: null,
         flags: {
             pushedLeftEdge: false,
             pushedTopEdge: false,

@@ -201,19 +201,19 @@ describe("insertGlobalNewline", () => {
         // `hello`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
         state.putPointOnLocalPosition(leaf, point.mkP2(5, 0), st);
-        await state.insertGlobalNewline("next line", st, glpk);
+        await state.insertGlobalNewline(st, glpk);
 
         const exp =
-              "hello\n"        +
-              "next line\n"    +
-              "+--------+\n" +
-              "|        |\n" +
-              "+--------+"
+              "hello\n"      +
+              "\n"           +
+              "+-----+\n" +
+              "|     |\n" +
+              "+-----+"
 
         expect(serialize.printCellGrid(st.grid)).to.equal(exp);
     });
 
-    it("Can insert a newline at the end of a multi-leaf document", async () => {
+    it("Can insert a newline between leaves", async () => {
         const src =
               "hellothere\n"  +
               "+----+----+\n" +
@@ -224,11 +224,32 @@ describe("insertGlobalNewline", () => {
         // `hello`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
         state.putPointOnLocalPosition(leaf, point.mkP2(5, 0), st);
-        await state.insertGlobalNewline("world", st, glpk);
+        await state.insertGlobalNewline(st, glpk);
 
         const exp =
+              "hello\n"  +
+              "     there\n"  +
+              "+----+----+\n" +
+              "|    |    |\n" +
+              "+----+----+";
+
+        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+    });
+
+    it("Can insert a newline within leaves", async () => {
+        const src =
               "hellothere\n"  +
-              "world\n"       +
+              "+----+----+\n" +
+              "+----+----+";
+
+        const st = serialize.editorStateFromString(src);
+        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
+        state.putPointOnLocalPosition(leaf, point.mkP2(3, 0), st);
+        await state.insertGlobalNewline(st, glpk);
+
+        const exp =
+              "hel\n"         +
+              "lo   there\n"  +
               "+----+----+\n" +
               "|    |    |\n" +
               "+----+----+";
@@ -249,11 +270,11 @@ describe("insertGlobalNewline", () => {
         // top `one`.
         const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
         state.putPointOnLocalPosition(leaf, point.mkP2(3, 0), st);
-        await state.insertGlobalNewline("", st, glpk);
+        await state.insertGlobalNewline(st, glpk);
 
         const exp0 =
-              "one  two  three\n"  +
-              "\n"                 +
+              "one\n"  +
+              "     two  three\n"  +
               "one  two  three\n"  +
               "+----+----+----+\n" +
               "|    |    |    |\n" +
@@ -267,8 +288,8 @@ describe("insertGlobalNewline", () => {
         await state.insertString("some text", st, glpk);
 
         const exp1 =
-              "one      two  three\n"  +
-              "some text\n"            +
+              "one\n"  +
+              "some texttwo  three\n"  +
               "one      two  three\n"  +
               "+--------+----+----+\n" +
               "|        |    |    |\n" +

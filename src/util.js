@@ -13,3 +13,20 @@ export function iterLast(i) {
     }
     return last;
 }
+
+/**
+ * Restrict the value of `x` to lie between `lo` and `hi`.
+ *
+ * @param {number} lo The lower bound.
+ * @param {number} x  The input value.
+ * @param {number} hi The upper bound.
+ * @returns {number}
+ */
+export function clamp(lo, x, hi) {
+    if(x < lo) {
+        return lo;
+    } else if(x > hi) {
+        return hi;
+    }
+    return x;
+}

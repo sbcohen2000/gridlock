@@ -31,8 +31,8 @@ export function updateLastGlobalCol(st) {
  */
 export function putPointOnLocalPosition(leaf, pt, st, newGlobalCol) {
     // Ensure that the row and column are within bounds of the line.
-    pt.y = Math.max(0, Math.min(pt.y, leaf.data.lines.length - 1));
-    pt.x = Math.max(0, Math.min(pt.x, leaf.data.lines[pt.y].length));
+    pt.y = util.clamp(0, pt.y, leaf.data.lines.length - 1);
+    pt.x = util.clamp(0, pt.x, leaf.data.lines[pt.y].length);
 
     st.singleSelection = {
         ...st.singleSelection,
@@ -228,14 +228,15 @@ export function putPointAtEndOfLine(st) {
  * @param {state.EditingLeaf} st The editor state.
  */
 export function putPointOnNextGlobalLine(st) {
-    if(pointOnLastGlobalRow(st)) {
+    if(pointOnLastGlobalLine(st)) {
         return;
     }
 
+    const globalPt = findGlobalPoint(st);
     putPointOnGlobalPosition(
         point.mkP2(
             st.singleSelection.lastGlobalCol,
-            st.singleSelection.pt.y + 1
+            globalPt.y + 1
         ),
         st,
         false
@@ -267,14 +268,15 @@ export function putPointOnNextLine(st) {
  * @param {state.EditingLeaf} st The editor state.
  */
 export function putPointOnPrevGlobalLine(st) {
-    if(pointOnFirstGlobalRow(st)) {
+    if(pointOnFirstGlobalLine(st)) {
         return;
     }
 
+    const globalPt = findGlobalPoint(st);
     putPointOnGlobalPosition(
         point.mkP2(
             st.singleSelection.lastGlobalCol,
-            st.singleSelection.pt.y - 1
+            globalPt.y - 1
         ),
         st,
         false
@@ -309,7 +311,8 @@ export function putPointOnNextGlobalCol(st) {
         return;
     }
 
-    putPointOnGlobalPosition(point.offset(st.singleSelection.pt, point.mkV2(1, 0)), st);
+    const globalPt = findGlobalPoint(st);
+    putPointOnGlobalPosition(point.offset(globalPt, point.mkV2(1, 0)), st);
 }
 
 /**
@@ -346,7 +349,8 @@ export function putPointOnPrevGlobalCol(st) {
         return;
     }
 
-    putPointOnGlobalPosition(point.offset(st.singleSelection.pt, point.mkV2(-1, 0)), st);
+    const globalPt = findGlobalPoint(st);
+    putPointOnGlobalPosition(point.offset(globalPt, point.mkV2(-1, 0)), st);
 }
 
 /**
@@ -412,7 +416,7 @@ export function pointAtBeginningOfGlobalLine(st) {
  * @param {state.EditingLeaf} st
  * @returns {boolean}
  */
-export function pointOnFirstGlobalRow(st) {
+export function pointOnFirstGlobalLine(st) {
     return findGlobalPoint(st).y === 0;
 }
 
@@ -464,13 +468,16 @@ export function globalLineIsEmpty(st) {
  * leaves, removing newly empty leaves.
  *
  * @param {state.EditingLeaf} st The editor state.
+ * @returns {string} The contents of the line.
  */
 export function removeGlobalLine(st) {
+    let contents = "";
     const globalPt = findGlobalPoint(st);
     for(const leaf of eachLeafOnGlobalRow(globalPt.y, st)) {
         const leafPos = grid.posOfLeaf(st.grid, leaf);
         const relRow = globalPt.y - leafPos.y;
 
+        contents += leaf.data.lines[relRow];
         leaf.data.lines.splice(relRow, 1);
         grid.modifyHeight(st.grid, -1, leaf);
     }
@@ -481,6 +488,8 @@ export function removeGlobalLine(st) {
     // We need to set the selection here again since the selected leaf
     // might now be gone.
     putPointOnGlobalPosition(point.mkP2(0, globalPt.y - 1), st);
+
+    return contents;
 }
 
 /**
@@ -508,6 +517,7 @@ export function removeString(n, st) {
 
     // Move the cursor left by the number of characters removed.
     sel.pt.x -= n;
+    updateLastGlobalCol(st);
 }
 
 /*****************************************************************************/
@@ -536,23 +546,33 @@ async function insertLineAtLeaf(leaf, row, s, st, glpk) {
  * document, then this function also creates a new line in the current
  * leaf and sets the point to it.
  *
- * @param {string}      s    The initial contents of the new line.
  * @param {state.EditingLeaf} st   The editor state.
- * @param {any}         glpk The glpk instance.
+ * @param {any}               glpk The glpk instance.
  */
-export async function insertGlobalNewline(s, st, glpk) {
+export async function insertGlobalNewline(st, glpk) {
     // Find the location of the cursor in the global coordinate space.
-    const globalRow = findGlobalPoint(st).y;
+    const globalPt  = findGlobalPoint(st);
+    const globalRow = globalPt.y;
+    const globalCol = globalPt.x;
 
     // Add a line to each leaf _at_ `row`.
-    let isFst = true;
     for(const leaf of eachLeafOnGlobalRow(globalRow, st)) {
-        const localRow = globalRow - grid.posOfLeaf(st.grid, leaf).y + 1;
-        await insertLineAtLeaf(leaf, localRow, isFst ? s : "", st, glpk);
-        isFst = false;
+        const leafUpperLeft = grid.posOfLeaf(st.grid, leaf);
+        const localRow = globalRow - leafUpperLeft.y;
+        const localCol = globalCol - leafUpperLeft.x;
+
+        // Find two strings, the string which we should preserve on
+        // the original line, and the string which should be pulled
+        // onto the new line (flush).
+        const line = leaf.data.lines[localRow];
+        const preserve = line.slice(0, util.clamp(0, localCol, line.length));
+        const flush    = line.slice(util.clamp(0, localCol, line.length));
+
+        leaf.data.lines[localRow] = preserve;
+        await insertLineAtLeaf(leaf, localRow + 1, flush, st, glpk);
     }
 
-    putPointOnGlobalPosition(point.mkP2(0, globalRow + 1), st);
+    putPointOnGlobalPosition(point.mkP2(0, globalRow + 1), st, false);
 }
 
 /**
@@ -563,8 +583,15 @@ export async function insertGlobalNewline(s, st, glpk) {
  * @param {string}            s    The string to insert.
  * @param {state.EditingLeaf} st   The editor state.
  * @param {any}               glpk The GLPK instance.
+ * @param {boolean} [advancePoint] Should the point advance as a
+ *     result of inserting the string? If omitted, the default is
+ *     `true`.
  */
-export async function insertString(s, st, glpk) {
+export async function insertString(s, st, glpk, advancePoint) {
+    if(advancePoint === undefined) {
+        advancePoint = true;
+    }
+
     const row    = st.singleSelection.pt.y;
     const col    = st.singleSelection.pt.x;
     const line   = st.singleSelection.leaf.data.lines[row];
@@ -572,8 +599,11 @@ export async function insertString(s, st, glpk) {
     const after  = line.slice(col);
     st.singleSelection.leaf.data.lines[row] = before + s + after;
 
-    // Advance the cursor by the length of the string.
-    st.singleSelection.pt.x += s.length;
+    if(advancePoint) {
+        // Advance the cursor by the length of the string.
+        st.singleSelection.pt.x += s.length;
+        updateLastGlobalCol(st);
+    }
 
     await expandLeafIfNecessary(st.grid, st.singleSelection.leaf, glpk);
 }
@@ -600,7 +630,7 @@ export function splitCellVerticallyAtPoint(st) {
         ]
     );
     // Recalculate selection.
-    putPointOnGlobalPosition(globalPoint, st);
+    putPointOnGlobalPosition(globalPoint, st, false);
 }
 
 
@@ -624,5 +654,18 @@ export function splitCellHorizontallyAtPoint(st) {
         ]
     );
     // Recalculate selection.
-    putPointOnGlobalPosition(globalPoint, st);
+    putPointOnGlobalPosition(globalPoint, st, false);
+}
+
+/**
+ * @param {state.EditingLeaf} st   The current editor state.
+ * @param {any}               glpk The GLPK instance.
+ */
+export async function deleteSelectedLeaf(st, glpk) {
+    const globalPoint = findGlobalPoint(st);
+    const g = await grid.deleteLeaf(st.grid, st.singleSelection.leaf, glpk);
+    st.grid = g;
+
+    // Update the selection, since the selected leaf will be gone.
+    putPointOnGlobalPosition(globalPoint, st, false);
 }
