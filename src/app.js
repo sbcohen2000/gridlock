@@ -116,8 +116,8 @@ function viewEditorState(root, st) {
         cursorElem.style.display = "none";
 
         // If the leaf is selected, we need to draw the cursor.
-        if(st.selection.type === "Single" && st.selection.leaf === leaf) {
-            const ptDoc    = st.selection.pt;
+        if(st.type === "EditingLeaf" && st.singleSelection.leaf === leaf) {
+            const ptDoc    = st.singleSelection.pt;
             const xScreen  = `${ptDoc.x}ch`;
             const yScreen  = `${ptDoc.y}em`;
 
@@ -162,13 +162,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             switch(e.key) {
             case "Backspace": state.removeCharBeforePoint(st); setDirty(); break;
             case "Enter": {
-                if(e.metaKey) {
-                    state.newRowBelowPoint(st);
-                    setDirty();
-                } else {
-                    await state.insertGlobalNewline("", st, glpk);
-                    setDirty();
-                }
+                await state.insertGlobalNewline("", st, glpk);
+                setDirty();
             } break;
             default: break;
             }

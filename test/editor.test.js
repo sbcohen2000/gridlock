@@ -125,9 +125,9 @@ describe("putPointAtEndOfGlobalLine", () => {
         // Point starts at (0, 0).
         state.putPointAtEndOfGlobalLine(st);
 
-        expect(st.selection.type).to.equal("Single");
-        expect(st.selection.pt.x).to.equal(5);
-        expect(st.selection.pt.y).to.equal(0);
+        expect(st.singleSelection.type).to.equal("Single");
+        expect(st.singleSelection.pt.x).to.equal(5);
+        expect(st.singleSelection.pt.y).to.equal(0);
     });
 
     it("Moves to end of rightmost leaf on the same row", () => {
@@ -142,9 +142,9 @@ describe("putPointAtEndOfGlobalLine", () => {
 
         // Should land at end of "there" (col 5) in the right leaf.
         const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(5, 0));
-        expect(st.selection.leaf).to.equal(rightLeaf);
-        expect(st.selection.pt.x).to.equal(5);
-        expect(st.selection.pt.y).to.equal(0);
+        expect(st.singleSelection.leaf).to.equal(rightLeaf);
+        expect(st.singleSelection.pt.x).to.equal(5);
+        expect(st.singleSelection.pt.y).to.equal(0);
     });
 
     it("Stays on the correct row in a multi-row document", () => {
@@ -163,9 +163,9 @@ describe("putPointAtEndOfGlobalLine", () => {
         state.putPointAtEndOfGlobalLine(st);
 
         const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(6, 0));
-        expect(st.selection.leaf).to.equal(rightLeaf);
-        expect(st.selection.pt.x).to.equal(3);
-        expect(st.selection.pt.y).to.equal(1);
+        expect(st.singleSelection.leaf).to.equal(rightLeaf);
+        expect(st.singleSelection.pt.x).to.equal(3);
+        expect(st.singleSelection.pt.y).to.equal(1);
     });
 
 });
