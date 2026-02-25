@@ -894,3 +894,181 @@ describe("reassociateLeaves", () => {
         );
     });
 });
+
+describe("checkLeavesAdjacent", () => {
+    it("Detects horizontally adjacent leaves", () => {
+        const g = grid.parseASCII(
+            "+-+--+\n" +
+            "|a| b|\n" +
+            "+-+--+"
+        );
+        const a = grid.findLeafWithLabel(g, "a");
+        const b = grid.findLeafWithLabel(g, "b");
+        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.true;
+        expect(grid.checkLeavesAdjacent(g, b, a)).to.be.true;
+    });
+
+    it("Detects vertically adjacent leaves", () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "|a |\n" +
+            "+--+\n" +
+            "|b |\n" +
+            "+--+"
+        );
+        const a = grid.findLeafWithLabel(g, "a");
+        const b = grid.findLeafWithLabel(g, "b");
+        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.true;
+        expect(grid.checkLeavesAdjacent(g, b, a)).to.be.true;
+    });
+
+    it("Rejects non-adjacent leaves", () => {
+        const g = grid.parseASCII(
+            "+-+-+-+\n" +
+            "|a|b|c|\n" +
+            "+-+-+-+"
+        );
+        const a = grid.findLeafWithLabel(g, "a");
+        const c = grid.findLeafWithLabel(g, "c");
+        expect(grid.checkLeavesAdjacent(g, a, c)).to.be.false;
+    });
+
+    it("Rejects touching leaves with matching dimensions", () => {
+        const g = grid.parseASCII(
+            "+--+--+\n" +
+            "|a |b |\n" +
+            "|  +--+\n" +
+            "|  |c |\n" +
+            "+--+--+"
+        );
+        const a = grid.findLeafWithLabel(g, "a");
+        const b = grid.findLeafWithLabel(g, "b");
+        const c = grid.findLeafWithLabel(g, "c");
+        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.false;
+        expect(grid.checkLeavesAdjacent(g, a, c)).to.be.false;
+        expect(grid.checkLeavesAdjacent(g, b, c)).to.be.true;
+    });
+
+    it("Any grid with more than one leaf has at least one adjacent pair", () => {
+        fc.assert(
+            fc.property(arbg.grid.tree, (g) => {
+                const leaves = [...grid.allLeaves(g)];
+                fc.pre(leaves.length >= 2);
+
+                for (let i = 0; i < leaves.length; ++i) {
+                    for (let j = i + 1; j < leaves.length; ++j) {
+                        if (grid.checkLeavesAdjacent(g, leaves[i], leaves[j])) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            })
+        );
+    });
+});
+
+describe("mergeLeaves", () => {
+    it("Can merge the leaves in a tree with only two leaves", () => {
+        const src =
+              "+-+---+\n" +
+              "|a| b |\n" +
+              "+-+---+";
+
+        const g = grid.parseASCII(src);
+        const la = grid.findLeafWithLabel(g, "a");
+        const lb = grid.findLeafWithLabel(g, "b");
+
+        const exp =
+              "+-----+\n" +
+              "|     |\n" +
+              "+-----+";
+
+        const g1 = grid.mergeLeaves(g, la, lb);
+        expect(grid.printASCII(g1)).to.equal(exp);
+    });
+
+    it("Can merge the leaves in a tree with many leaves", () => {
+        let src =
+            "+--+--+--+\n" +
+            "|a |b |c |\n" +
+            "|  +--+--+\n" +
+            "|  |d |e |\n" +
+            "+--+--+--+\n" +
+            "|f    |g |\n" +
+            "+-----+--+";
+
+        const g  = grid.parseASCII(src);
+        const lc = grid.findLeafWithLabel(g, "c");
+        const le = grid.findLeafWithLabel(g, "e");
+
+        const lb = grid.findLeafWithLabel(g, "b");
+        const ld = grid.findLeafWithLabel(g, "d");
+
+        const lf = grid.findLeafWithLabel(g, "f");
+        const lg = grid.findLeafWithLabel(g, "g");
+
+        // ----------------------------------------------------------
+        let exp1 =
+            "+--+--+--+\n" +
+            "|  |  |  |\n" +
+            "|  +--+  |\n" +
+            "|  |  |  |\n" +
+            "+--+--+--+\n" +
+            "|     |  |\n" +
+            "+-----+--+";
+
+        const g1 = grid.mergeLeaves(g, lc, le);
+        expect(grid.printASCII(g1)).to.equal(exp1);
+
+        // ----------------------------------------------------------
+        let exp2 =
+            "+--+--+--+\n" +
+            "|  |  |  |\n" +
+            "|  |  |  |\n" +
+            "|  |  |  |\n" +
+            "+--+--+--+\n" +
+            "|     |  |\n" +
+            "+-----+--+";
+
+        const g2 = grid.mergeLeaves(g1, lb, ld);
+        expect(grid.printASCII(g2)).to.equal(exp2);
+
+        // ----------------------------------------------------------
+        let exp3 =
+            "+--+--+--+\n" +
+            "|  |  |  |\n" +
+            "|  |  |  |\n" +
+            "|  |  |  |\n" +
+            "+--+--+--+\n" +
+            "|        |\n" +
+            "+--------+";
+
+        const g3 = grid.mergeLeaves(g2, lf, lg);
+        expect(grid.printASCII(g3)).to.equal(exp3);
+    });
+
+    it("Merging an adjacent pair reduces the leaf count by one", () => {
+        fc.assert(
+            fc.property(arbg.grid.tree, (g) => {
+                const leaves = [...grid.allLeaves(g)];
+                fc.pre(leaves.length >= 2);
+
+                // Find an adjacent pair.
+                for (let i = 0; i < leaves.length; ++i) {
+                    for (let j = i + 1; j < leaves.length; ++j) {
+                        if (grid.checkLeavesAdjacent(g, leaves[i], leaves[j])) {
+                            const merged = grid.mergeLeaves(g, leaves[i], leaves[j]);
+                            const newLeaves = [...grid.allLeaves(merged)];
+                            expect(newLeaves).to.have.lengthOf(leaves.length - 1);
+                            return;
+                        }
+                    }
+                }
+
+                // The adjacency property test guarantees we never reach here.
+                expect.fail("No adjacent pair found");
+            })
+        );
+    });
+});

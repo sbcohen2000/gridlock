@@ -1220,3 +1220,116 @@ export function reassociateLeaves(leaves, width, height) {
 
     return go(lrSweeps, udSweeps, width, height);
 }
+
+/**
+ * Check that two leaves, annotated with their positions, are adjacent
+ * in the grid. Two leaves are adjacent if they are touching along an
+ * edge, and along the edge that they touch they have the same
+ * dimension.
+ *
+ * @template A
+ * @param {[Leaf<A>, point.P2]} a The first leaf.
+ * @param {[Leaf<A>, point.P2]} b The second leaf.
+ * @returns {boolean}
+ */
+function _checkLeavesAdjacent([leafA, leafALoc], [leafB, leafBLoc]) {
+    if(leafALoc.x === leafBLoc.x) {
+        // Then, the leaves are potentially aligned vertically.
+        return leafA.dims.width === leafB.dims.width
+            && (leafALoc.y + leafA.dims.height === leafBLoc.y      // Leaf A is _above_ leaf B
+                || leafALoc.y - leafB.dims.height === leafBLoc.y); // Leaf A is _below_ leaf B
+    }
+
+    if(leafALoc.y === leafBLoc.y) {
+        // Then, the leaves are potentially aligned horizontally.
+        return leafA.dims.height === leafB.dims.height
+            && (leafALoc.x + leafA.dims.width === leafBLoc.x      // Leaf A is _left_ of leaf B
+                || leafALoc.x - leafB.dims.width === leafBLoc.x); // Leaf A is _right_ of leaf B
+    }
+
+    return false;
+}
+
+/**
+ * Check that two leaves are adjacent in the grid. Two leaves are
+ * adjacent if they are touching along an edge, and along the edge
+ * that they touch they have the same dimension.
+ *
+ * @template A
+ * @param {Grid<A>} g The grid.
+ * @param {Leaf<A>} a The first leaf.
+ * @param {Leaf<A>} b The second leaf.
+ * @returns {boolean}
+ */
+export function checkLeavesAdjacent(g, a, b) {
+    const aLoc = findLeafLocation(g, a);
+    const bLoc = findLeafLocation(g, b);
+    return _checkLeavesAdjacent([a, aLoc], [b, bLoc]);
+}
+
+/**
+ * Given references to two leaves which must be adjacent and have the
+ * same dimension along their adjacent edge, return a new graph which
+ * has merged the two leaves into one.
+ *
+ * If the leaves aren't adjacent, the grid is returned unchanged.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} leafA The first leaf.
+ * @param {Leaf<A>} leafB The second leaf.
+ * @param {(a: A, b: A) => A} [mergeData] How to merge the data of
+ *     `leafA` and `leafB`. If omitted, the data of `leafA` is kept,
+ *     while the data of `leafB` is discarded.
+ * @param {(a: string, b: string) => string} [mergeLabel] How to merge
+ *     the labels of `leafA` and `leafB`. If omitted, the label of
+ *     `leafA` is kept, while the label of `leafB` is discarded.
+ * @returns {Grid<A>} The new grid.
+ */
+export function mergeLeaves(g, leafA, leafB, mergeData, mergeLabel) {
+    if(!mergeData) {
+        mergeData = (a, _) => a;
+    }
+
+    if(!mergeLabel) {
+        mergeLabel = (a, _) => a;
+    }
+
+    const leafALoc = findLeafLocation(g, leafA);
+    const leafBLoc = findLeafLocation(g, leafB);
+
+    if(!_checkLeavesAdjacent([leafA, leafALoc], [leafB, leafBLoc])) {
+        return g;
+    }
+
+    const newLeafUpperLeft = point.mkP2(
+        Math.min(leafALoc.x, leafBLoc.x),
+        Math.min(leafALoc.y, leafBLoc.y)
+    );
+
+    const newLeafLowerRight = point.mkP2(
+        Math.max(leafALoc.x + leafA.dims.width, leafBLoc.x + leafB.dims.width),
+        Math.max(leafALoc.y + leafA.dims.height, leafBLoc.y + leafB.dims.height)
+    );
+
+    /** @type { Leaf<A> } */
+    const newLeaf = {
+        type: "Leaf",
+        dims: {
+            width: newLeafLowerRight.x - newLeafUpperLeft.x,
+            height: newLeafLowerRight.y - newLeafUpperLeft.y
+        },
+        data: mergeData(leafA.data, leafB.data),
+        label: mergeLabel(leafA.label, leafB.label),
+    };
+
+    // TODO: As an optimization, it might be better to find the lowest
+    // common ancestor of the leaves, and re-associate leaves only on
+    // that ancestor, rather than the entire grid.
+
+    // Filter out `leafA` and `leafB`.n
+    let leaves = [...allLeavesWithPosition(g).filter(([leaf, _]) => leaf !== leafA && leaf !== leafB)];
+    leaves.push([newLeaf, newLeafUpperLeft]);
+
+    return reassociateLeaves(leaves.values(), g.dims.width, g.dims.height);
+}
