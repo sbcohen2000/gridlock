@@ -1333,3 +1333,153 @@ export function mergeLeaves(g, leafA, leafB, mergeData, mergeLabel) {
 
     return reassociateLeaves(leaves.values(), g.dims.width, g.dims.height);
 }
+
+/**
+ * Split the `focus`ed leaf in the grid `g` at `row`. This function
+ * only modifies the grid if `row` is greater than zero, and less than
+ * the height of the focused leaf (since otherwise, one of the
+ * offshoots would have no height).
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} focus
+ * @param {number} row
+ * @param {(a: A) => [A, A]} splitData How should the data of the
+ *     focused leaf be split between the offshoots?
+ * @param {(a: string) => [string, string]} [splitLabel] How should
+ *     the label of the leaf be split between the offshoots? If
+ *     omitted, the default duplicates the label.
+ * @returns {Grid<A>}
+ */
+export function splitLeafVertically(g, focus, row, splitData, splitLabel) {
+    if(!splitLabel) {
+        splitLabel = (label) => [label, label];
+    }
+
+    if(row <= 0 || row >= focus.dims.height) {
+        return g;
+    }
+
+    /** @type {Leaf<A>} */
+    const top = {
+        type: "Leaf",
+        dims: { width: focus.dims.width, height: row },
+    };
+    /** @type {Leaf<A>} */
+    const bottom = {
+        type: "Leaf",
+        dims: { width: focus.dims.width, height: focus.dims.height - row }
+    };
+
+    if(focus.data !== undefined) {
+        const [topData, bottomData] = splitData(focus.data);
+        top.data = topData;
+        bottom.data = bottomData;
+    }
+
+    if(focus.label !== undefined) {
+        const [topLabel, bottomLabel] = splitLabel(focus.label);
+        top.label = topLabel;
+        bottom.label = bottomLabel;
+    }
+
+    /** @type {Split<A>} */
+    const newNode = {
+        type: "Vert",
+        left: top,
+        right: bottom,
+        dims: {...focus.dims}
+    };
+
+    const chain = parentChain(g, focus);
+
+    if(chain.length === 0) {
+        // If `focus` is the root, then we simply construct a new root
+        // and return it.
+        return newNode;
+    } else {
+        const parent = chain[0];
+        if(parent.left === focus) {
+            // Replace the left child.
+            parent.left = newNode;
+        } else {
+            // Replace the right child.
+            parent.right = newNode;
+        }
+    }
+
+    return g;
+}
+
+/**
+ * Split the `focus`ed leaf in the grid `g` at `col`. This function
+ * only modifies the grid if `col` is greater than zero, and less than
+ * the width of the focused leaf (since otherwise, one of the
+ * offshoots would have no width).
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} focus
+ * @param {number} col
+ * @param {(a: A) => [A, A]} splitData How should the data of the
+ *     focused leaf be split between the offshoots?
+ * @param {(a: string) => [string, string]} [splitLabel] How should
+ *     the label of the leaf be split between the offshoots? If
+ *     omitted, the default duplicates the label.
+ * @returns {Grid<A>}
+ */
+export function splitLeafHorizontally(g, focus, col, splitData, splitLabel) {
+    if(!splitLabel) {
+        splitLabel = (label) => [label, label];
+    }
+
+    if(col <= 0 || col >= focus.dims.width) {
+        return g;
+    }
+
+    /** @type {Leaf<A>} */
+    const left = {
+        type: "Leaf",
+        dims: { width: col, height: focus.dims.height },
+    };
+    /** @type {Leaf<A>} */
+    const right = {
+        type: "Leaf",
+        dims: { width: focus.dims.width - col, height: focus.dims.height }
+    };
+
+    if(focus.data !== undefined) {
+        const [leftData, rightData] = splitData(focus.data);
+        left.data = leftData;
+        right.data = rightData;
+    }
+
+    if(focus.label !== undefined) {
+        const [leftLabel, rightLabel] = splitLabel(focus.label);
+        left.label = leftLabel;
+        right.label = rightLabel;
+    }
+
+    /** @type {Split<A>} */
+    const newNode = {
+        type: "Horz",
+        left: left,
+        right: right,
+        dims: {...focus.dims}
+    };
+
+    const chain = parentChain(g, focus);
+
+    if(chain.length === 0) {
+        return newNode;
+    } else {
+        const parent = chain[0];
+        if(parent.left === focus) {
+            parent.left = newNode;
+        } else {
+            parent.right = newNode;
+        }
+    }
+
+    return g;
+}

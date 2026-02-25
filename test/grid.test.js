@@ -1072,3 +1072,141 @@ describe("mergeLeaves", () => {
         );
     });
 });
+
+describe("splitLeafVertically", () => {
+    it("Splits a root leaf into top and bottom", () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "|  |\n" +
+            "|  |\n" +
+            "|  |\n" +
+            "+--+"
+        );
+
+        const result = grid.splitLeafVertically(
+            g, g, 2,
+            () => [undefined, undefined],
+        );
+
+        const exp =
+              "+--+\n" +
+              "|  |\n" +
+              "+--+\n" +
+              "|  |\n" +
+              "+--+";
+
+        expect(grid.printASCII(result)).to.equal(exp);
+    });
+
+    it("Splits a nested leaf", () => {
+        const g = grid.parseASCII(
+            "+--+--+\n" +
+            "|  |b |\n" +
+            "|  |  |\n" +
+            "+--+--+"
+        );
+
+        const b = grid.leafWithLabel(g, "b");
+        grid.splitLeafVertically(
+            g, b, 1,
+            () => [undefined, undefined],
+        );
+
+        const exp =
+            "+--+--+\n" +
+            "|  +--+\n" +
+            "|  |  |\n" +
+            "+--+--+";
+
+        expect(grid.printASCII(g)).to.equal(exp);
+    });
+
+    it("Does nothing when row is out of bounds", () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "|  |\n" +
+            "+--+"
+        );
+
+        const before = grid.printASCII(g);
+        grid.splitLeafVertically(
+            g, g, 0,
+            () => [undefined, undefined],
+        );
+        expect(grid.printASCII(g)).to.equal(before);
+
+        grid.splitLeafVertically(
+            g, g, 2,
+            () => [undefined, undefined],
+        );
+        expect(grid.printASCII(g)).to.equal(before);
+    });
+});
+
+describe("splitLeafHorizontally", () => {
+    it("Splits a root leaf into left and right", () => {
+        const g = grid.parseASCII(
+            "+---+\n" +
+            "|   |\n" +
+            "+---+"
+        );
+
+        const result = grid.splitLeafHorizontally(
+            g, g, 2,
+            () => [undefined, undefined],
+        );
+
+        const exp =
+            "+-+-+\n" +
+            "| | |\n" +
+            "+-+-+";
+
+        expect(grid.printASCII(result)).to.equal(exp);
+    });
+
+    it("Splits a nested leaf", () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "|  |\n" +
+            "+--+\n" +
+            "|b |\n" +
+            "+--+"
+        );
+
+        const b = grid.leafWithLabel(g, "b");
+        grid.splitLeafHorizontally(
+            g, b, 1,
+            () => [undefined, undefined],
+        );
+
+        const exp =
+            "+--+\n" +
+            "|  |\n" +
+            "++-+\n" +
+            "|| |\n" +
+            "++-+";
+
+        expect(grid.printASCII(g)).to.equal(exp);
+    });
+
+    it("Does nothing when col is out of bounds", () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "|  |\n" +
+            "+--+"
+        );
+
+        const before = grid.printASCII(g);
+        grid.splitLeafHorizontally(
+            g, g, 0,
+            () => [undefined, undefined],
+        );
+        expect(grid.printASCII(g)).to.equal(before);
+
+        grid.splitLeafHorizontally(
+            g, g, 3,
+            () => [undefined, undefined],
+        );
+        expect(grid.printASCII(g)).to.equal(before);
+    });
+});
