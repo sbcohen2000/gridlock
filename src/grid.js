@@ -1004,3 +1004,211 @@ export function removeEmptyLeaves(g) {
     }
     }
 }
+
+/**
+ * @template A
+ * @typedef {{ upperLeft: point.P2, len: number, leaf: Leaf<A> }} Sweep
+ */
+
+/**
+ * Return an offset and two lists, the elements upto but not including
+ * a subsequence with equal `ofs` and `len` summing to `sum`, and the
+ * elements after.
+ *
+ * If `skip` is provided, `skip` the first `skip` matches.
+ *
+ * If no such subsequence was found, the function returns `undefined`.
+ *
+ * Do not call this function. It is exported only for testing.
+ *
+ * @template A
+ * @param {Sweep<A>[]} sweeps
+ * @param {number} sum
+ * @param {keyof point.P2} on
+ * @param {number} [skip]
+ * @returns {[number, Sweep<A>[], Sweep<A>[]] | undefined}
+ */
+export function searchSweepEvents(sweeps, sum, on, skip) {
+    if(!skip) {
+        skip = 0;
+    }
+
+    let cumSum = 0;
+    let runLen = 0;
+
+    for(let i = 0; i < sweeps.length; ++i) {
+        cumSum += sweeps[i].len;
+
+        if(cumSum === sum) {
+            if(skip === 0) {
+                return [
+                    sweeps[i].upperLeft[on],
+                    sweeps.slice(0, i - runLen),
+                    sweeps.slice(i - runLen)
+                ];
+            } else {
+                // Reset.
+                runLen = 0;
+                cumSum = 0;
+            }
+            --skip;
+        }
+
+        if(i === sweeps.length - 1) {
+            // If we're at the last element and we didn't just return
+            // from hitting the target sum, there's no hope for us.
+            return undefined;
+        }
+
+        if(sweeps[i].upperLeft[on] === sweeps[i + 1].upperLeft[on]) {
+            // The next sweep has the same offset. We can increase the
+            // run length.
+            ++runLen;
+        } else {
+            // The next sweep has a different offset. So, reset the
+            // run length.
+            runLen = 0;
+            cumSum = 0;
+        }
+    }
+
+    return undefined;
+}
+
+/**
+ * Compile left-to-right and up-to-down sweep events from the given
+ * list of `leaves`.
+ *
+ * Do not call this function. It is exported only for testing.
+ *
+ * @template A
+ * @param {IteratorObject<[Leaf<A>, point.P2]>} leaves
+ * @returns {{ lrSweeps: Sweep<A>[], udSweeps: Sweep<A>[] }}
+ */
+export function compileSweepEvents(leaves) {
+    /**
+     * @param {keyof point.P2} on
+     * @returns {(a: Sweep<A>, b: Sweep<A>) => number}
+     */
+    const cmpSweepEvents = (on) => {
+        let other = on === "x" ? "y" : "x";
+        return (a, b) => {
+            if(a.upperLeft[on] === b.upperLeft[on]) {
+                return a.upperLeft[other] - b.upperLeft[other];
+            }
+            return a.upperLeft[on] - b.upperLeft[on];
+        }
+    };
+
+    /**
+     * One sweep event for each left-edge of every leaf in `leaves`.
+     * @type {Sweep<A>[]}
+     */
+    const lrSweeps = [];
+
+    /**
+     * One sweep event for each top-edge of every leaf in `leaves`.
+     * @type {Sweep<A>[]}
+     */
+    const udSweeps = [];
+
+    // Construct sweep events.
+    for(const [leaf, upperLeft] of leaves) {
+        lrSweeps.push({ upperLeft, len: leaf.dims.height, leaf });
+        udSweeps.push({ upperLeft, len: leaf.dims.width,  leaf });
+    }
+
+    // Sort sweep events.
+    lrSweeps.sort(cmpSweepEvents("x"));
+    udSweeps.sort(cmpSweepEvents("y"));
+
+    return { lrSweeps, udSweeps };
+}
+
+/**
+ * Re-"parse" the given list of positioned leaves into a `Grid`. It is
+ * assumed that the leaves, when arranged on the plane, form a square
+ * with the provided dimensions.
+ *
+ * Do not call this function. It is exported only for testing.
+ *
+ * @template A
+ * @param {IteratorObject<[Leaf<A>, point.P2]>} leaves
+ * @param {number} width  The width of the square formed by `leaves`.
+ * @param {number} height The height of the square formed by `leaves`.
+ * @returns {Grid<A>}
+ */
+export function reassociateLeaves(leaves, width, height) {
+    const { lrSweeps, udSweeps } = compileSweepEvents(leaves);
+
+    /**
+     * @param {Sweep<A>[]} lrSweeps
+     * @param {Sweep<A>[]} udSweeps
+     * @returns {Grid<A>}
+     */
+    const go = (lrSweeps, udSweeps) => {
+        if(lrSweeps.length !== udSweeps.length) {
+            throw new Error("Assertion failure. LR and UD sweeps have different lengths!");
+        }
+
+        if(lrSweeps.length === 1) {
+            // If we're down to one sweep event, emit the leaf.
+            return lrSweeps[0].leaf;
+        }
+
+        // First, check for a set of `horzSweeps` all with the same
+        // value.
+        const lrPartition = searchSweepEvents(lrSweeps, height, "x");
+        if(lrPartition !== undefined) {
+            const [x, leftOfPartLR, rightOfPartLR] = lrPartition;
+
+            // Find the ud sweep events to the left and right of the
+            // partition.
+            const leftOfPartUD  = udSweeps.filter(swp => swp.upperLeft.x <  x);
+            const rightOfPartUD = udSweeps.filter(swp => swp.upperLeft.x >= x);
+
+            const leftSubtree  = go(leftOfPartLR, leftOfPartUD);
+            const rightSubtree = go(rightOfPartLR, rightOfPartUD);
+
+            return {
+                type: "Horz",
+                left: leftSubtree,
+                right: rightSubtree,
+                dims: {
+                    width: leftSubtree.dims.width + rightSubtree.dims.width,
+                    height: leftSubtree.dims.height // rightSubtree.dims.height must be the same.
+                }
+            }
+        } else {
+            // Check for a set of `vertSweeps` all with the same value.
+            const udPartition = searchSweepEvents(udSweeps, width, "y");
+
+            if(udPartition !== undefined) {
+                const [y, abovePartUD, belowPartUD] = udPartition;
+
+                // Find the lr sweep events above and below the partition.
+                const abovePartLR = lrSweeps.filter(swp => swp.upperLeft.y <  y);
+                const belowPartLR = lrSweeps.filter(swp => swp.upperLeft.y >= y);
+
+                const aboveSubtree = go(abovePartLR, abovePartUD);
+                const belowSubtree = go(belowPartLR, belowPartUD);
+
+                return {
+                    type: "Vert",
+                    left: aboveSubtree,
+                    right: belowSubtree,
+                    dims: {
+                        width: aboveSubtree.dims.width, // belowSubtree.dims.width must be the same.
+                        height: aboveSubtree.dims.height + belowSubtree.dims.height
+                    }
+                }
+            } else {
+                // The leaves could not be parsed as a binary
+                // partition.
+                throw new Error("invalid leaf arrangement");
+            }
+        }
+    }
+
+    return go(lrSweeps, udSweeps);
+}

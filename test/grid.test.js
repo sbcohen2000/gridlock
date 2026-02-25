@@ -802,3 +802,94 @@ describe("removeEmptyLeaves", () => {
         expect(removed).to.have.lengthOf(2);
     });
 });
+
+describe("reassociateLeaves", () => {
+    describe("searchSweepEvents", () => {
+        it("Works for a single sweep event", () => {
+            let src =
+                "+---+\n" +
+                "|   |\n" +
+                "+---+";
+
+            const g = grid.parseASCII(src);
+            const leaves = grid.allLeavesWithPosition(g);
+            const { lrSweeps, udSweeps } = grid.compileSweepEvents(leaves);
+
+            expect(lrSweeps).to.have.lengthOf(1);
+            expect(udSweeps).to.have.lengthOf(1);
+
+            const res0 = grid.searchSweepEvents(lrSweeps, 2, "x");
+            expect(res0).to.not.be.undefined;
+
+            const [n, left, right] = res0;
+            expect(n).to.be.equal(0);
+            expect(left).to.have.lengthOf(0);
+            expect(right).to.have.lengthOf(1);
+            expect(right[0].leaf).to.be.equal(g);
+        });
+
+        it("Works for a more complex grid", () => {
+            let src =
+                "+--+--+--+\n" +
+                "|a |b |c |\n" +
+                "|  +--+--+\n" +
+                "|  |d |e |\n" +
+                "+--+--+--+\n" +
+                "|f    |g |\n" +
+                "+-----+--+";
+
+            const g  = grid.parseASCII(src);
+            const la = grid.findLeafWithLabel(g, "a");
+            const lb = grid.findLeafWithLabel(g, "b");
+            const lc = grid.findLeafWithLabel(g, "c");
+            const ld = grid.findLeafWithLabel(g, "d");
+            const le = grid.findLeafWithLabel(g, "e");
+            const lf = grid.findLeafWithLabel(g, "f");
+            const lg = grid.findLeafWithLabel(g, "g");
+
+            const leaves = grid.allLeavesWithPosition(g);
+            const { lrSweeps, udSweeps } = grid.compileSweepEvents(leaves);
+
+            expect(lrSweeps).to.have.lengthOf(7);
+            expect(udSweeps).to.have.lengthOf(7);
+
+            // Check the left-right sweep events.
+            {
+                const res = grid.searchSweepEvents(lrSweeps, g.dims.height, "x", 1);
+                expect(res).to.not.be.undefined;
+
+                const [n, left, right] = res;
+                expect(n).to.be.equal(6);          // The 6th column.
+                expect(left).to.have.lengthOf(4);  // 4 leaves to the left.
+                expect(right).to.have.lengthOf(3); // 3 leaves to the right.
+
+                expect(left.map(swp => swp.leaf)).to.include.members([la, lb, ld, lf]);
+                expect(right.map(swp => swp.leaf)).to.include.members([lc, le, lg]);
+            }
+
+            // Check the up-down sweep events
+            {
+                const res1 = grid.searchSweepEvents(udSweeps, g.dims.width, "y", 1);
+                expect(res1).to.not.be.undefined;
+
+                const [n, up, down] = res1;
+                expect(n).to.be.equal(4);         // The 4th row.
+                expect(up).to.have.lengthOf(5);   // 5 leaves above.
+                expect(down).to.have.lengthOf(2); // 2 leaves below.
+
+                expect(up.map(swp => swp.leaf)).to.include.members([la, lb, lc, ld, le]);
+                expect(down.map(swp => swp.leaf)).to.include.members([lf, lg]);
+            }
+        });
+    });
+
+    it("Does not change the ASCII printing of a random grid", () => {
+        fc.assert(
+            fc.property(arbg.grid.tree, (g) => {
+                const leaves = grid.allLeavesWithPosition(g);
+                const rebuilt = grid.reassociateLeaves(leaves, g.dims.width, g.dims.height);
+                expect(grid.printASCII(rebuilt)).to.equal(grid.printASCII(g));
+            })
+        );
+    });
+});
