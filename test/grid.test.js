@@ -888,6 +888,7 @@ describe("reassociateLeaves", () => {
             fc.property(arbg.grid.tree, (g) => {
                 const leaves = grid.allLeavesWithPosition(g);
                 const rebuilt = grid.reassociateLeaves(leaves, g.dims.width, g.dims.height);
+                expect(grid.debugCheckGridDimsConsistency(rebuilt)).to.be.true;
                 expect(grid.printASCII(rebuilt)).to.equal(grid.printASCII(g));
             })
         );

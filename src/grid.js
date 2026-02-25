@@ -1144,9 +1144,11 @@ export function reassociateLeaves(leaves, width, height) {
     /**
      * @param {Sweep<A>[]} lrSweeps
      * @param {Sweep<A>[]} udSweeps
+     * @param {number} w Width of the sub-region.
+     * @param {number} h Height of the sub-region.
      * @returns {Grid<A>}
      */
-    const go = (lrSweeps, udSweeps) => {
+    const go = (lrSweeps, udSweeps, w, h) => {
         if(lrSweeps.length !== udSweeps.length) {
             throw new Error("Assertion failure. LR and UD sweeps have different lengths!");
         }
@@ -1158,7 +1160,7 @@ export function reassociateLeaves(leaves, width, height) {
 
         // First, check for a set of `horzSweeps` all with the same
         // value.
-        const lrPartition = searchSweepEvents(lrSweeps, height, "x");
+        const lrPartition = searchSweepEvents(lrSweeps, h, "x", 1);
         if(lrPartition !== undefined) {
             const [x, leftOfPartLR, rightOfPartLR] = lrPartition;
 
@@ -1167,8 +1169,11 @@ export function reassociateLeaves(leaves, width, height) {
             const leftOfPartUD  = udSweeps.filter(swp => swp.upperLeft.x <  x);
             const rightOfPartUD = udSweeps.filter(swp => swp.upperLeft.x >= x);
 
-            const leftSubtree  = go(leftOfPartLR, leftOfPartUD);
-            const rightSubtree = go(rightOfPartLR, rightOfPartUD);
+            const leftWidth  = x - lrSweeps[0].upperLeft.x;
+            const rightWidth = w - leftWidth;
+
+            const leftSubtree  = go(leftOfPartLR, leftOfPartUD, leftWidth, h);
+            const rightSubtree = go(rightOfPartLR, rightOfPartUD, rightWidth, h);
 
             return {
                 type: "Horz",
@@ -1181,7 +1186,7 @@ export function reassociateLeaves(leaves, width, height) {
             }
         } else {
             // Check for a set of `vertSweeps` all with the same value.
-            const udPartition = searchSweepEvents(udSweeps, width, "y");
+            const udPartition = searchSweepEvents(udSweeps, w, "y", 1);
 
             if(udPartition !== undefined) {
                 const [y, abovePartUD, belowPartUD] = udPartition;
@@ -1190,8 +1195,11 @@ export function reassociateLeaves(leaves, width, height) {
                 const abovePartLR = lrSweeps.filter(swp => swp.upperLeft.y <  y);
                 const belowPartLR = lrSweeps.filter(swp => swp.upperLeft.y >= y);
 
-                const aboveSubtree = go(abovePartLR, abovePartUD);
-                const belowSubtree = go(belowPartLR, belowPartUD);
+                const aboveHeight = y - udSweeps[0].upperLeft.y;
+                const belowHeight = h - aboveHeight;
+
+                const aboveSubtree = go(abovePartLR, abovePartUD, w, aboveHeight);
+                const belowSubtree = go(belowPartLR, belowPartUD, w, belowHeight);
 
                 return {
                     type: "Vert",
@@ -1210,5 +1218,5 @@ export function reassociateLeaves(leaves, width, height) {
         }
     }
 
-    return go(lrSweeps, udSweeps);
+    return go(lrSweeps, udSweeps, width, height);
 }
