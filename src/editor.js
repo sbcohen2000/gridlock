@@ -1,2 +1,28 @@
-export * from "./editor/prims.js";
+export {
+    putPointOnGlobalPosition,
+    putPointAtStartOfGlobalLine,
+    putPointAtStartOfLine,
+    putPointAtEndOfGlobalLine,
+    putPointAtEndOfLine,
+    putPointOnNextGlobalLine,
+    putPointOnNextLine,
+    putPointOnPrevGlobalLine,
+    putPointOnPrevLine,
+    putPointOnNextGlobalCol,
+    putPointOnNextCol,
+    putPointOnPrevGlobalCol,
+    putPointOnPrevCol,
+    pointAtEndOfGlobalLine,
+    pointAtBeginningOfGlobalLine,
+    pointOnFirstGlobalLine,
+    pointOnLastGlobalLine,
+    globalLineIsEmpty,
+    removeGlobalLine,
+    removeString,
+    insertGlobalNewline,
+    insertString,
+    splitCellVerticallyAtPoint,
+    splitCellHorizontallyAtPoint,
+} from "./editor/prims.js";
+
 export * from "./editor/state.js";

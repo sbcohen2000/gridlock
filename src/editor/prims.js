@@ -14,8 +14,8 @@ import * as util from "../util.js";
  *
  * @param {state.EditingLeaf} st The current editor state.
  */
-export function updateLastGlobalCol(st) {
-    const globalCol = findGlobalPoint(st).x;
+export function _updateLastGlobalCol(st) {
+    const globalCol = _findGlobalPoint(st).x;
     st.singleSelection.lastGlobalCol = globalCol;
 }
 
@@ -23,13 +23,13 @@ export function updateLastGlobalCol(st) {
  * Mutate the editor state so that it has a single selection
  * into the given `leaf` at position `pt`.
  *
+ * @param {state.EditingLeaf}     st             The current editor state.
  * @param {grid.Leaf<state.Cell>} leaf           The leaf to select.
  * @param {point.P2}              pt             The point within the `leaf` to select.
- * @param {state.EditingLeaf}     st             The current editor state.
  * @param {number} [newGlobalCol] The new global column position. If
  *    omitted, it is unchanged.
  */
-export function putPointOnLocalPosition(leaf, pt, st, newGlobalCol) {
+export function _putPointOnLocalPosition(st, leaf, pt, newGlobalCol) {
     // Ensure that the row and column are within bounds of the line.
     pt.y = util.clamp(0, pt.y, leaf.data.lines.length - 1);
     pt.x = util.clamp(0, pt.x, leaf.data.lines[pt.y].length);
@@ -52,13 +52,13 @@ export function putPointOnLocalPosition(leaf, pt, st, newGlobalCol) {
  *
  * @param {state.EditingLeaf} st The current editor state.
  */
-export function putPointOnLastGlobalColumnInLeaf(st) {
+export function _putPointOnLastGlobalColumnInLeaf(st) {
     // Find the location of the global column, relative to the
     // currently selected leaf.
     const leaf = st.singleSelection.leaf;
     const leafPos = grid.posOfLeaf(st.grid, leaf);
     const lastLocalCol = st.singleSelection.lastGlobalCol - leafPos.x;
-    putPointOnLocalPosition(leaf, point.mkP2(lastLocalCol, st.singleSelection.pt.y), st);
+    _putPointOnLocalPosition(st, leaf, point.mkP2(lastLocalCol, st.singleSelection.pt.y));
 }
 
 /**
@@ -66,13 +66,13 @@ export function putPointOnLastGlobalColumnInLeaf(st) {
  * point. If there isn't a leaf under the global point, this function
  * does nothing.
  *
- * @param {point.P2}          pt The global point to select.
  * @param {state.EditingLeaf} st The current editor state.
+ * @param {point.P2}          pt The global point to select.
  * @param {boolean} [updateGlobalCol] If `true`, it updates the
  *     `lastGlobalCol` property of the selection to the new point. If
  *     it is omitted, it defaults to `true`.
  */
-export function putPointOnGlobalPosition(pt, st, updateGlobalCol) {
+export function putPointOnGlobalPosition(st, pt, updateGlobalCol) {
     if(updateGlobalCol === undefined) {
         updateGlobalCol = true;
     }
@@ -82,7 +82,7 @@ export function putPointOnGlobalPosition(pt, st, updateGlobalCol) {
 
     const leafPos    = grid.posOfLeaf(st.grid, leaf);
     const relLeafPos = point.mkP2(pt.x - leafPos.x, pt.y - leafPos.y);
-    putPointOnLocalPosition(leaf, relLeafPos, st, updateGlobalCol ? pt.x : undefined);
+    _putPointOnLocalPosition(st, leaf, relLeafPos, updateGlobalCol ? pt.x : undefined);
 }
 
 /**
@@ -91,7 +91,7 @@ export function putPointOnGlobalPosition(pt, st, updateGlobalCol) {
  * @param {grid.Leaf<state.Cell>} leaf
  * @returns {number}
  */
-function maximumLineLength(leaf) {
+function _maximumLineLength(leaf) {
     return leaf.data.lines.reduce((a, l) => Math.max(a, l.length), 0);
 }
 
@@ -103,8 +103,8 @@ function maximumLineLength(leaf) {
  * @param {grid.Leaf<state.Cell>} leaf The leaf to expand.
  * @param {any}                   glpk The glpk instance.
  */
-async function expandLeafWidthIfNecessary(g, leaf, glpk) {
-    const dW = maximumLineLength(leaf) - leaf.dims.width;
+async function _expandLeafWidthIfNecessary(g, leaf, glpk) {
+    const dW = _maximumLineLength(leaf) - leaf.dims.width;
     if(0 < dW) {
         await grid.modifyWidth(g, dW, leaf, glpk);
     }
@@ -117,7 +117,7 @@ async function expandLeafWidthIfNecessary(g, leaf, glpk) {
  * @param {state.EditingLeaf} st The editor state.
  * @returns {IteratorObject<grid.Leaf<state.Cell>>}
  */
-function* eachLeafOnGlobalRow(row, st) {
+function* _eachLeafOnGlobalRow(row, st) {
     let curCol = 0;
     while(curCol < st.grid.dims.width) {
         const leaf = grid.leafUnderPoint(st.grid, point.mkP2(curCol, row));
@@ -134,7 +134,7 @@ function* eachLeafOnGlobalRow(row, st) {
  * @returns {point.P2} The location of the single selection, in global
  *                     coordinates.
  */
-function findGlobalPoint(st) {
+function _findGlobalPoint(st) {
     return point.offset(
         grid.posOfLeaf(st.grid, st.singleSelection.leaf),
         point.mkV2(st.singleSelection.pt.x, st.singleSelection.pt.y)
@@ -151,8 +151,8 @@ function findGlobalPoint(st) {
  * @param {state.EditingLeaf} st The editor state.
  */
 export function putPointAtStartOfGlobalLine(st) {
-    const globalRow = findGlobalPoint(st).y;
-    putPointOnGlobalPosition(point.mkP2(0, globalRow), st);
+    const globalRow = _findGlobalPoint(st).y;
+    putPointOnGlobalPosition(st, point.mkP2(0, globalRow));
 }
 
 /**
@@ -168,7 +168,7 @@ export function putPointAtStartOfLine(st) {
     }
 
     st.singleSelection.pt.x = 0;
-    updateLastGlobalCol(st);
+    _updateLastGlobalCol(st);
     return true;
 }
 
@@ -179,8 +179,8 @@ export function putPointAtStartOfLine(st) {
  * @param {state.EditingLeaf} st The editor state.
  */
 export function putPointAtEndOfGlobalLine(st) {
-    const globalRow = findGlobalPoint(st).y;
-    const last = util.iterLast(eachLeafOnGlobalRow(globalRow, st));
+    const globalRow = _findGlobalPoint(st).y;
+    const last = util.iterLast(_eachLeafOnGlobalRow(globalRow, st));
     if(last === undefined) {
         // Somehow, there's no last child on this row, so do nothing.
         console.warn(`No last child on row ${globalRow}`);
@@ -211,7 +211,7 @@ export function putPointAtEndOfLine(st) {
     }
     st.singleSelection.pt.x = endCol;
 
-    updateLastGlobalCol(st);
+    _updateLastGlobalCol(st);
     return true;
 }
 
@@ -226,13 +226,13 @@ export function putPointOnNextGlobalLine(st) {
         return;
     }
 
-    const globalPt = findGlobalPoint(st);
+    const globalPt = _findGlobalPoint(st);
     putPointOnGlobalPosition(
+        st,
         point.mkP2(
             st.singleSelection.lastGlobalCol,
             globalPt.y + 1
         ),
-        st,
         false
     );
 }
@@ -251,7 +251,7 @@ export function putPointOnNextLine(st) {
 
     st.singleSelection.pt.y += 1;
 
-    putPointOnLastGlobalColumnInLeaf(st);
+    _putPointOnLastGlobalColumnInLeaf(st);
     return true;
 }
 
@@ -266,13 +266,13 @@ export function putPointOnPrevGlobalLine(st) {
         return;
     }
 
-    const globalPt = findGlobalPoint(st);
+    const globalPt = _findGlobalPoint(st);
     putPointOnGlobalPosition(
+        st,
         point.mkP2(
             st.singleSelection.lastGlobalCol,
             globalPt.y - 1
         ),
-        st,
         false
     );
 }
@@ -290,7 +290,7 @@ export function putPointOnPrevLine(st) {
 
     st.singleSelection.pt.y -= 1;
 
-    putPointOnLastGlobalColumnInLeaf(st);
+    _putPointOnLastGlobalColumnInLeaf(st);
     return true;
 }
 
@@ -305,8 +305,8 @@ export function putPointOnNextGlobalCol(st) {
         return;
     }
 
-    const globalPt = findGlobalPoint(st);
-    putPointOnGlobalPosition(point.offset(globalPt, point.mkV2(1, 0)), st);
+    const globalPt = _findGlobalPoint(st);
+    putPointOnGlobalPosition(st, point.offset(globalPt, point.mkV2(1, 0)));
 }
 
 /**
@@ -327,7 +327,7 @@ export function putPointOnNextCol(st) {
 
     st.singleSelection.pt.x += 1;
 
-    updateLastGlobalCol(st);
+    _updateLastGlobalCol(st);
     return true;
 }
 
@@ -343,8 +343,8 @@ export function putPointOnPrevGlobalCol(st) {
         return;
     }
 
-    const globalPt = findGlobalPoint(st);
-    putPointOnGlobalPosition(point.offset(globalPt, point.mkV2(-1, 0)), st);
+    const globalPt = _findGlobalPoint(st);
+    putPointOnGlobalPosition(st, point.offset(globalPt, point.mkV2(-1, 0)));
 }
 
 /**
@@ -361,7 +361,7 @@ export function putPointOnPrevCol(st) {
 
     st.singleSelection.pt.x -= 1;
 
-    updateLastGlobalCol(st);
+    _updateLastGlobalCol(st);
     return true;
 }
 
@@ -385,7 +385,7 @@ export function pointAtEndOfGlobalLine(st) {
     }
 
     // Check that there's no cell to the right of us.
-    const globalPt = findGlobalPoint(st);
+    const globalPt = _findGlobalPoint(st);
     return undefined === grid.leafUnderPoint(
         st.grid,
         point.offset(globalPt, point.mkV2(1, 0))
@@ -400,7 +400,7 @@ export function pointAtEndOfGlobalLine(st) {
  * @returns {boolean}
  */
 export function pointAtBeginningOfGlobalLine(st) {
-    return findGlobalPoint(st).x === 0;
+    return _findGlobalPoint(st).x === 0;
 }
 
 /**
@@ -411,7 +411,7 @@ export function pointAtBeginningOfGlobalLine(st) {
  * @returns {boolean}
  */
 export function pointOnFirstGlobalLine(st) {
-    return findGlobalPoint(st).y === 0;
+    return _findGlobalPoint(st).y === 0;
 }
 
 /**
@@ -428,7 +428,7 @@ export function pointOnLastGlobalLine(st) {
     }
 
     // Check that there's no cell below us.
-    const globalPt = findGlobalPoint(st);
+    const globalPt = _findGlobalPoint(st);
     return undefined === grid.leafUnderPoint(
         st.grid,
         point.offset(globalPt, point.mkV2(0, 1))
@@ -445,8 +445,8 @@ export function pointOnLastGlobalLine(st) {
  * @returns {boolean}
  */
 export function globalLineIsEmpty(st) {
-    const globalPt = findGlobalPoint(st);
-    return eachLeafOnGlobalRow(globalPt.y, st).every(leaf => {
+    const globalPt = _findGlobalPoint(st);
+    return _eachLeafOnGlobalRow(globalPt.y, st).every(leaf => {
         const leafPos = grid.posOfLeaf(st.grid, leaf);
         const relRow = globalPt.y - leafPos.y;
 
@@ -466,8 +466,8 @@ export function globalLineIsEmpty(st) {
  */
 export function removeGlobalLine(st) {
     let contents = "";
-    const globalPt = findGlobalPoint(st);
-    const leaves = [...eachLeafOnGlobalRow(globalPt.y, st)];
+    const globalPt = _findGlobalPoint(st);
+    const leaves = [..._eachLeafOnGlobalRow(globalPt.y, st)];
     for(const leaf of leaves) {
         const leafPos = grid.posOfLeaf(st.grid, leaf);
         const relRow  = globalPt.y - leafPos.y;
@@ -485,7 +485,7 @@ export function removeGlobalLine(st) {
 
     // We need to set the selection here again since the selected leaf
     // might now be gone.
-    putPointOnGlobalPosition(point.mkP2(0, globalPt.y - 1), st);
+    putPointOnGlobalPosition(st, point.mkP2(0, globalPt.y - 1));
 
     return contents;
 }
@@ -495,10 +495,10 @@ export function removeGlobalLine(st) {
  * will not leave the context of its leaf, even if `n` exceeds the
  * length of the current line.
  *
- * @param {number} n The number of characters to remove.
  * @param {state.EditingLeaf} st The editor state.
+ * @param {number} n The number of characters to remove.
  */
-export function removeString(n, st) {
+export function removeString(st, n) {
     const sel = st.singleSelection;
 
     const row    = sel.pt.y;
@@ -515,7 +515,7 @@ export function removeString(n, st) {
 
     // Move the cursor left by the number of characters removed.
     sel.pt.x -= n;
-    updateLastGlobalCol(st);
+    _updateLastGlobalCol(st);
 }
 
 /*****************************************************************************/
@@ -531,12 +531,12 @@ export function removeString(n, st) {
  */
 export function insertGlobalNewline(st) {
     // Find the location of the cursor in the global coordinate space.
-    const globalPt  = findGlobalPoint(st);
+    const globalPt  = _findGlobalPoint(st);
     const globalRow = globalPt.y;
     const globalCol = globalPt.x;
 
     // Add a line to each leaf _at_ `row`.
-    const leaves = [...eachLeafOnGlobalRow(globalRow, st)]
+    const leaves = [..._eachLeafOnGlobalRow(globalRow, st)]
     for(const leaf of leaves) {
         const leafUpperLeft = grid.posOfLeaf(st.grid, leaf);
         const localRow = globalRow - leafUpperLeft.y;
@@ -554,7 +554,7 @@ export function insertGlobalNewline(st) {
     }
     grid.modifyHeightOfLeaves(st.grid, 1, leaves);
 
-    putPointOnGlobalPosition(point.mkP2(0, globalRow + 1), st, false);
+    putPointOnGlobalPosition(st, point.mkP2(0, globalRow + 1), false);
 }
 
 /**
@@ -562,14 +562,14 @@ export function insertGlobalNewline(st) {
  * selection is a multi-selection, then it is converted to a single
  * selection prior to insertion.
  *
- * @param {string}            s    The string to insert.
  * @param {state.EditingLeaf} st   The editor state.
+ * @param {string}            s    The string to insert.
  * @param {any}               glpk The GLPK instance.
  * @param {boolean} [advancePoint] Should the point advance as a
  *     result of inserting the string? If omitted, the default is
  *     `true`.
  */
-export async function insertString(s, st, glpk, advancePoint) {
+export async function insertString(st, s, glpk, advancePoint) {
     if(advancePoint === undefined) {
         advancePoint = true;
     }
@@ -584,10 +584,10 @@ export async function insertString(s, st, glpk, advancePoint) {
     if(advancePoint) {
         // Advance the cursor by the length of the string.
         st.singleSelection.pt.x += s.length;
-        updateLastGlobalCol(st);
+        _updateLastGlobalCol(st);
     }
 
-    await expandLeafWidthIfNecessary(st.grid, st.singleSelection.leaf, glpk);
+    await _expandLeafWidthIfNecessary(st.grid, st.singleSelection.leaf, glpk);
 }
 
 /*****************************************************************************/
@@ -600,7 +600,7 @@ export async function insertString(s, st, glpk, advancePoint) {
  * @param {state.EditingLeaf} st
  */
 export function splitCellVerticallyAtPoint(st) {
-    const globalPoint = findGlobalPoint(st);
+    const globalPoint = _findGlobalPoint(st);
     const localRow = st.singleSelection.pt.y;
     st.grid = grid.splitLeafVertically(
         st.grid,
@@ -612,7 +612,7 @@ export function splitCellVerticallyAtPoint(st) {
         ]
     );
     // Recalculate selection.
-    putPointOnGlobalPosition(globalPoint, st, false);
+    putPointOnGlobalPosition(st, globalPoint, false);
 }
 
 
@@ -624,7 +624,7 @@ export function splitCellVerticallyAtPoint(st) {
  * @param {state.EditingLeaf} st
  */
 export function splitCellHorizontallyAtPoint(st) {
-    const globalPoint = findGlobalPoint(st);
+    const globalPoint = _findGlobalPoint(st);
     const localCol = st.singleSelection.pt.x;
     st.grid = grid.splitLeafHorizontally(
         st.grid,
@@ -636,18 +636,5 @@ export function splitCellHorizontallyAtPoint(st) {
         ]
     );
     // Recalculate selection.
-    putPointOnGlobalPosition(globalPoint, st, false);
-}
-
-/**
- * @param {state.EditingLeaf} st   The current editor state.
- * @param {any}               glpk The GLPK instance.
- */
-export async function deleteSelectedLeaf(st, glpk) {
-    const globalPoint = findGlobalPoint(st);
-    const g = await grid.deleteLeaf(st.grid, st.singleSelection.leaf, glpk);
-    st.grid = g;
-
-    // Update the selection, since the selected leaf will be gone.
-    putPointOnGlobalPosition(globalPoint, st, false);
+    putPointOnGlobalPosition(st, globalPoint, false);
 }

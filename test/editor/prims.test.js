@@ -1,7 +1,7 @@
-import * as grid from "../src/grid.js";
-import * as point from "../src/point.js";
-import * as serialize from "../src/editor/serialize.js";
-import * as state from "../src/editor.js";
+import * as grid from "../../src/grid.js";
+import * as point from "../../src/point.js";
+import * as serialize from "../../src/editor/serialize.js";
+import * as state from "../../src/editor.js";
 import GLPK from "glpk.js/node";
 import { expect } from "chai";
 
@@ -15,7 +15,7 @@ describe("insertString", () => {
               "+-----+";
 
         const st = serialize.editorStateFromString(src);
-        await state.insertString("hello ", st, glpk);
+        await state.insertString(st, "hello ", glpk);
 
         const exp =
               "hello world\n"  +
@@ -32,10 +32,10 @@ describe("insertString", () => {
               "+-----+";
 
         const st = serialize.editorStateFromString(src);
-        await state.insertString(" ", st, glpk);
-        await state.insertString(" ", st, glpk);
-        await state.insertString(" ", st, glpk);
-        await state.insertString(" ", st, glpk);
+        await state.insertString(st, " ", glpk);
+        await state.insertString(st, " ", glpk);
+        await state.insertString(st, " ", glpk);
+        await state.insertString(st, " ", glpk);
 
         const exp =
               "    world\n" +
@@ -54,9 +54,8 @@ describe("insertString", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point past the last letter in
         // `hello`.
-        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.putPointOnLocalPosition(leaf, point.mkP2(5, 0), st);
-        await state.insertString(" world", st, glpk);
+        state.putPointOnGlobalPosition(st, point.mkP2(5, 0));
+        await state.insertString(st, " world", glpk);
 
         const exp =
               "hello world\n"  +
@@ -76,9 +75,8 @@ describe("insertString", () => {
 
         const st = serialize.editorStateFromString(src);
         // Update the selection to point underneath the `h`.
-        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.putPointOnLocalPosition(leaf, point.mkP2(0, 1), st);
-        await state.insertString("world", st, glpk);
+        state.putPointOnGlobalPosition(st, point.mkP2(0, 1));
+        await state.insertString(st, "world", glpk);
 
         {
             const exp =
@@ -95,7 +93,7 @@ describe("insertString", () => {
         // we expect (at the end of the new line).
 
         {
-            state.insertString("x", st, glpk);
+            state.insertString(st, "x", glpk);
 
             const exp =
                   "hello\n"   +
@@ -118,9 +116,8 @@ describe("insertString", () => {
 
         const st = serialize.editorStateFromString(src);
         // Update the selection to point underneath the `h`.
-        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.putPointOnLocalPosition(leaf, point.mkP2(0, 1), st);
-        await state.insertString("A long second line", st, glpk);
+        state.putPointOnGlobalPosition(st, point.mkP2(0, 1));
+        await state.insertString(st, "A long second line", glpk);
 
         const exp =
               "hello             other\n"   +
@@ -176,8 +173,7 @@ describe("putPointAtEndOfGlobalLine", () => {
 
         const st = serialize.editorStateFromString(src);
         // Move to second row in the left leaf.
-        const leftLeaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.putPointOnLocalPosition(leftLeaf, point.mkP2(0, 1), st);
+        state.putPointOnGlobalPosition(st, point.mkP2(0, 1));
 
         state.putPointAtEndOfGlobalLine(st);
 
@@ -199,8 +195,7 @@ describe("insertGlobalNewline", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point past the last letter in
         // `hello`.
-        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.putPointOnLocalPosition(leaf, point.mkP2(5, 0), st);
+        state.putPointOnGlobalPosition(st, point.mkP2(5, 0));
         state.insertGlobalNewline(st);
 
         const exp =
@@ -222,8 +217,7 @@ describe("insertGlobalNewline", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point past the last letter in
         // `hello`.
-        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.putPointOnLocalPosition(leaf, point.mkP2(5, 0), st);
+        state.putPointOnGlobalPosition(st, point.mkP2(5, 0));
         state.insertGlobalNewline(st);
 
         const exp =
@@ -243,8 +237,7 @@ describe("insertGlobalNewline", () => {
               "+----+----+";
 
         const st = serialize.editorStateFromString(src);
-        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.putPointOnLocalPosition(leaf, point.mkP2(3, 0), st);
+        state.putPointOnGlobalPosition(st, point.mkP2(3, 0));
         state.insertGlobalNewline(st);
 
         const exp =
@@ -268,8 +261,7 @@ describe("insertGlobalNewline", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point past the last letter in the
         // top `one`.
-        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.putPointOnLocalPosition(leaf, point.mkP2(3, 0), st);
+        state.putPointOnGlobalPosition(st, point.mkP2(3, 0));
         state.insertGlobalNewline(st);
 
         const exp0 =
@@ -285,7 +277,7 @@ describe("insertGlobalNewline", () => {
 
         // Ensure that the point is in the correct place by inserting
         // some text.
-        await state.insertString("some text", st, glpk);
+        await state.insertString(st, "some text", glpk);
 
         const exp1 =
               "one\n"  +
@@ -310,8 +302,7 @@ describe("splitCellVerticallyAtPoint", () => {
               "+-----+";
 
         const st = serialize.editorStateFromString(src);
-        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.putPointOnLocalPosition(leaf, point.mkP2(0, 1), st);
+        state.putPointOnGlobalPosition(st, point.mkP2(0, 1));
 
         state.splitCellVerticallyAtPoint(st);
 
@@ -347,8 +338,7 @@ describe("splitCellHorizontallyAtPoint", () => {
               "+----------+";
 
         const st = serialize.editorStateFromString(src);
-        const leaf = grid.leafUnderPoint(st.grid, point.mkOrigin());
-        state.putPointOnLocalPosition(leaf, point.mkP2(6, 0), st);
+        state.putPointOnGlobalPosition(st, point.mkP2(6, 0));
 
         state.splitCellHorizontallyAtPoint(st);
 
@@ -385,7 +375,7 @@ describe("removeGlobalLine", () => {
 
         const st = serialize.editorStateFromString(src);
         // Put the cursor at the bottom left.
-        state.putPointOnGlobalPosition(point.mkP2(0, 1), st);
+        state.putPointOnGlobalPosition(st, point.mkP2(0, 1));
         // Remove the line.
         state.removeGlobalLine(st);
 

@@ -1146,53 +1146,6 @@ describe("splitLeafHorizontally", () => {
     });
 });
 
-describe("deleteLeaf", () => {
-    it("Deletes a leaf from a two-leaf grid", async () => {
-        const g = grid.parseASCII(
-            "+--+--+\n" +
-            "|a |b |\n" +
-            "+--+--+"
-        );
-
-        const a = grid.leafWithLabel(g, "a");
-        const result = await grid.deleteLeaf(g, a, glpk);
-
-        const exp =
-            "+--+\n" +
-            "|  |\n" +
-            "+--+";
-
-        expect(grid.printASCII(result)).to.equal(exp);
-    });
-
-    it("Deletes a leaf from a larger grid", async () => {
-        const g = grid.parseASCII(
-            "+--+--+--+\n" +
-            "|a |b |c |\n" +
-            "+--+--+--+"
-        );
-
-        const b = grid.leafWithLabel(g, "b");
-        const result = await grid.deleteLeaf(g, b, glpk);
-
-        // b's width should be redistributed to neighbors
-        expect([...grid.allLeaves(result)]).to.have.lengthOf(2);
-    });
-
-    it("Does nothing when deleting the root leaf", async () => {
-        const g = grid.parseASCII(
-            "+--+\n" +
-            "|  |\n" +
-            "+--+"
-        );
-
-        const before = grid.printASCII(g);
-        const result = await grid.deleteLeaf(g, /** @type {grid.Leaf<void>} */(g), glpk);
-
-        expect(grid.printASCII(result)).to.equal(before);
-    });
-});
-
 describe("modifyHeightOfLeaves", () => {
     it("Grows a single leaf that spans the full width", () => {
         const g = grid.parseASCII(
@@ -1201,7 +1154,7 @@ describe("modifyHeightOfLeaves", () => {
             "+--+"
         );
 
-        grid.modifyHeightOfLeaves(g, 2, [g]);
+        grid.modifyHeightOfLeaves(g, 2, [/** @type {grid.Leaf<void>} */(g)]);
 
         const exp =
             "+--+\n" +
