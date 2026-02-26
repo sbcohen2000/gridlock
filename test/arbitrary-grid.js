@@ -1,11 +1,12 @@
 import * as fc from "fast-check";
+import * as g from "../src/grid.js";
 
 /**
  * Construct a new leaf node with the given width and height.
  *
  * @param {number} w The width of the leaf node.
  * @param {number} h The height of the leaf node.
- * @returns {import('../src/grid.js').Leaf}
+ * @returns {g.Leaf<void>}
  */
 function leaf(w, h) {
     return {
@@ -17,9 +18,9 @@ function leaf(w, h) {
 /**
  * Join two grids horizontally, even if they have different heights.
  *
- * @param {import("../src/grid.js").Grid} left
- * @param {import("../src/grid.js").Grid} right
- * @returns {import("../src/grid.js").Grid}
+ * @param {g.Grid<void>} left
+ * @param {g.Grid<void>} right
+ * @returns {fc.Arbitrary<g.Grid<void>>}
  */
 function joinH(left, right) {
     if(left.dims.height === right.dims.height) {
@@ -69,9 +70,9 @@ function joinH(left, right) {
 /**
  * Join two grids vertically, even if they have different widths.
  *
- * @param {import("../src/grid.js").Grid} left
- * @param {import("../src/grid.js").Grid} right
- * @returns {import("../src/grid.js").Grid}
+ * @param {g.Grid<void>} left
+ * @param {g.Grid<void>} right
+ * @returns {fc.Arbitrary<g.Grid<void>>}
  */
 function joinV(left, right) {
     if(left.dims.width === right.dims.width) {
