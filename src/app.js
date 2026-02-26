@@ -44,30 +44,97 @@ async function initializeParser() {
 }
 
 /**
- * Make an element to represent the cusor.
- *
- * @returns {HTMLElement}
+ * An editor view is an instance of an editor state, which can show
+ * itself on screen and respond to events.
  */
-function mkCursorElem() {
-    const e = document.createElement("div");
-    e.className = "editor-cursor";
-    e.style.position = "absolute";
-    return e;
-}
+class EditorView {
+    /** @type {state.EditingLeaf} */
+    #state;
 
-/**
- * @param {HTMLElement}       root The root element of the editor.
- * @param {state.EditorState} st   The current editor state.
- */
-function viewEditorState(root, st) {
-    // TODO: re-use elements.
-    root.style.display = "inline-grid";
-    root.style.gridTemplateColumns = "1ch";
-    root.style.gridTemplateRows = "1em";
-    root.innerHTML = "";
+    /**
+     * Is the state in sync with the view?
+     * @type {boolean}
+     */
+    #dirty;
 
-    const leaves = grid.allLeavesWithPosition(st.grid);
-    for(const [leaf, p] of leaves) {
+    /**
+     * @param {state.EditingLeaf} [st] The initial editor state.
+     */
+    constructor(st) {
+        this.#state = st ?? state.mk();
+    }
+
+    /**
+     * Construct a new editor view from the state serialized in `str`.
+     *
+     * @param {string} str The serialized state.
+     * @returns {EditorView}
+     */
+    static fromSerializedState(str) {
+        const st = serialize.editorStateFromString(str);
+        return new EditorView(st);
+    }
+
+    /**
+     * Make an element to represent the cusor.
+     *
+     * @returns {HTMLElement}
+     */
+    #mkCursorElem() {
+        const e = document.createElement("div");
+        e.className = "editor-cursor";
+        e.style.position = "absolute";
+        return e;
+    }
+
+    #markDirty() {
+        this.#dirty = true;
+    }
+
+    /**
+     * View a particular line of the given leaf.
+     *
+     * @param {number} rowNo The index of the line to view.
+     * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
+     * @param {point.P2} p The position of the upper-left corner of the leaf.
+     * @returns {HTMLElement} The HTML element generated to represent
+     *     this line.
+     */
+    #viewLine(rowNo, leaf, p) {
+        const line = leaf.data.lines[rowNo];
+        const lineElem = document.createElement("div");
+        lineElem.className = "editor-line";
+        lineElem.innerText = line;
+        lineElem.onmousedown = (e) => {
+            const rect = lineElem.getBoundingClientRect();
+            // Find the portion of the `lineElem` which is
+            // actually occupied by text.
+            const pctFilled = line.length / leaf.dims.width;
+
+            const x = e.clientX;
+            const i = Math.floor(point.lerp(
+                0,
+                line.length,
+                rect.left,
+                x,
+                rect.left + rect.width * pctFilled
+            ));
+
+            state.putPointOnGlobalPosition(this.#state, point.offset(p, point.mkV2(i, rowNo)));
+            this.#markDirty();
+        };
+        return lineElem;
+    }
+
+    /**
+     * View a particular leaf of the grid.
+     *
+     * @param {grid.Leaf<state.Cell>} leaf The leaf to view.
+     * @param {point.P2} p The position of the upper-left corner of the leaf.
+     * @returns {HTMLElement} The HTML element generated to represent
+     *     this leaf.
+     */
+    #viewLeaf(leaf, p) {
         const sz = leaf.dims;
 
         // Specify the position of the cell using CSS grid syntax.
@@ -80,51 +147,44 @@ function viewEditorState(root, st) {
         leafElem.style.gridArea = gridSpec;
 
         // Construct the inside of the cell.
-        let row = 0;
-        for(const line of leaf.data.lines) {
-            const thisRow = row;
-            const lineElem = document.createElement("div");
-            lineElem.className = "editor-line";
-            lineElem.innerText = line;
-            lineElem.onmousedown = (e) => {
-                const rect = lineElem.getBoundingClientRect();
-                // Find the portion of the `lineElem` which is
-                // actually occupied by text.
-                const pctFilled = line.length / leaf.dims.width;
-
-                const x = e.clientX;
-                const i = Math.floor(point.lerp(
-                    0,
-                    line.length,
-                    rect.left,
-                    x,
-                    rect.left + rect.width * pctFilled
-                ));
-
-                state.putPointOnLocalPosition(leaf, point.mkP2(i, thisRow), st);
-                viewEditorState(root, st);
-            };
-            leafElem.appendChild(lineElem);
-
-            ++row;
+        for(let rowNo = 0; rowNo < leaf.data.lines.length; ++rowNo) {
+            leafElem.appendChild(this.#viewLine(rowNo, leaf, p));
         }
 
-        root.appendChild(leafElem);
-
         // Construct the cursor.
-        const cursorElem = mkCursorElem();
+        const cursorElem = this.#mkCursorElem();
         leafElem.appendChild(cursorElem);
         cursorElem.style.display = "none";
 
         // If the leaf is selected, we need to draw the cursor.
-        if(st.type === "EditingLeaf" && st.singleSelection.leaf === leaf) {
-            const ptDoc    = st.singleSelection.pt;
+        if(this.#state.type === "EditingLeaf" && this.#state.singleSelection.leaf === leaf) {
+            const ptDoc    = this.#state.singleSelection.pt;
             const xScreen  = `${ptDoc.x}ch`;
             const yScreen  = `${ptDoc.y}em`;
 
             cursorElem.style.display = "block";
             cursorElem.style.left = xScreen;
             cursorElem.style.top  = yScreen;
+        }
+
+        return leafElem;
+    }
+
+    /**
+     * View the editor state as an HTML object rooted at `root`.
+     *
+     * @param {HTMLElement} root
+     */
+    view(root) {
+        // TODO: re-use elements.
+        root.style.display = "inline-grid";
+        root.style.gridTemplateColumns = "1ch";
+        root.style.gridTemplateRows = "1em";
+        root.innerHTML = "";
+
+        const leaves = grid.allLeavesWithPosition(this.#state.grid);
+        for(const [leaf, p] of leaves) {
+            root.appendChild(this.#viewLeaf(leaf, p));
         }
     }
 }
@@ -138,7 +198,8 @@ async function main() {
     const glpk = await GLPK();
 
     // Restore saved state from localStorage if available
-    let st;
+    /** @type {EditorView} */
+    let editor;
     const savedState = localStorage.getItem("editorState");
     if(savedState) {
         try {

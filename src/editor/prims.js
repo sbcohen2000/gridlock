@@ -490,6 +490,11 @@ export function globalLineIsEmpty(st) {
  * @returns {string} The contents of the line.
  */
 export function removeGlobalLine(st) {
+    // Don't remove the last line - editor must have at least one line
+    if(st.grid.dims.height === 1) {
+        return "";
+    }
+
     let contents = "";
     const globalPt = _findGlobalPoint(st);
     const leaves = [..._eachLeafOnGlobalRow(globalPt.y, st)];
@@ -509,8 +514,9 @@ export function removeGlobalLine(st) {
     st.grid = newGrid;
 
     // We need to set the selection here again since the selected leaf
-    // might now be gone.
-    putPointOnGlobalPosition(st, point.mkP2(0, globalPt.y - 1));
+    // might now be gone. Ensure we don't go to a negative row.
+    const newRow = Math.max(0, globalPt.y - 1);
+    putPointOnGlobalPosition(st, point.mkP2(0, newRow));
 
     return contents;
 }
