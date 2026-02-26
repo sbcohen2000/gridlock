@@ -885,6 +885,32 @@ export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
 }
 
 /**
+ * Find all of the leaves which are underneath row `y`. The leaves are
+ * returned in order of ascending `x`-position.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {number} y
+ * @returns {IteratorObject<Leaf<A>>}
+ */
+export function* leavesUnderRow(g, y) {
+    switch(g.type) {
+    case "Vert": {
+        if(y < g.left.dims.height) {
+            yield* leavesUnderRow(g.left, y);
+        } else {
+            yield* leavesUnderRow(g.right, y - g.left.dims.height);
+        }
+    } break;
+    case "Horz": {
+        yield* leavesUnderRow(g.left, y);
+        yield* leavesUnderRow(g.right, y);
+    } break;
+    case "Leaf": if(y < g.dims.height) yield g; break;
+    };
+}
+
+/**
  * Find the leaf node of the grid `g` under the point `p`, or
  * `undefined` if there is no leaf underneath `p`.
  *

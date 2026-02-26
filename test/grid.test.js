@@ -1146,6 +1146,127 @@ describe("splitLeafHorizontally", () => {
     });
 });
 
+describe("leavesUnderRow", () => {
+    it("Returns the root leaf when querying a single-leaf grid", () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "|  |\n" +
+            "|  |\n" +
+            "+--+"
+        );
+
+        const leaves = [...grid.leavesUnderRow(g, 0)];
+        expect(leaves).to.have.lengthOf(1);
+        expect(leaves[0]).to.equal(g);
+
+        const leaves1 = [...grid.leavesUnderRow(g, 1)];
+        expect(leaves1).to.have.lengthOf(1);
+        expect(leaves1[0]).to.equal(g);
+    });
+
+    it("Returns all horizontally split leaves at the same row", () => {
+        const g = grid.parseASCII(
+            "+--+--+--+\n" +
+            "|a |b |c |\n" +
+            "+--+--+--+"
+        );
+
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
+        const c = grid.leafWithLabel(g, "c");
+
+        const leaves = [...grid.leavesUnderRow(g, 0)];
+        expect(leaves).to.have.lengthOf(3);
+        expect(leaves).to.include.members([a, b, c]);
+    });
+
+    it("Returns only leaves that contain the specified row", () => {
+        const g = grid.parseASCII(
+            "+--+--+\n" +
+            "|a |b |\n" +
+            "|  |  |\n" +
+            "+--+--+\n" +
+            "|c    |\n" +
+            "+-----+"
+        );
+
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
+        const c = grid.leafWithLabel(g, "c");
+
+        const leavesRow0 = [...grid.leavesUnderRow(g, 0)];
+        expect(leavesRow0).to.have.lengthOf(2);
+        expect(leavesRow0).to.include.members([a, b]);
+
+        const leavesRow1 = [...grid.leavesUnderRow(g, 1)];
+        expect(leavesRow1).to.have.lengthOf(2);
+        expect(leavesRow1).to.include.members([a, b]);
+
+        const leavesRow2 = [...grid.leavesUnderRow(g, 3)];
+        expect(leavesRow2).to.have.lengthOf(1);
+        expect(leavesRow2[0]).to.equal(c);
+    });
+
+    it("Works with a more complex grid", () => {
+        const g = grid.parseASCII(
+            "+--+--+--+\n" +
+            "|a |b |c |\n" +
+            "|  +--+--+\n" +
+            "|  |d |e |\n" +
+            "+--+--+--+\n" +
+            "|f    |g |\n" +
+            "+-----+--+"
+        );
+
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
+        const c = grid.leafWithLabel(g, "c");
+        const d = grid.leafWithLabel(g, "d");
+        const e = grid.leafWithLabel(g, "e");
+        const f = grid.leafWithLabel(g, "f");
+        const g_leaf = grid.leafWithLabel(g, "g");
+
+        const leavesRow0 = [...grid.leavesUnderRow(g, 0)];
+        expect(leavesRow0).to.have.lengthOf(3);
+        expect(leavesRow0).to.include.members([a, b, c]);
+
+        const leavesRow2 = [...grid.leavesUnderRow(g, 2)];
+        expect(leavesRow2).to.have.lengthOf(3);
+        expect(leavesRow2).to.include.members([a, d, e]);
+
+        const leavesRow4 = [...grid.leavesUnderRow(g, 4)];
+        expect(leavesRow4).to.have.lengthOf(2);
+        expect(leavesRow4).to.include.members([f, g_leaf]);
+    });
+
+    it("Returns leaves sorted by x-coordinate", () => {
+        fc.assert(
+            fc.property(
+                arbg.grid.tree.chain(g => {
+                    return fc.record({
+                        g: fc.constant(g),
+                        y: fc.integer({ min: 0, max: g.dims.height - 1 })
+                    });
+                }),
+                ({ g, y }) => {
+                    const leaves = [...grid.leavesUnderRow(g, y)];
+
+                    // Get the x-coordinates of all returned leaves
+                    const xCoords = leaves.map(leaf => {
+                        const pos = grid.posOfLeaf(g, leaf);
+                        return pos.x;
+                    });
+
+                    // Check that they are sorted in ascending order
+                    for(let i = 1; i < xCoords.length; i++) {
+                        expect(xCoords[i]).to.be.greaterThan(xCoords[i - 1]);
+                    }
+                }
+            )
+        );
+    });
+});
+
 describe("modifyHeightOfLeaves", () => {
     it("Grows a single leaf that spans the full width", () => {
         const g = grid.parseASCII(

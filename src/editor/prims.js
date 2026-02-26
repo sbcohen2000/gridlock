@@ -76,6 +76,10 @@ export function _putPointOnLastGlobalColumnInLeaf(st) {
  * point. If there isn't a leaf under the global point, this function
  * does nothing.
  *
+ * Note that the last leaf on a global line effectively has an extra
+ * column, since it is possible to select the character after the last
+ * letter on a column.
+ *
  * @param {state.EditingLeaf} st The current editor state.
  * @param {point.P2}          pt The global point to select.
  * @param {boolean} [updateGlobalCol] If `true`, it updates the
@@ -88,12 +92,33 @@ export function putPointOnGlobalPosition(st, pt, updateGlobalCol) {
         updateGlobalCol = true;
     }
 
-    const leaf       = grid.leafUnderPoint(st.grid, pt);
-    if(!leaf) return false;
+    const leaves = [...grid.leavesUnderRow(st.grid, pt.y)];
 
-    const leafPos    = grid.posOfLeaf(st.grid, leaf);
+    // Find the leaf underneath the x-position of the point, or the
+    // last leaf, if the point is entirely to the right of the grid.
+
+    // Note that it is guaranteed that the leaves are returned in
+    // ascending order of `x` position.
+    let x = 0;
+    /** @type{grid.Leaf<state.Cell> | undefined} */
+    let theLeaf;
+    for(let i = 0; i < leaves.length; ++i) {
+        const leaf = leaves[i];
+        const isLast = i == leaves.length - 1;
+
+        if(isLast || (x <= pt.x && pt.x < x + leaf.dims.width)) {
+            theLeaf = leaf;
+            break;
+        }
+
+        x += leaf.dims.width;
+    }
+
+    if(!theLeaf) return false;
+
+    const leafPos    = grid.posOfLeaf(st.grid, theLeaf);
     const relLeafPos = point.mkP2(pt.x - leafPos.x, pt.y - leafPos.y);
-    return _putPointOnLocalPosition(st, leaf, relLeafPos, updateGlobalCol ? pt.x : undefined);
+    return _putPointOnLocalPosition(st, theLeaf, relLeafPos, updateGlobalCol ? pt.x : undefined);
 }
 
 /**
@@ -118,22 +143,6 @@ async function _expandLeafWidthIfNecessary(g, leaf, glpk) {
     const dW = _maximumLineLength(leaf) - leaf.dims.width;
     if(0 < dW) {
         await grid.modifyWidth(g, dW, leaf, glpk);
-    }
-}
-
-/**
- * Return an iterator over the leaves on a global `row`.
- *
- * @param {number} row
- * @param {state.EditingLeaf} st The editor state.
- * @returns {IteratorObject<grid.Leaf<state.Cell>>}
- */
-function* _eachLeafOnGlobalRow(row, st) {
-    let curCol = 0;
-    while(curCol < st.grid.dims.width) {
-        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(curCol, row));
-        yield leaf;
-        curCol += leaf.dims.width;
     }
 }
 
@@ -193,7 +202,7 @@ export function putPointAtStartOfLine(st) {
  */
 export function putPointAtEndOfGlobalLine(st) {
     const globalRow = _findGlobalPoint(st).y;
-    const last = util.iterLast(_eachLeafOnGlobalRow(globalRow, st));
+    const last = util.iterLast(grid.leavesUnderRow(st.grid, globalRow));
     if(last === undefined) {
         // Somehow, there's no last child on this row, so do nothing.
         console.warn(`No last child on row ${globalRow}`);
@@ -471,7 +480,7 @@ export function pointOnLastGlobalLine(st) {
  */
 export function globalLineIsEmpty(st) {
     const globalPt = _findGlobalPoint(st);
-    return _eachLeafOnGlobalRow(globalPt.y, st).every(leaf => {
+    return grid.leavesUnderRow(st.grid, globalPt.y).every(leaf => {
         const leafPos = grid.posOfLeaf(st.grid, leaf);
         const relRow = globalPt.y - leafPos.y;
 
@@ -497,7 +506,7 @@ export function removeGlobalLine(st) {
 
     let contents = "";
     const globalPt = _findGlobalPoint(st);
-    const leaves = [..._eachLeafOnGlobalRow(globalPt.y, st)];
+    const leaves = [...grid.leavesUnderRow(st.grid, globalPt.y)];
     for(const leaf of leaves) {
         const leafPos = grid.posOfLeaf(st.grid, leaf);
         const relRow  = globalPt.y - leafPos.y;
@@ -570,7 +579,7 @@ export function insertGlobalNewline(st) {
     const globalCol = globalPt.x;
 
     // Add a line to each leaf _at_ `row`.
-    const leaves = [..._eachLeafOnGlobalRow(globalRow, st)]
+    const leaves = [...grid.leavesUnderRow(st.grid, globalRow)];
     for(const leaf of leaves) {
         const leafUpperLeft = grid.posOfLeaf(st.grid, leaf);
         const localRow = globalRow - leafUpperLeft.y;

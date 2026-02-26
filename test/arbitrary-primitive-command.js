@@ -72,16 +72,38 @@ export function arbitraryPrimitiveCommand(glpk, settings) {
 }
 
 async function main() {
-    // Example usage: generate and print some sample primitive commands
     const GLPK = (await import("glpk.js/node")).default;
     const glpk = await GLPK();
+    const state = await import("../src/editor.js");
+    const serialize = await import("../src/editor/serialize.js");
 
-    const samples = fc.sample(arbitraryPrimitiveCommand(glpk), { numRuns: 10 });
+    // Parse command line arguments
+    const args = process.argv.slice(2);
+    const numCommands = args.length > 0 ? parseInt(args[0], 10) : 10;
+    const seed = args.length > 1 ? parseInt(args[1], 10) : undefined;
 
-    console.log("Sample primitive commands:");
-    for(const [fn, args] of samples) {
-        console.log(`  ${fn.name}(${args.map(a => a === glpk ? "glpk" : JSON.stringify(a)).join(", ")})`);
+    // Generate commands
+    const commands = fc.sample(
+        arbitraryPrimitiveCommand(glpk),
+        { numRuns: numCommands, seed }
+    );
+
+    // Create empty editor state
+    const st = state.mk();
+
+    console.log("Initial state:");
+    console.log(serialize.printCellGrid(st.grid));
+    console.log("\nApplying commands:");
+
+    // Apply each command
+    for(const [fn, cmdArgs] of commands) {
+        const argStr = cmdArgs.map(a => a === glpk ? "glpk" : JSON.stringify(a)).join(", ");
+        console.log(`  ${fn.name}(${argStr})`);
+        await fn(st, ...cmdArgs);
     }
+
+    console.log("\nFinal state:");
+    console.log(serialize.printCellGrid(st.grid));
 }
 
 if(import.meta.main) {
