@@ -1,6 +1,7 @@
 import * as grid from "./grid.js";
 import * as point from "./point.js";
 import * as state from "./editor.js";
+import * as serialize from "./editor/serialize.js";
 import GLPK from "glpk.js";
 
 // Reload the page when esbuild issues a change event.
@@ -128,20 +129,52 @@ function viewEditorState(root, st) {
     }
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function main() {
     const editorRoot = document.getElementById("editor-root");
     if(!editorRoot) {
         throw new Error("Could not find #editor-root element");
     }
 
     const glpk = await GLPK();
-    const st = state.mk();
+
+    // Restore saved state from localStorage if available
+    let st;
+    const savedState = localStorage.getItem("editorState");
+    if(savedState) {
+        try {
+            st = serialize.editorStateFromString(savedState);
+        } catch(e) {
+            console.warn("Failed to restore editor state:", e);
+            st = state.mk();
+        }
+    } else {
+        st = state.mk();
+    }
+
+    // Debounced save function - saves 1 second after last change
+    const recordSave = (() => {
+        let saveTimeout = null;
+
+        return () => {
+            if(saveTimeout !== null) {
+                clearTimeout(saveTimeout);
+            }
+
+            saveTimeout = setTimeout(() => {
+                const serialized = serialize.printCellGrid(st.grid);
+                localStorage.setItem("editorState", serialized);
+            }, 1000);
+        };
+    })();
 
     const [setDirty, viewIfDirty] = (() => {
         let dirty = false;
 
         return [
-            () => { dirty = true },
+            () => {
+                dirty = true;
+                recordSave();
+            },
             () => {
                 if(dirty) {
                     viewEditorState(editorRoot, st);
@@ -219,7 +252,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 setDirty();
             }break;
             case "Enter": {
-                await state.insertGlobalNewline(st, glpk);
+                state.insertGlobalNewline(st);
                 setDirty();
             } break;
             default: break;
@@ -228,4 +261,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         viewIfDirty();
     });
-});
+}
+
+document.addEventListener("DOMContentLoaded", main);

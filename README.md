@@ -22,6 +22,15 @@ $  npx mocha -g "Can parse a leaf"
 ```
 This will run the test called "Can parse a leaf".
 
+## TODO
+- [ ] Command palette
+- [X] Save/restore editor state
+- [ ] Visualize spaces in the editor with a dot.
+- [ ] Ctrl-b and Ctrl-f should skip over the end/beginning of a leaf
+      if there is nothing in the way.
+
+# Notes
+
 ## Constraint Solving
 
 When the user wants to expand a leaf in the grid, we use the following
