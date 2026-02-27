@@ -65,7 +65,7 @@ export function parseCellGrid(src) {
  * editor state.
  *
  * @param {string} src The source to parse as a cell grid.
- * @returns {state.EditorState}
+ * @returns {state.EditingText}
  */
 export function editorStateFromString(src) {
     const g = parseCellGrid(src);

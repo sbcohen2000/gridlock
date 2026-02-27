@@ -7,13 +7,16 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 
+/*****************************************************************************/
+/** Text Edits                                                              **/
+
 /**
  * @typedef {Object} Cell
  * @property {string[]} lines The lines of text inside the cell.
  */
 
 /**
- * @typedef {Object} SingleSelection
+ * @typedef {Object} TextSelection
  * @property {"Single"} type A tag indicating the kind of selection.
  * @property {grid.Leaf<Cell>} leaf The leaf in the grid which is
  *     currently selected.
@@ -24,11 +27,16 @@ import * as point from "../point.js";
  */
 
 /**
- * @typedef {Object} MultiSelection
- * @property {"Multi"}         type   A tag indicating the kind of
- *                                    selection.
- * @property {grid.Leaf<Cell>} leaves The selected leaves.
+ * @typedef {{
+ *  type: "EditingText"
+ *  selection: TextSelection,
+ *  grid: grid.Grid<Cell>,
+ *  flags: Flags
+ * }} EditingText
  */
+
+/************************/
+/** Text Edits : Flags **/
 
 /**
  * @typedef {Object} Flags
@@ -73,24 +81,35 @@ export function testFlag(flags, flag) {
     return flags[flag];
 }
 
+/*****************************************************************************/
+/** Top-Level Cell Edits                                                    **/
+
 /**
  * @typedef {{
- *  type: "EditingLeaf"
- *  singleSelection: SingleSelection,
+ *  type: "EditingCells",
+ *  selection: LeafSelection,
  *  grid: grid.Grid<Cell>,
- *  flags: Flags
- * }} EditingLeaf
+ * }} EditingCells
  */
 
 /**
- * @typedef {EditingLeaf} EditorState
+ * @typedef {Object} LeafSelection
+ * @property {"Leaves"} type A tag indicating the kind of selection.
+ * @property {grid.Leaf<Cell>[]} leaves The selected leaves.
+ */
+
+/*****************************************************************************/
+/** Editor State                                                            **/
+
+/**
+ * @typedef {EditingText | EditingCells} EditorState
  */
 
 /**
  * Construct a new `EditorState`.
  *
  * @param {grid.Grid<Cell>} [g] The cell grid.
- * @returns {EditorState}
+ * @returns {EditingText}
  */
 export function mk(g) {
     if(!g) {
@@ -103,9 +122,9 @@ export function mk(g) {
     const firstLeaf = grid.leafUnderPoint(g, point.mkOrigin());
 
     return {
-        type: "EditingLeaf",
+        type: "EditingText",
         grid: g,
-        singleSelection: {
+        selection: {
             type: "Single",
             leaf: firstLeaf,
             pt: point.mkOrigin(),

@@ -48,7 +48,7 @@ async function initializeParser() {
  * itself on screen and respond to events.
  */
 class EditorView {
-    /** @type {state.EditingLeaf} */
+    /** @type {state.EditingText} */
     #state;
 
     /**
@@ -58,7 +58,7 @@ class EditorView {
     #dirty;
 
     /**
-     * @param {state.EditingLeaf} [st] The initial editor state.
+     * @param {state.EditingText} [st] The initial editor state.
      */
     constructor(st) {
         this.#state = st ?? state.mk();
@@ -157,8 +157,8 @@ class EditorView {
         cursorElem.style.display = "none";
 
         // If the leaf is selected, we need to draw the cursor.
-        if(this.#state.type === "EditingLeaf" && this.#state.singleSelection.leaf === leaf) {
-            const ptDoc    = this.#state.singleSelection.pt;
+        if(this.#state.type === "EditingText" && this.#state.selection.leaf === leaf) {
+            const ptDoc    = this.#state.selection.pt;
             const xScreen  = `${ptDoc.x}ch`;
             const yScreen  = `${ptDoc.y}em`;
 
@@ -259,8 +259,8 @@ async function main() {
     };
 
     /**
-     * @param {(st: state.EditingLeaf) => boolean} cmd1
-     * @param {(st: state.EditingLeaf) => void} cmd2
+     * @param {(st: state.EditingText) => boolean} cmd1
+     * @param {(st: state.EditingText) => void} cmd2
      * @param {keyof state.Flags} flag
      */
     const mkPersistentCommand = (cmd1, cmd2, flag) => {

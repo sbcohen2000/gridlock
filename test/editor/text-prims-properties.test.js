@@ -2,7 +2,7 @@ import * as fc from "fast-check";
 import * as grid from "../../src/grid.js";
 import * as state from "../../src/editor.js";
 import * as serialize from "../../src/editor/serialize.js";
-import { arbitraryPrimitiveCommand } from "../arbitrary-primitive-command.js";
+import { arbitraryPrimitiveCommand } from "../arbitrary-text-primitive-command.js";
 import GLPK from "glpk.js/node";
 import { expect } from "chai";
 
@@ -15,7 +15,7 @@ const glpk = await GLPK();
  * @param {object} [options]
  * @param {number} [options.minCommands=0] Minimum number of commands to apply
  * @param {number} [options.maxCommands=50] Maximum number of commands to apply
- * @returns {fc.Arbitrary<Promise<state.EditingLeaf>>} An arbitrary editor state
+ * @returns {fc.Arbitrary<Promise<state.EditingText>>} An arbitrary editor state
  */
 function arbitraryStartingState(options = {}) {
     const minCommands = options.minCommands ?? 0;

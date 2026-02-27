@@ -1,2 +1,4 @@
-node_modules
+.claude
 .direnv
+CLAUDE.md
+node_modules

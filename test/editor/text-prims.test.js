@@ -141,9 +141,9 @@ describe("putPointAtEndOfGlobalLine", () => {
         // Point starts at (0, 0).
         state.putPointAtEndOfGlobalLine(st);
 
-        expect(st.singleSelection.type).to.equal("Single");
-        expect(st.singleSelection.pt.x).to.equal(5);
-        expect(st.singleSelection.pt.y).to.equal(0);
+        expect(st.selection.type).to.equal("Single");
+        expect(st.selection.pt.x).to.equal(5);
+        expect(st.selection.pt.y).to.equal(0);
     });
 
     it("Moves to end of rightmost leaf on the same row", () => {
@@ -158,9 +158,9 @@ describe("putPointAtEndOfGlobalLine", () => {
 
         // Should land at end of "there" (col 5) in the right leaf.
         const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(5, 0));
-        expect(st.singleSelection.leaf).to.equal(rightLeaf);
-        expect(st.singleSelection.pt.x).to.equal(5);
-        expect(st.singleSelection.pt.y).to.equal(0);
+        expect(st.selection.leaf).to.equal(rightLeaf);
+        expect(st.selection.pt.x).to.equal(5);
+        expect(st.selection.pt.y).to.equal(0);
     });
 
     it("Stays on the correct row in a multi-row document", () => {
@@ -178,9 +178,9 @@ describe("putPointAtEndOfGlobalLine", () => {
         state.putPointAtEndOfGlobalLine(st);
 
         const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(6, 0));
-        expect(st.singleSelection.leaf).to.equal(rightLeaf);
-        expect(st.singleSelection.pt.x).to.equal(3);
-        expect(st.singleSelection.pt.y).to.equal(1);
+        expect(st.selection.leaf).to.equal(rightLeaf);
+        expect(st.selection.pt.x).to.equal(3);
+        expect(st.selection.pt.y).to.equal(1);
     });
 
 });
@@ -289,78 +289,6 @@ describe("insertGlobalNewline", () => {
               "+--------+----+----+";
 
         expect(serialize.printCellGrid(st.grid)).to.equal(exp1);
-    });
-});
-
-describe("splitCellVerticallyAtPoint", () => {
-    it("Splits a single cell at the cursor row", () => {
-        const src =
-              "hello\n" +
-              "world\n" +
-              "+-----+\n" +
-              "|     |\n" +
-              "+-----+";
-
-        const st = serialize.editorStateFromString(src);
-        state.putPointOnGlobalPosition(st, point.mkP2(0, 1));
-
-        state.splitCellVerticallyAtPoint(st);
-
-        const exp =
-              "hello\n" +
-              "world\n" +
-              "+-----+\n" +
-              "+-----+\n" +
-              "+-----+";
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-    });
-
-    it("Does nothing when cursor is on the first row", () => {
-        const src =
-              "hello\n" +
-              "+-----+\n" +
-              "+-----+";
-
-        const st = serialize.editorStateFromString(src);
-
-        state.splitCellVerticallyAtPoint(st);
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(src);
-    });
-});
-
-describe("splitCellHorizontallyAtPoint", () => {
-    it("Splits a single cell at the cursor column", () => {
-        const src =
-              "hello world\n" +
-              "+----------+\n" +
-              "+----------+";
-
-        const st = serialize.editorStateFromString(src);
-        state.putPointOnGlobalPosition(st, point.mkP2(6, 0));
-
-        state.splitCellHorizontallyAtPoint(st);
-
-        const exp =
-              "hello world\n" +
-              "+-----+----+\n" +
-              "+-----+----+";
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-    });
-
-    it("Does nothing when cursor is at column zero", () => {
-        const src =
-              "hello\n" +
-              "+-----+\n" +
-              "+-----+";
-
-        const st = serialize.editorStateFromString(src);
-
-        state.splitCellHorizontallyAtPoint(st);
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(src);
     });
 });
 
