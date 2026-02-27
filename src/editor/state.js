@@ -27,6 +27,24 @@ import * as point from "../point.js";
  */
 
 /**
+ * Construct a new single selection which selects the first position
+ * in the first leaf in the grid.
+ *
+ * @param {grid.Grid<Cell>} g The current grid.
+ * @returns {TextSelection}
+ */
+export function mkSingleSelection(g) {
+    const firstLeaf = grid.leafUnderPoint(g, point.mkOrigin());
+
+    return {
+        type: "Single",
+        leaf: firstLeaf,
+        pt: point.mkOrigin(),
+        lastGlobalCol: 0
+    };
+}
+
+/**
  * @typedef {{
  *  type: "EditingText"
  *  selection: TextSelection,
@@ -45,6 +63,20 @@ import * as point from "../point.js";
  * @property {boolean} pushedTopEdge
  * @property {boolean} pushedBottomEdge
  */
+
+/**
+ * Construct a new `Flags` object.
+ *
+ * @returns {Flags}
+ */
+export function mkFlags() {
+    return {
+        pushedLeftEdge: false,
+        pushedRightEdge: false,
+        pushedTopEdge: false,
+        pushedBottomEdge: false
+    }
+}
 
 /**
  * Set some flags.
@@ -87,15 +119,28 @@ export function testFlag(flags, flag) {
 /**
  * @typedef {{
  *  type: "EditingCells",
- *  selection: LeafSelection,
+ *  selection: LeafSelection | EdgeSelection,
  *  grid: grid.Grid<Cell>,
  * }} EditingCells
  */
 
 /**
+ * Describe the selection of one or more leaves in the document.
+ *
  * @typedef {Object} LeafSelection
  * @property {"Leaves"} type A tag indicating the kind of selection.
- * @property {grid.Leaf<Cell>[]} leaves The selected leaves.
+ * @property {Set<grid.Leaf<Cell>>} leaves The selected leaves.
+ */
+
+/**
+ * Describe the selection of a single edge in the document. We
+ * describe the selection of an edge by recording the grid cell whose
+ * partition is the same as the selected edge.
+ *
+ * @typedef {Object} EdgeSelection
+ * @property {"Edge"} type A tag indicating the kind of selection.
+ * @property {grid.Grid<Cell>} node The node corresponding to the
+ *     selected edge.
  */
 
 /*****************************************************************************/
@@ -119,22 +164,45 @@ export function mk(g) {
         });
     }
 
-    const firstLeaf = grid.leafUnderPoint(g, point.mkOrigin());
-
     return {
         type: "EditingText",
         grid: g,
+        selection: mkSingleSelection(g),
+        flags: mkFlags()
+    }
+}
+
+/**
+ * Transform an editor state into one which is read to edit cells.
+ *
+ * @param {EditorState} st
+ * @returns {EditingCells}
+ */
+export function editCells(st) {
+    const g = st.grid;
+    return {
+        type: "EditingCells",
+        grid: g,
         selection: {
-            type: "Single",
-            leaf: firstLeaf,
-            pt: point.mkOrigin(),
-            lastGlobalCol: 0
-        },
-        flags: {
-            pushedLeftEdge: false,
-            pushedTopEdge: false,
-            pushedBottomEdge: false,
-            pushedRightEdge: false
+            type: "Leaves",
+            leaves: new Set()
         }
+    }
+}
+
+/**
+ * Transform an editor state into one which is ready to edit the text
+ * within a cell.
+ *
+ * @param {EditorState} st
+ * @returns {EditingText}
+ */
+export function editText(st) {
+    const g = st.grid;
+    return {
+        type: "EditingText",
+        grid: g,
+        flags: mkFlags(),
+        selection: mkSingleSelection(g)
     }
 }

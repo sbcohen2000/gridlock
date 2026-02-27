@@ -30,3 +30,15 @@ export function clamp(lo, x, hi) {
     }
     return x;
 }
+
+/**
+ * Assert that the condition holds.
+ *
+ * @param {boolean} cond
+ * @param {string} [msg]
+ * @returns {asserts cond}
+ */
+export function assert(cond, msg) {
+    if(cond) return;
+    throw new Error(`Assertion failure. ${msg ?? ""}`);
+}

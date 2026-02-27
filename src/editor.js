@@ -23,11 +23,6 @@ export {
     insertString,
 } from "./editor/text-prims/text-prims.js";
 
-export {
-    splitCellVerticallyAtPoint,
-    splitCellHorizontallyAtPoint,
-} from "./editor/cell-prims/cell-prims.js";
-
 export * from "./editor/state.js";
 
 import { PRIMITIVES as TEXT_PRIMITIVES } from "./editor/text-prims/registry.js";

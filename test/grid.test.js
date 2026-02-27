@@ -839,8 +839,8 @@ describe("checkLeavesAdjacent", () => {
         );
         const a = grid.leafWithLabel(g, "a");
         const b = grid.leafWithLabel(g, "b");
-        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.true;
-        expect(grid.checkLeavesAdjacent(g, b, a)).to.be.true;
+        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.ok;
+        expect(grid.checkLeavesAdjacent(g, b, a)).to.be.ok;
     });
 
     it("Detects vertically adjacent leaves", () => {
@@ -853,8 +853,8 @@ describe("checkLeavesAdjacent", () => {
         );
         const a = grid.leafWithLabel(g, "a");
         const b = grid.leafWithLabel(g, "b");
-        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.true;
-        expect(grid.checkLeavesAdjacent(g, b, a)).to.be.true;
+        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.ok;
+        expect(grid.checkLeavesAdjacent(g, b, a)).to.be.ok;
     });
 
     it("Rejects non-adjacent leaves", () => {
@@ -865,7 +865,7 @@ describe("checkLeavesAdjacent", () => {
         );
         const a = grid.leafWithLabel(g, "a");
         const c = grid.leafWithLabel(g, "c");
-        expect(grid.checkLeavesAdjacent(g, a, c)).to.be.false;
+        expect(grid.checkLeavesAdjacent(g, a, c)).to.be.null;
     });
 
     it("Rejects touching leaves with matching dimensions", () => {
@@ -879,9 +879,9 @@ describe("checkLeavesAdjacent", () => {
         const a = grid.leafWithLabel(g, "a");
         const b = grid.leafWithLabel(g, "b");
         const c = grid.leafWithLabel(g, "c");
-        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.false;
-        expect(grid.checkLeavesAdjacent(g, a, c)).to.be.false;
-        expect(grid.checkLeavesAdjacent(g, b, c)).to.be.true;
+        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.null;
+        expect(grid.checkLeavesAdjacent(g, a, c)).to.be.null;
+        expect(grid.checkLeavesAdjacent(g, b, c)).to.be.ok;
     });
 
     it("Any grid with more than one leaf has at least one adjacent pair", () => {
@@ -919,7 +919,7 @@ describe("mergeLeaves", () => {
               "|     |\n" +
               "+-----+";
 
-        const g1 = grid.mergeLeaves(g, la, lb);
+        const [_, g1] = grid.mergeLeaves(g, la, lb);
         expect(grid.printASCII(g1)).to.equal(exp);
     });
 
@@ -953,7 +953,7 @@ describe("mergeLeaves", () => {
             "|     |  |\n" +
             "+-----+--+";
 
-        const g1 = grid.mergeLeaves(g, lc, le);
+        const [_l1, g1] = grid.mergeLeaves(g, lc, le);
         expect(grid.printASCII(g1)).to.equal(exp1);
 
         // ----------------------------------------------------------
@@ -966,7 +966,7 @@ describe("mergeLeaves", () => {
             "|     |  |\n" +
             "+-----+--+";
 
-        const g2 = grid.mergeLeaves(g1, lb, ld);
+        const [_l2, g2] = grid.mergeLeaves(g1, lb, ld);
         expect(grid.printASCII(g2)).to.equal(exp2);
 
         // ----------------------------------------------------------
@@ -979,7 +979,7 @@ describe("mergeLeaves", () => {
             "|        |\n" +
             "+--------+";
 
-        const g3 = grid.mergeLeaves(g2, lf, lg);
+        const [_l3, g3] = grid.mergeLeaves(g2, lf, lg);
         expect(grid.printASCII(g3)).to.equal(exp3);
     });
 
@@ -993,7 +993,7 @@ describe("mergeLeaves", () => {
                 for (let i = 0; i < leaves.length; ++i) {
                     for (let j = i + 1; j < leaves.length; ++j) {
                         if (grid.checkLeavesAdjacent(g, leaves[i], leaves[j])) {
-                            const merged = grid.mergeLeaves(g, leaves[i], leaves[j]);
+                            const [_, merged] = grid.mergeLeaves(g, leaves[i], leaves[j]);
                             const newLeaves = [...grid.allLeaves(merged)];
                             expect(newLeaves).to.have.lengthOf(leaves.length - 1);
                             return;
@@ -1018,7 +1018,7 @@ describe("splitLeafVertically", () => {
             "+--+"
         );
 
-        const result = grid.splitLeafVertically(
+        const [_, result] = grid.splitLeafVertically(
             g, /** @type {grid.Leaf<void>} */(g), 2,
             () => [undefined, undefined],
         );
@@ -1086,7 +1086,7 @@ describe("splitLeafHorizontally", () => {
             "+---+"
         );
 
-        const result = grid.splitLeafHorizontally(
+        const [_, result] = grid.splitLeafHorizontally(
             g, /** @type {grid.Leaf<void>} */(g), 2,
             () => [undefined, undefined],
         );

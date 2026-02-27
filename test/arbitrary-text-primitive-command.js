@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import { PRIMITIVES } from "../src/editor.js";
+import { PRIMITIVES } from "../src/editor/text-prims/registry.js";
 
 /**
  * Generate an arbitrary value for a given primitive type.

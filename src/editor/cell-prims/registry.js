@@ -12,19 +12,19 @@ import * as prims from "./cell-prims.js";
  */
 export const PRIMITIVES = [
     {
-        function: prims.splitCellVerticallyAtPoint,
-        args: [],
+        function: prims.splitCellVerticallyAtRow,
+        args: ["number"],
         retty: "boolean",
         async: false,
         const: false,
-        description: "Split cell vertically at current row"
+        description: "Split selected cell vertically at given row"
     },
     {
-        function: prims.splitCellHorizontallyAtPoint,
-        args: [],
+        function: prims.splitCellHorizontallyAtColumn,
+        args: ["number"],
         retty: "boolean",
         async: false,
         const: false,
-        description: "Split cell horizontally at current column"
+        description: "Split selected cell horizontally at given column"
     },
 ];

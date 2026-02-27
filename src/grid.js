@@ -1199,6 +1199,10 @@ export function reassociateLeaves(leaves, width, height) {
 }
 
 /**
+ * @typedef {"AAboveB" | "ABelowB" | "ALeftOfB" | "ARightOfB"} LeafAdjacency
+ */
+
+/**
  * Check that two leaves, annotated with their positions, are adjacent
  * in the grid. Two leaves are adjacent if they are touching along an
  * edge, and along the edge that they touch they have the same
@@ -1207,24 +1211,28 @@ export function reassociateLeaves(leaves, width, height) {
  * @template A
  * @param {[Leaf<A>, point.P2]} a The first leaf.
  * @param {[Leaf<A>, point.P2]} b The second leaf.
- * @returns {boolean}
+ * @returns {LeafAdjacency | null}
  */
 function _checkLeavesAdjacent([leafA, leafALoc], [leafB, leafBLoc]) {
-    if(leafALoc.x === leafBLoc.x) {
+    if(leafALoc.x === leafBLoc.x && leafA.dims.width === leafB.dims.width) {
         // Then, the leaves are potentially aligned vertically.
-        return leafA.dims.width === leafB.dims.width
-            && (leafALoc.y + leafA.dims.height === leafBLoc.y      // Leaf A is _above_ leaf B
-                || leafALoc.y - leafB.dims.height === leafBLoc.y); // Leaf A is _below_ leaf B
+        if(leafALoc.y + leafA.dims.height === leafBLoc.y) {
+            return "AAboveB";
+        } else if(leafALoc.y - leafB.dims.height === leafBLoc.y) {
+            return "ABelowB";
+        }
     }
 
-    if(leafALoc.y === leafBLoc.y) {
+    if(leafALoc.y === leafBLoc.y && leafA.dims.height === leafB.dims.height) {
         // Then, the leaves are potentially aligned horizontally.
-        return leafA.dims.height === leafB.dims.height
-            && (leafALoc.x + leafA.dims.width === leafBLoc.x      // Leaf A is _left_ of leaf B
-                || leafALoc.x - leafB.dims.width === leafBLoc.x); // Leaf A is _right_ of leaf B
+        if(leafALoc.x + leafA.dims.width === leafBLoc.x) {
+            return "ALeftOfB";
+        } else if (leafALoc.x - leafB.dims.width === leafBLoc.x) {
+            return "ARightOfB";
+        }
     }
 
-    return false;
+    return null;
 }
 
 /**
@@ -1236,7 +1244,7 @@ function _checkLeavesAdjacent([leafA, leafALoc], [leafB, leafBLoc]) {
  * @param {Grid<A>} g The grid.
  * @param {Leaf<A>} a The first leaf.
  * @param {Leaf<A>} b The second leaf.
- * @returns {boolean}
+ * @returns {LeafAdjacency | null}
  */
 export function checkLeavesAdjacent(g, a, b) {
     const aLoc = posOfLeaf(g, a);
@@ -1261,7 +1269,7 @@ export function checkLeavesAdjacent(g, a, b) {
  * @param {(a: string, b: string) => string} [mergeLabel] How to merge
  *     the labels of `leafA` and `leafB`. If omitted, the label of
  *     `leafA` is kept, while the label of `leafB` is discarded.
- * @returns {Grid<A>} The new grid.
+ * @returns {[Leaf<A> | null, Grid<A>]} The new leaf, and the new grid.
  */
 export function mergeLeaves(g, leafA, leafB, mergeData, mergeLabel) {
     if(!mergeData) {
@@ -1276,7 +1284,7 @@ export function mergeLeaves(g, leafA, leafB, mergeData, mergeLabel) {
     const leafBLoc = posOfLeaf(g, leafB);
 
     if(!_checkLeavesAdjacent([leafA, leafALoc], [leafB, leafBLoc])) {
-        return g;
+        return [null, g];
     }
 
     const newLeafUpperLeft = point.mkP2(
@@ -1308,7 +1316,7 @@ export function mergeLeaves(g, leafA, leafB, mergeData, mergeLabel) {
     let leaves = [...allLeavesWithPosition(g).filter(([leaf, _]) => leaf !== leafA && leaf !== leafB)];
     leaves.push([newLeaf, newLeafUpperLeft]);
 
-    return reassociateLeaves(leaves.values(), g.dims.width, g.dims.height);
+    return [newLeaf, reassociateLeaves(leaves.values(), g.dims.width, g.dims.height)];
 }
 
 /**
@@ -1326,7 +1334,7 @@ export function mergeLeaves(g, leafA, leafB, mergeData, mergeLabel) {
  * @param {(a: string) => [string, string]} [splitLabel] How should
  *     the label of the leaf be split between the offshoots? If
  *     omitted, the default duplicates the label.
- * @returns {Grid<A>}
+ * @returns {[Grid<A> | null, Grid<A>]} The new parent node, and the new grid.
  */
 export function splitLeafVertically(g, focus, row, splitData, splitLabel) {
     if(!splitLabel) {
@@ -1334,7 +1342,7 @@ export function splitLeafVertically(g, focus, row, splitData, splitLabel) {
     }
 
     if(row <= 0 || row >= focus.dims.height) {
-        return g;
+        return [null, g];
     }
 
     /** @type {Leaf<A>} */
@@ -1373,7 +1381,7 @@ export function splitLeafVertically(g, focus, row, splitData, splitLabel) {
     if(chain.length === 0) {
         // If `focus` is the root, then we simply construct a new root
         // and return it.
-        return newNode;
+        return [newNode, newNode];
     } else {
         const parent = chain[0];
         if(parent.left === focus) {
@@ -1385,7 +1393,7 @@ export function splitLeafVertically(g, focus, row, splitData, splitLabel) {
         }
     }
 
-    return g;
+    return [newNode, g];
 }
 
 /**
@@ -1403,7 +1411,7 @@ export function splitLeafVertically(g, focus, row, splitData, splitLabel) {
  * @param {(a: string) => [string, string]} [splitLabel] How should
  *     the label of the leaf be split between the offshoots? If
  *     omitted, the default duplicates the label.
- * @returns {Grid<A>}
+ * @returns {[Grid<A> | null, Grid<A>]} The new parent node, and the new grid.
  */
 export function splitLeafHorizontally(g, focus, col, splitData, splitLabel) {
     if(!splitLabel) {
@@ -1411,7 +1419,7 @@ export function splitLeafHorizontally(g, focus, col, splitData, splitLabel) {
     }
 
     if(col <= 0 || col >= focus.dims.width) {
-        return g;
+        return [null, g];
     }
 
     /** @type {Leaf<A>} */
@@ -1448,7 +1456,7 @@ export function splitLeafHorizontally(g, focus, col, splitData, splitLabel) {
     const chain = parentChain(g, focus);
 
     if(chain.length === 0) {
-        return newNode;
+        return [newNode, newNode];
     } else {
         const parent = chain[0];
         if(parent.left === focus) {
@@ -1458,5 +1466,5 @@ export function splitLeafHorizontally(g, focus, col, splitData, splitLabel) {
         }
     }
 
-    return g;
+    return [newNode, g];
 }
