@@ -25,3 +25,17 @@ html {
     background-color: white;
     z-index: 100;
 }
+
+.editor-toolbar {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 4px;
+}
+
+.editor-button {
+    cursor: pointer;
+    font-family: sans-serif;
+    font-size: 0.8em;
+    outline: 1px solid gray;
+    background-image: linear-gradient(gray, gainsboro);
+}

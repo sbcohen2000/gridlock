@@ -44,86 +44,212 @@ async function initializeParser() {
 }
 
 /**
+ * @typedef {{
+ *  initiator: View
+ * }} EventInitiator
+ */
+
+/**
+ * @typedef {{
+ *  bubbles: boolean
+ * }} EventBase
+ */
+
+/**
+ * Notify the parent that a child view would like to redraw.
+ *
+ * @typedef {{
+ *   type: "RedrawEvent"
+ *   bubbles: true
+ * } & EventBase} RedrawEvent
+ */
+
+/**
+ * Notify that a view wants to receive focus.
+ *
+ * @typedef {{
+ *   type: "RequestFocusEvent",
+ *   bubbles: true
+ * } & EventBase} RequestFocusEvent
+ */
+
+/**
+ * Notify that a keyboard key was pressed.
+ *
+ * @typedef {{
+ *   type: "KeyEvent",
+ *   e: KeyboardEvent
+ *   bubbles: true
+ * } & EventBase} KeyEvent
+ */
+
+/**
+ * Notify that a view was deleted.
+ *
+ * @typedef {{
+ *   type: "ViewDeletedEvent",
+ *   view: View
+ *   bubbles: true
+ * } & EventBase} ViewDeletedEvent
+ */
+
+/**
+ * Notify a view that it recieved focus.
+ *
+ * @typedef {{
+ *   type: "ReceivedFocusEvent",
+ *   bubbles: false
+ * } & EventBase} RecievedFocusEvent
+ */
+
+/**
+ * @typedef {{
+ *  type: "ReplaceEditorViewEvent",
+ *  newState: state.EditorState
+ *  bubbles: true
+ * } & EventBase} ReplaceEditorViewEvent
+ */
+
+/**
+ * @typedef {RedrawEvent
+ *  | ReplaceEditorViewEvent
+ *  | KeyEvent
+ *  | ViewDeletedEvent
+ *  | RecievedFocusEvent
+ *  | RequestFocusEvent
+ *  } Event
+ */
+
+class View {
+    /** @type {View | null}
+     *
+     * The parent view, or `null`, if this view is topmost. */
+    #parent;
+
+    /**
+     * @returns {View | null}
+     */
+    get parent() {
+        return this.#parent;
+    }
+
+    /**
+     * Construct a new `View`, providing the `View's` parent.
+     *
+     * @param {View | null} parent
+     */
+    constructor(parent) {
+        this.#parent = parent;
+    }
+
+    /**
+     * @virtual
+     * @returns {HTMLElement}
+     */
+    view() {
+        return document.createElement("div");
+    }
+
+    /**
+     * Notify the parent view of an event.
+     * @param {Event} e The event.
+     */
+    notify(e) {
+        const withInitiator = { ...e, initiator: this };
+        let parent = this.#parent;
+
+        while(parent && e.bubbles) {
+            if(parent.handleEvent(withInitiator)) break;
+            parent = parent.parent;
+        }
+    }
+
+    /**
+     * Handle an event.
+     *
+     * @param {Event & EventInitiator} e
+     * @returns {boolean} `true` if the event should stop propagating
+     *     (i.e. it was handled by this view), or `false` if the event
+     *     should continue to bubble up the view tree.
+     */
+    handleEvent(e) {
+        void e;
+        return false;
+    }
+
+    /**
+     * Request that the view re-draw itself.
+     */
+    requestRedraw () {
+        this.notify({ type: "RedrawEvent", bubbles: true });
+    }
+
+    /**
+     * Request that this view receive focus.
+     */
+    requestFocus() {
+        this.notify({ type: "RequestFocusEvent", bubbles: true });
+    }
+
+    /**
+     * Notify the views above us that a view was deleted from the
+     * tree.
+     *
+     * @param {View} view The view which was deleted.
+     */
+    notifyViewDeleted(view) {
+        this.notify({ type: "ViewDeletedEvent", view, bubbles: true });
+    }
+}
+
+/**
  * An editor view is an instance of an editor state, which can show
  * itself on screen and respond to events.
  */
-class EditorView {
-    /** @type {state.EditingText} */
-    #state;
-
+class EditorView extends View {
     /**
-     * Is the state in sync with the view?
-     * @type {boolean}
+     * @param {View} parent
      */
-    #dirty;
-
-    /**
-     * @param {state.EditingText} [st] The initial editor state.
-     */
-    constructor(st) {
-        this.#state = st ?? state.mk();
+    constructor(parent) {
+        super(parent);
     }
 
     /**
-     * Construct a new editor view from the state serialized in `str`.
-     *
-     * @param {string} str The serialized state.
-     * @returns {EditorView}
+     * @abstract
+     * @returns {state.EditorState}
      */
-    static fromSerializedState(str) {
-        const st = serialize.editorStateFromString(str);
-        return new EditorView(st);
-    }
-
-    /**
-     * Make an element to represent the cusor.
-     *
-     * @returns {HTMLElement}
-     */
-    #mkCursorElem() {
-        const e = document.createElement("div");
-        e.className = "editor-cursor";
-        e.style.position = "absolute";
-        return e;
-    }
-
-    #markDirty() {
-        this.#dirty = true;
+    get state() {
+        throw new Error("Method not implemented");
     }
 
     /**
      * View a particular line of the given leaf.
      *
+     * @abstract
      * @param {number} rowNo The index of the line to view.
      * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
      * @param {point.P2} p The position of the upper-left corner of the leaf.
      * @returns {HTMLElement} The HTML element generated to represent
      *     this line.
      */
-    #viewLine(rowNo, leaf, p) {
-        const line = leaf.data.lines[rowNo];
-        const lineElem = document.createElement("div");
-        lineElem.className = "editor-line";
-        lineElem.innerText = line;
-        lineElem.onmousedown = (e) => {
-            const rect = lineElem.getBoundingClientRect();
-            // Find the portion of the `lineElem` which is
-            // actually occupied by text.
-            const pctFilled = line.length / leaf.dims.width;
+    viewLine(rowNo, leaf, p) {
+        void rowNo;
+        void leaf;
+        void p;
+        throw new Error("Method not implemented");
+    }
 
-            const x = e.clientX;
-            const i = Math.floor(point.lerp(
-                0,
-                line.length,
-                rect.left,
-                x,
-                rect.left + rect.width * pctFilled
-            ));
-
-            state.putPointOnGlobalPosition(this.#state, point.offset(p, point.mkV2(i, rowNo)));
-            this.#markDirty();
-        };
-        return lineElem;
+    /**
+     * Draw the selection of a leaf, if any, given an element
+     * representing the leaf.
+     *
+     * @virtual
+     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {HTMLElement} leafElem
+     */
+    viewLeafSelection(leaf, leafElem) {
+        void leaf;
+        void leafElem;
     }
 
     /**
@@ -148,17 +274,149 @@ class EditorView {
 
         // Construct the inside of the cell.
         for(let rowNo = 0; rowNo < leaf.data.lines.length; ++rowNo) {
-            leafElem.appendChild(this.#viewLine(rowNo, leaf, p));
+            leafElem.appendChild(this.viewLine(rowNo, leaf, p));
         }
 
+        this.viewLeafSelection(leaf, leafElem);
+        return leafElem;
+    }
+
+    /**
+     * Return a sequence of HTML elements representing the editor
+     * view's toolbar items.
+     *
+     * @virtual
+     * @returns {HTMLElement[]}
+     */
+    toolbarItems() {
+        return [];
+    }
+
+    /**
+     * View the editor state as an HTML object rooted at `root`.
+     *
+     * @returns {HTMLElement}
+     */
+    view() {
+        // TODO: re-use elements.
+        const root = document.createElement("div");
+
+        root.style.display = "inline-grid";
+        root.style.gridTemplateColumns = "1ch";
+        root.style.gridTemplateRows = "1em";
+
+        const leaves = grid.allLeavesWithPosition(this.state.grid);
+        for(const [leaf, p] of leaves) {
+            root.appendChild(this.#viewLeaf(leaf, p));
+        }
+
+        return root;
+    }
+
+    /**
+     * Update the state in response to a keyboard event.
+     *
+     * @param {KeyboardEvent} e    The keyboard event.
+     * @param {any}           glpk The GLPK instance.
+     */
+    async handleKeyEvent(e, glpk) {
+        void e;
+        void glpk;
+    }
+
+    /**
+     * @param {state.EditorState} newState
+     */
+    requestReplaceEditorView(newState) {
+        this.notify({
+            type: "ReplaceEditorViewEvent",
+            newState,
+            bubbles: true
+        });
+    }
+}
+
+class TextEditingView extends EditorView {
+    /** @type {state.EditingText} */
+    #teState
+
+    /**
+     * @param {View} parent
+     * @param {state.EditingText} [st] The initial editor state.
+     */
+    constructor(parent, st) {
+        super(parent);
+        this.#teState = st ?? state.mk();
+    }
+
+    /** @returns {state.EditingText} */
+    get state() {
+        return this.#teState;
+    }
+
+    /**
+     * View a particular line of the given leaf.
+     *
+     * @param {number} rowNo The index of the line to view.
+     * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
+     * @param {point.P2} p The position of the upper-left corner of the leaf.
+     * @returns {HTMLElement} The HTML element generated to represent
+     *     this line.
+     */
+    viewLine(rowNo, leaf, p) {
+        const line = leaf.data.lines[rowNo];
+        const lineElem = document.createElement("div");
+        lineElem.className = "editor-line";
+        lineElem.innerText = line;
+        lineElem.onmousedown = (e) => {
+            const rect = lineElem.getBoundingClientRect();
+            // Find the portion of the `lineElem` which is
+            // actually occupied by text.
+            const pctFilled = line.length / leaf.dims.width;
+
+            const x = e.clientX;
+            const i = Math.floor(point.lerp(
+                0,
+                line.length,
+                rect.left,
+                x,
+                rect.left + rect.width * pctFilled
+            ));
+
+            state.putPointOnGlobalPosition(this.state, point.offset(p, point.mkV2(i, rowNo)));
+            this.requestRedraw();
+        };
+        return lineElem;
+    }
+
+    /**
+     * Make an element to represent the cusor.
+     *
+     * @returns {HTMLElement}
+     */
+    #mkCursorElem() {
+        const e = document.createElement("div");
+        e.className = "editor-cursor";
+        e.style.position = "absolute";
+        return e;
+    }
+
+    /**
+     * Draw the selection of a leaf, if any, given an element
+     * representing the leaf.
+     *
+     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {HTMLElement} leafElem
+     */
+    viewLeafSelection(leaf, leafElem) {
         // Construct the cursor.
         const cursorElem = this.#mkCursorElem();
         leafElem.appendChild(cursorElem);
         cursorElem.style.display = "none";
 
         // If the leaf is selected, we need to draw the cursor.
-        if(this.#state.type === "EditingText" && this.#state.selection.leaf === leaf) {
-            const ptDoc    = this.#state.selection.pt;
+        if(this.state.selection.leaf === leaf) {
+            const ptDoc    = this.state.selection.pt;
             const xScreen  = `${ptDoc.x}ch`;
             const yScreen  = `${ptDoc.y}em`;
 
@@ -166,25 +424,147 @@ class EditorView {
             cursorElem.style.left = xScreen;
             cursorElem.style.top  = yScreen;
         }
-
-        return leafElem;
     }
 
     /**
-     * View the editor state as an HTML object rooted at `root`.
+     * Return a sequence of HTML elements representing the editor
+     * view's toolbar items.
      *
-     * @param {HTMLElement} root
+     * @virtual
+     * @returns {HTMLElement[]}
      */
-    view(root) {
-        // TODO: re-use elements.
-        root.style.display = "inline-grid";
-        root.style.gridTemplateColumns = "1ch";
-        root.style.gridTemplateRows = "1em";
-        root.innerHTML = "";
+    toolbarItems() {
+        const cellModeButton = document.createElement("span");
+        cellModeButton.className = "editor-button";
+        cellModeButton.innerText = "cell mode";
+        cellModeButton.onclick = () => {
+            this.requestReplaceEditorView(state.editCells(this.#teState))
+        };
 
-        const leaves = grid.allLeavesWithPosition(this.#state.grid);
-        for(const [leaf, p] of leaves) {
-            root.appendChild(this.#viewLeaf(leaf, p));
+        return [cellModeButton];
+    }
+}
+
+class CellEditingView extends EditorView {
+    /** @type {state.EditingCells} */
+    #ceState;
+
+    /**
+     * @param {View} parent
+     * @param {state.EditingCells} st The initial edit state.
+     */
+    constructor(parent, st) {
+        super(parent);
+        this.#ceState = st;
+    }
+
+    /** @returns {state.EditingCells} */
+    get state() {
+        return this.#ceState;
+    }
+
+    /**
+     * View a particular line of the given leaf.
+     *
+     * @param {number} rowNo The index of the line to view.
+     * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
+     * @param {point.P2} p The position of the upper-left corner of the leaf.
+     * @returns {HTMLElement} The HTML element generated to represent
+     *     this line.
+     */
+    viewLine(rowNo, leaf, p) {
+        const line = leaf.data.lines[rowNo];
+        const lineElem = document.createElement("div");
+        lineElem.className = "editor-line";
+        lineElem.innerText = line;
+        lineElem.onmousedown = (e) => {
+            console.log("Clikd");
+        };
+        return lineElem;
+    }
+
+    toolbarItems() {
+        const textModeButton = document.createElement("span");
+        textModeButton.className = "editor-button";
+        textModeButton.innerText = "text mode";
+        textModeButton.onclick = () => {
+            this.requestReplaceEditorView(state.editText(this.#ceState))
+        };
+
+        return [textModeButton];
+    }
+}
+
+class AppView extends View {
+    /** @type {EditorView} */
+    #editorView;
+
+    /**
+     * @param {View} parent
+     * @param {state.EditorState} st
+     */
+    constructor(parent, st) {
+        super(parent);
+        this.#replaceViewFromState(st);
+    }
+
+    /**
+     * View the editor's toolbar.
+     *
+     * @returns {HTMLElement} The HTML element generated to represent
+     *     the editor's toolbar.
+     */
+    #viewToolbar() {
+        const toolbarElem = document.createElement("div");
+        toolbarElem.className = "editor-toolbar";
+        this.#editorView.toolbarItems().forEach((item) => {
+            toolbarElem.appendChild(item);
+        });
+        return toolbarElem;
+    }
+
+    /**
+     * View the application rooted at the element `root`.
+     *
+     * @returns {HTMLElement}
+     */
+    view() {
+        const root = document.createElement("div");
+        const toolbarElem = this.#viewToolbar();
+        const editorElem = this.#editorView.view();
+
+        root.appendChild(toolbarElem);
+        root.appendChild(editorElem);
+        return root;
+    }
+
+    /**
+     * Replace the app's editor view based on the kind of state passed
+     * to this function.
+     *
+     * @param {state.EditorState} st
+     */
+    #replaceViewFromState(st) {
+        switch(st.type) {
+        case "EditingText":
+            this.#editorView = new TextEditingView(this, st); break;
+        case "EditingCells": this.#editorView = new CellEditingView(this, st); break;
+        }
+        this.requestRedraw();
+    }
+
+    /**
+     * @param {Event & EventInitiator} e
+     * @returns {boolean}
+     */
+    handleEvent(e) {
+        switch(e.type) {
+        case "ReplaceEditorViewEvent": {
+            this.#replaceViewFromState(e.newState);
+            return true;
+        }
+        default:
+            return false;
         }
     }
 }
@@ -197,131 +577,102 @@ async function main() {
 
     const glpk = await GLPK();
 
-    // Restore saved state from localStorage if available
-    /** @type {EditorView} */
-    let editor;
-    const savedState = localStorage.getItem("editorState");
-    if(savedState) {
-        try {
-            st = serialize.editorStateFromString(savedState);
-        } catch(e) {
-            console.warn("Failed to restore editor state:", e);
-            st = state.mk();
-        }
+    let initialStateStr = localStorage.getItem("editorState");
+    /** @type {state.EditorState} */
+    let initialState;
+    if(initialStateStr) {
+        initialState = serialize.editorStateFromString(initialStateStr);
     } else {
-        st = state.mk();
+        initialState = state.mk();
     }
 
-    // Debounced save function - saves 1 second after last change
-    const recordSave = (() => {
-        let saveTimeout = null;
+    const topLevelView = new (class extends View {
+        /** @type {AppView} */
+        #appView;
 
-        return () => {
-            if(saveTimeout !== null) {
-                clearTimeout(saveTimeout);
-            }
+        /** @type {View} */
+        #focusedView;
 
-            saveTimeout = setTimeout(() => {
-                const serialized = serialize.printCellGrid(st.grid);
-                localStorage.setItem("editorState", serialized);
-            }, 1000);
-        };
-    })();
+        /** @type {ReturnType<requestAnimationFrame> | null} */
+        #animFrame;
 
-    const [setDirty, viewIfDirty] = (() => {
-        let dirty = false;
-
-        return [
-            () => {
-                dirty = true;
-                recordSave();
-            },
-            () => {
-                if(dirty) {
-                    viewEditorState(editorRoot, st);
-                    dirty = false;
-                }
-            }
-        ];
-    })();
-
-    setDirty();
-    viewIfDirty();
-
-    const clearAll = () => {
-        state.clearFlag(
-            st.flags,
-            "pushedLeftEdge",
-            "pushedRightEdge",
-            "pushedTopEdge",
-            "pushedBottomEdge"
-        );
-    };
-
-    /**
-     * @param {(st: state.EditingText) => boolean} cmd1
-     * @param {(st: state.EditingText) => void} cmd2
-     * @param {keyof state.Flags} flag
-     */
-    const mkPersistentCommand = (cmd1, cmd2, flag) => {
-        if(!state.testFlag(st.flags, flag)) {
-            const succ = cmd1(st);
-            if(succ) {
-                clearAll();
-            } else {
-                state.setFlag(st.flags, flag);
-            }
-        } else {
-            cmd2(st);
-            clearAll();
+        /**
+         * @param {View} parent
+         * @param {state.EditorState} st The initial state
+         */
+        constructor(parent, st) {
+            super(parent);
+            this.#appView = new AppView(this, st);
+            this.#focusedView = this;
         }
-    };
+
+        /**
+         * Redraw the application by requesting an animation frame.
+         * If another request to redraw comes in before the next
+         * animation frame, we'll cancel the request and make a new
+         * one.
+         */
+        requestRedraw() {
+            if(this.#animFrame) {
+                window.cancelAnimationFrame(this.#animFrame);
+            }
+
+            this.#animFrame = window.requestAnimationFrame(() => {
+                this.#animFrame = null;
+                this.view();
+                return true;
+            });
+        }
+
+        /**
+         * @param {Event & EventInitiator} e
+         * @returns {boolean}
+         */
+        handleEvent(e) {
+            switch(e.type) {
+            case "RedrawEvent": {
+                this.requestRedraw();
+                return true;
+            }
+            case "RequestFocusEvent": {
+                this.#focusedView = e.initiator;
+                this.requestRedraw();
+                return true;
+            }
+            case "KeyEvent": {
+                return true;
+            }
+            default: return false;
+            }
+        }
+
+        /**
+         * @param {KeyboardEvent} e
+         */
+        handleKeyEvent(e) {
+            if(this.#focusedView !== this) {
+                this.#focusedView.notify({
+                    type: "KeyEvent",
+                    bubbles: true,
+                    e
+                });
+            }
+        }
+
+        /** @returns {HTMLElement} */
+        view() {
+            editorRoot.innerHTML = "";
+            editorRoot.appendChild(this.#appView.view());
+            return editorRoot;
+        }
+    })(null, initialState);
+
 
     document.addEventListener("keydown", async (e) => {
-        if(e.key.length === 1) {
-            if(e.ctrlKey) {
-                switch(e.key) {
-                case "a": mkPersistentCommand(state.putPointAtStartOfLine, state.putPointAtStartOfGlobalLine, "pushedLeftEdge");   setDirty(); break;
-                case "e": mkPersistentCommand(state.putPointAtEndOfLine,   state.putPointAtEndOfGlobalLine,   "pushedRightEdge");  setDirty(); break;
-                case "n": mkPersistentCommand(state.putPointOnNextLine,    state.putPointOnNextGlobalLine,    "pushedBottomEdge"); setDirty(); break;
-                case "p": mkPersistentCommand(state.putPointOnPrevLine,    state.putPointOnPrevGlobalLine,    "pushedTopEdge");    setDirty(); break;
-                case "b": mkPersistentCommand(state.putPointOnPrevCol,     state.putPointOnPrevGlobalCol,     "pushedLeftEdge");   setDirty(); break;
-                case "f": mkPersistentCommand(state.putPointOnNextCol,     state.putPointOnNextGlobalCol,     "pushedRightEdge");  setDirty(); break;
-                case "=": state.splitCellHorizontallyAtPoint(st);   setDirty(); break;
-                case "-": state.splitCellVerticallyAtPoint(st); setDirty(); break;
-                }
-            } else {
-                await state.insertString(e.key, st, glpk);
-                setDirty();
-            }
-        } else {
-            // Only if there's no command state do we allow the
-            // processing of non-letter characters.
-
-            switch(e.key) {
-            case "Backspace": {
-                if(state.pointAtBeginningOfGlobalLine(st)) {
-                    if(!state.pointOnFirstGlobalLine(st)) {
-                        const contents = state.removeGlobalLine(st);
-                        state.putPointAtEndOfGlobalLine(st);
-                        await state.insertString(contents, st, glpk, false);
-                    }
-                } else {
-                    state.removeString(1, st);
-                }
-
-                setDirty();
-            }break;
-            case "Enter": {
-                state.insertGlobalNewline(st);
-                setDirty();
-            } break;
-            default: break;
-            }
-        }
-
-        viewIfDirty();
+        topLevelView.handleKeyEvent(e);
     });
+
+    topLevelView.requestRedraw();
 }
 
 document.addEventListener("DOMContentLoaded", main);
