@@ -1,4 +1,3 @@
-import * as cellPrims from "../editor/cell-prims/cell-prims.js";
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as state from "../editor.js";
@@ -330,18 +329,18 @@ export class CellEditingView extends EditorView {
             const sel = this.#ceState.selection;
 
             if(sel.edge === "Above" || sel.edge === "Below") {
-                const aboveLeaf = cellPrims.leafAboveSelectedEdge(this.#ceState);
+                const aboveLeaf = state.cellPrims.leafAboveSelectedEdge(this.#ceState);
                 const upperLeft = grid.posOfLeaf(this.#ceState.grid, aboveLeaf);
                 const dh = globalRow - (upperLeft.y + aboveLeaf.dims.height);
 
-                cellPrims.modifyHorizontalEdge(this.#ceState, dh);
+                state.cellPrims.modifyHorizontalEdge(this.#ceState, dh);
                 this.requestRedraw();
             } else {
-                const leftLeaf = cellPrims.leafLeftOfSelectedEdge(this.#ceState);
+                const leftLeaf = state.cellPrims.leafLeftOfSelectedEdge(this.#ceState);
                 const upperLeft = grid.posOfLeaf(this.#ceState.grid, leftLeaf);
                 const dw = globalCol - (upperLeft.x + leftLeaf.dims.width);
 
-                cellPrims.modifyVerticalEdge(this.#ceState, dw, theGLPKInstance.glpk).then(() => {
+                state.cellPrims.modifyVerticalEdge(this.#ceState, dw, theGLPKInstance.glpk).then(() => {
                     this.requestRedraw();
                 });
             }
@@ -366,6 +365,6 @@ export class CellEditingView extends EditorView {
             this.requestReplaceEditorView(state.editText(this.#ceState))
         };
 
-        return [textModeButton];
+        return [textModeButton, this.saveButton()];
     }
 }

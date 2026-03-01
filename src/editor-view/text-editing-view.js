@@ -1,8 +1,10 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as state from "../editor.js";
+import * as view from "../view.js";
 import { EditorView } from "../editor-view.js";
 import { View } from "../view.js";
+import { theGLPKInstance } from "../glpk.js";
 
 export class TextEditingView extends EditorView {
     /** @type {state.EditingText} */
@@ -51,7 +53,8 @@ export class TextEditingView extends EditorView {
                 rect.left + rect.width * pctFilled
             ));
 
-            state.putPointOnGlobalPosition(this.state, point.offset(p, point.mkV2(i, rowNo)));
+            state.textPrims.putPointOnGlobalPosition(this.state, point.offset(p, point.mkV2(i, rowNo)));
+            this.requestFocus();
             this.requestRedraw();
         };
         return lineElem;
@@ -109,6 +112,69 @@ export class TextEditingView extends EditorView {
             this.requestReplaceEditorView(state.editCells(this.#teState))
         };
 
-        return [cellModeButton];
+        return [cellModeButton, this.saveButton()];
+    }
+
+    /**
+     * Handle a keyboard event.
+     *
+     * @param {KeyboardEvent} e
+     * @returns {boolean}
+     */
+    #handleKeyEvent(e) {
+        if(e.key.length === 1) {
+            if(e.ctrlKey) {
+                switch(e.key) {
+                case "a": state.textPrims.putPointAtStartOfGlobalLine(this.#teState); this.requestRedraw(); break;
+                case "e": state.textPrims.putPointAtEndOfGlobalLine(this.#teState); this.requestRedraw(); break;
+                case "n": state.textPrims.putPointOnNextGlobalLine(this.#teState); this.requestRedraw(); break;
+                case "p": state.textPrims.putPointOnPrevGlobalLine(this.#teState); this.requestRedraw(); break;
+                case "b": state.textPrims.putPointOnPrevGlobalCol(this.#teState); this.requestRedraw(); break;
+                case "f": state.textPrims.putPointOnNextGlobalCol(this.#teState); this.requestRedraw(); break;
+                }
+            } else {
+                state.textPrims.insertString(this.#teState, e.key, theGLPKInstance.glpk).then(() => {
+                    this.requestRedraw();
+                });
+            }
+        } else {
+            // Only if there's no command state do we allow the
+            // processing of non-letter characters.
+
+            switch(e.key) {
+            case "Backspace": {
+                if(state.textPrims.pointAtBeginningOfGlobalLine(this.#teState)) {
+                    state.textPrims.removeGlobalLine(this.#teState);
+                } else {
+                    state.textPrims.removeString(this.#teState, 1);
+                }
+                this.requestRedraw();
+            } break;
+            case "Enter": {
+                state.textPrims.insertGlobalNewline(this.#teState);
+                this.requestRedraw();
+            } break;
+            default: break;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Handle an event.
+     *
+     * @param {view.Event & view.EventInitiator} e
+     * @returns {boolean}
+     */
+    handleEvent(e) {
+        switch(e.type) {
+        case "KeyEvent":
+            e.e.preventDefault();
+            e.e.stopPropagation();
+            return this.#handleKeyEvent(e.e);
+        default:
+            return false;
+        }
+
     }
 }

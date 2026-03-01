@@ -1,5 +1,6 @@
 import * as grid from "./grid.js";
 import * as point from "./point.js";
+import * as serialize from "./editor/serialize.js";
 import * as state from "./editor.js";
 import { View } from "./view.js";
 
@@ -80,6 +81,22 @@ export class EditorView extends View {
 
         this.viewLeafSelection(leaf, leafElem);
         return leafElem;
+    }
+
+    /**
+     * Create a save button that persists the current grid to localStorage.
+     *
+     * @returns {HTMLElement}
+     */
+    saveButton() {
+        const btn = document.createElement("span");
+        btn.className = "editor-button";
+        btn.innerText = "save";
+        btn.onclick = () => {
+            const serialized = serialize.printCellGrid(this.state.grid);
+            localStorage.setItem("editorState", serialized);
+        };
+        return btn;
     }
 
     /**

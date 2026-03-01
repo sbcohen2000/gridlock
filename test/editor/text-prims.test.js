@@ -15,7 +15,7 @@ describe("insertString", () => {
               "+-----+";
 
         const st = serialize.editorStateFromString(src);
-        await state.insertString(st, "hello ", glpk);
+        await state.textPrims.insertString(st, "hello ", glpk);
 
         const exp =
               "hello world\n"  +
@@ -32,10 +32,10 @@ describe("insertString", () => {
               "+-----+";
 
         const st = serialize.editorStateFromString(src);
-        await state.insertString(st, " ", glpk);
-        await state.insertString(st, " ", glpk);
-        await state.insertString(st, " ", glpk);
-        await state.insertString(st, " ", glpk);
+        await state.textPrims.insertString(st, " ", glpk);
+        await state.textPrims.insertString(st, " ", glpk);
+        await state.textPrims.insertString(st, " ", glpk);
+        await state.textPrims.insertString(st, " ", glpk);
 
         const exp =
               "    world\n" +
@@ -54,8 +54,8 @@ describe("insertString", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point past the last letter in
         // `hello`.
-        state.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-        await state.insertString(st, " world", glpk);
+        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
+        await state.textPrims.insertString(st, " world", glpk);
 
         const exp =
               "hello world\n"  +
@@ -75,8 +75,8 @@ describe("insertString", () => {
 
         const st = serialize.editorStateFromString(src);
         // Update the selection to point underneath the `h`.
-        state.putPointOnGlobalPosition(st, point.mkP2(0, 1));
-        await state.insertString(st, "world", glpk);
+        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
+        await state.textPrims.insertString(st, "world", glpk);
 
         {
             const exp =
@@ -93,7 +93,7 @@ describe("insertString", () => {
         // we expect (at the end of the new line).
 
         {
-            state.insertString(st, "x", glpk);
+            state.textPrims.insertString(st, "x", glpk);
 
             const exp =
                   "hello\n"   +
@@ -116,8 +116,8 @@ describe("insertString", () => {
 
         const st = serialize.editorStateFromString(src);
         // Update the selection to point underneath the `h`.
-        state.putPointOnGlobalPosition(st, point.mkP2(0, 1));
-        await state.insertString(st, "A long second line", glpk);
+        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
+        await state.textPrims.insertString(st, "A long second line", glpk);
 
         const exp =
               "hello             other\n"   +
@@ -139,7 +139,7 @@ describe("putPointAtEndOfGlobalLine", () => {
 
         const st = serialize.editorStateFromString(src);
         // Point starts at (0, 0).
-        state.putPointAtEndOfGlobalLine(st);
+        state.textPrims.putPointAtEndOfGlobalLine(st);
 
         expect(st.selection.type).to.equal("Single");
         expect(st.selection.pt.x).to.equal(5);
@@ -154,7 +154,7 @@ describe("putPointAtEndOfGlobalLine", () => {
 
         const st = serialize.editorStateFromString(src);
         // Point starts at (0, 0) in the left leaf.
-        state.putPointAtEndOfGlobalLine(st);
+        state.textPrims.putPointAtEndOfGlobalLine(st);
 
         // Should land at end of "there" (col 5) in the right leaf.
         const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(5, 0));
@@ -173,9 +173,9 @@ describe("putPointAtEndOfGlobalLine", () => {
 
         const st = serialize.editorStateFromString(src);
         // Move to second row in the left leaf.
-        state.putPointOnGlobalPosition(st, point.mkP2(0, 1));
+        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
 
-        state.putPointAtEndOfGlobalLine(st);
+        state.textPrims.putPointAtEndOfGlobalLine(st);
 
         const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(6, 0));
         expect(st.selection.leaf).to.equal(rightLeaf);
@@ -195,8 +195,8 @@ describe("insertGlobalNewline", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point past the last letter in
         // `hello`.
-        state.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-        state.insertGlobalNewline(st);
+        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
+        state.textPrims.insertGlobalNewline(st);
 
         const exp =
               "hello\n"      +
@@ -217,8 +217,8 @@ describe("insertGlobalNewline", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point past the last letter in
         // `hello`.
-        state.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-        state.insertGlobalNewline(st);
+        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
+        state.textPrims.insertGlobalNewline(st);
 
         const exp =
               "hello\n"  +
@@ -237,8 +237,8 @@ describe("insertGlobalNewline", () => {
               "+----+----+";
 
         const st = serialize.editorStateFromString(src);
-        state.putPointOnGlobalPosition(st, point.mkP2(3, 0));
-        state.insertGlobalNewline(st);
+        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
+        state.textPrims.insertGlobalNewline(st);
 
         const exp =
               "hel\n"         +
@@ -261,8 +261,8 @@ describe("insertGlobalNewline", () => {
         const st = serialize.editorStateFromString(src);
         // Update the selection to point past the last letter in the
         // top `one`.
-        state.putPointOnGlobalPosition(st, point.mkP2(3, 0));
-        state.insertGlobalNewline(st);
+        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
+        state.textPrims.insertGlobalNewline(st);
 
         const exp0 =
               "one\n"  +
@@ -277,7 +277,7 @@ describe("insertGlobalNewline", () => {
 
         // Ensure that the point is in the correct place by inserting
         // some text.
-        await state.insertString(st, "some text", glpk);
+        await state.textPrims.insertString(st, "some text", glpk);
 
         const exp1 =
               "one\n"  +
@@ -303,9 +303,9 @@ describe("removeGlobalLine", () => {
 
         const st = serialize.editorStateFromString(src);
         // Put the cursor at the bottom left.
-        state.putPointOnGlobalPosition(st, point.mkP2(0, 1));
+        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
         // Remove the line.
-        state.removeGlobalLine(st);
+        state.textPrims.removeGlobalLine(st);
 
         const exp =
               "ab\n"  +

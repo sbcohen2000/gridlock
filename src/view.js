@@ -108,9 +108,17 @@ export class View {
     /**
      * Notify the parent view of an event.
      * @param {Event} e The event.
+     * @param {boolean} [dispatchToThis] Allow `this` view to handle
+     *    the event. By default, `this` is not given a chance to
+     *    handle the event.
      */
-    notify(e) {
+    notify(e, dispatchToThis) {
         const withInitiator = { ...e, initiator: this };
+
+        if(dispatchToThis) {
+            this.handleEvent(withInitiator);
+        }
+
         let parent = this.#parent;
 
         while(parent && e.bubbles) {

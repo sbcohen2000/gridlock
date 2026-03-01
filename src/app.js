@@ -85,11 +85,14 @@ class AppView extends View {
      * @param {state.EditorState} st
      */
     #replaceViewFromState(st) {
+        const old = this.#editorView;
         switch(st.type) {
         case "EditingText":
             this.#editorView = new TextEditingView(this, st); break;
-        case "EditingCells": this.#editorView = new CellEditingView(this, st); break;
+        case "EditingCells":
+            this.#editorView = new CellEditingView(this, st); break;
         }
+        this.notifyViewDeleted(old);
         this.requestRedraw();
     }
 
@@ -170,13 +173,24 @@ async function main() {
          */
         handleEvent(e) {
             switch(e.type) {
+            case "ViewDeletedEvent": {
+                if(this.#focusedView === e.view) {
+                    console.log("The focused view was deleted.");
+                    this.#focusedView = this;
+                    this.requestRedraw();
+                }
+                return true;
+            }
             case "RedrawEvent": {
                 this.requestRedraw();
                 return true;
             }
             case "RequestFocusEvent": {
-                this.#focusedView = e.initiator;
-                this.requestRedraw();
+                if(this.#focusedView !== e.initiator) {
+                    console.log("Focus updated");
+                    this.#focusedView = e.initiator;
+                    this.requestRedraw();
+                }
                 return true;
             }
             case "KeyEvent": {
@@ -195,7 +209,7 @@ async function main() {
                     type: "KeyEvent",
                     bubbles: true,
                     e
-                });
+                }, true);
             }
         }
 
