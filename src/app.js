@@ -463,7 +463,7 @@ class CellEditingView extends EditorView {
      *
      * @type {LastClickInfo | null}
      */
-    #lastClick;
+    #lastClick = null;
 
     /**
      * Check if a click, which clicked on `leaf` should be classified
@@ -620,12 +620,28 @@ class CellEditingView extends EditorView {
         };
 
         leafElem.onclick = (e) => {
-            // const isDoubleClick = this.#classifyDoubleClick(leaf);
-            // console.log(isDoubleClick);
-
             const rect = leafElem.getBoundingClientRect();
             const relX = e.clientX - rect.left;
             const relY = e.clientY - rect.top;
+
+            const isDoubleClick = this.#classifyDoubleClick(leaf);
+            if(isDoubleClick) {
+                // If the user double-clicked on the leaf, we want to
+                // change to text-editing mode, setting the selection
+                // to the point under the cursor.
+
+                const localCol = Math.floor(point.lerp(0, leaf.dims.width,  0, relX, rect.width));
+                const localRow = Math.floor(point.lerp(0, leaf.dims.height, 0, relY, rect.height));
+
+                const st = state.mk(this.#ceState.grid);
+                state.textPrims.putPointOnGlobalPosition(
+                    st,
+                    point.offset(pt, point.mkV2(localCol, localRow)),
+                    true
+                );
+
+                this.requestReplaceEditorView(st);
+            }
 
             // Classify the mouse click into one of five zones.  If
             // we're closest to one of the edges, we should select an
