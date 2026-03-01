@@ -1,3 +1,4 @@
+import * as grid from "../../src/grid.js";
 import * as point from "../../src/point.js";
 import * as serialize from "../../src/editor/serialize.js";
 import * as state from "../../src/editor/state.js";
@@ -186,6 +187,114 @@ describe("selectEdgeBelowLeafAtPoint", () => {
 
         expect(result).to.be.true;
         expect(st.selection.type).to.equal("Edge");
+    });
+});
+
+describe("canSelectEdgeLeftOf", () => {
+    it("Returns true when there is a leaf to the left", () => {
+        const st = mkCellState(
+            "hello there\n" +
+            "+-----+-----+\n" +
+            "+-----+-----+"
+        );
+        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(7, 0));
+        expect(cellPrims.canSelectEdgeLeftOf(st, leaf)).to.be.true;
+    });
+
+    it("Returns false when there is no leaf to the left", () => {
+        const st = mkCellState(
+            "hello\n" +
+            "+-----+\n" +
+            "+-----+"
+        );
+        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(0, 0));
+        expect(cellPrims.canSelectEdgeLeftOf(st, leaf)).to.be.false;
+    });
+
+    it("Returns false when the leaf is not adjacent to the leaf on the left", () => {
+        const st = mkCellState(
+            "\n"        +
+            "\n"        +
+            "\n"        +
+            "\n"        +
+            "+--+--+\n" +
+            "|  |  |\n" +
+            "|  +--+\n" +
+            "|  |  |\n" +
+            "+--+--+"
+        );
+        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(3, 2));
+        expect(cellPrims.canSelectEdgeLeftOf(st, leaf)).to.be.false;
+    });
+});
+
+describe("canSelectEdgeRightOf", () => {
+    it("Returns true when there is a leaf to the right", () => {
+        const st = mkCellState(
+            "hello there\n" +
+            "+-----+-----+\n" +
+            "+-----+-----+"
+        );
+        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(0, 0));
+        expect(cellPrims.canSelectEdgeRightOf(st, leaf)).to.be.true;
+    });
+
+    it("Returns false when there is no leaf to the right", () => {
+        const st = mkCellState(
+            "hello\n" +
+            "+-----+\n" +
+            "+-----+"
+        );
+        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(0, 0));
+        expect(cellPrims.canSelectEdgeRightOf(st, leaf)).to.be.false;
+    });
+});
+
+describe("canSelectEdgeAbove", () => {
+    it("Returns true when there is a leaf above", () => {
+        const st = mkCellState(
+            "top\n" +
+            "bot\n" +
+            "+---+\n" +
+            "+---+\n" +
+            "+---+"
+        );
+        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(0, 1));
+        expect(cellPrims.canSelectEdgeAbove(st, leaf)).to.be.true;
+    });
+
+    it("Returns false when there is no leaf above", () => {
+        const st = mkCellState(
+            "top\n" +
+            "+---+\n" +
+            "+---+"
+        );
+        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(0, 0));
+        expect(cellPrims.canSelectEdgeAbove(st, leaf)).to.be.false;
+    });
+});
+
+describe("canSelectEdgeBelow", () => {
+    it("Returns true when there is a leaf below", () => {
+        const st = mkCellState(
+            "top\n" +
+            "bot\n" +
+            "+---+\n" +
+            "+---+\n" +
+            "+---+"
+        );
+        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(0, 0));
+        expect(cellPrims.canSelectEdgeBelow(st, leaf)).to.be.true;
+    });
+
+    it("Returns false when there is no leaf below", () => {
+        const st = mkCellState(
+            "bot\n" +
+            "+---+\n" +
+            "+---+"
+        );
+        const leaf = grid.leafUnderPoint(st.grid, point.mkP2(0, 0));
+        expect(cellPrims.canSelectEdgeBelow(st, leaf)).to.be.false;
     });
 });
 

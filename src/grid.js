@@ -564,6 +564,18 @@ export function parentChain(g, focus) {
 }
 
 /**
+ * Test if the given node is inside the given grid.
+ *
+ * @template A
+ * @param {Grid<A>} g     The grid.
+ * @param {Grid<A>} focus The node to check is in `g`.
+ * @returns {boolean}
+ */
+export function nodeIsInTree(g, focus) {
+    return parentChain(g, focus) !== undefined;
+}
+
+/**
  * Find the position of the top-left corner of a node in the grid.
  *
  * @template A
@@ -936,7 +948,7 @@ export function leafUnderPoint(g, p) {
         }
     }
     case "Leaf": {
-        if(p.x < g.dims.width && p.y < g.dims.height) {
+        if(p.x >= 0 && p.y >= 0 && p.x < g.dims.width && p.y < g.dims.height) {
             return g;
         } else {
             return undefined;

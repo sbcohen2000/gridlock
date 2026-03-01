@@ -41,6 +41,14 @@
     z-index: -1;
 }
 
+.editor-edge-preview-halo {
+    background-color: gainsboro;
+}
+
+.editor-non-selectable-edge {
+    background-color: red;
+}
+
 .editor-cell-halo {
     height: 100%;
     left: 0;

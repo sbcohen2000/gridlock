@@ -3,7 +3,7 @@ import * as point from "./point.js";
 import * as state from "./editor.js";
 import * as serialize from "./editor/serialize.js";
 import GLPK from "glpk.js";
-import { selectEdgeAboveLeafAtPoint, selectEdgeBelowLeafAtPoint, selectEdgeLeftOfLeafAtPoint, selectEdgeRightOfLeafAtPoint } from "./editor/cell-prims/cell-prims.js";
+import * as cellPrims from "./editor/cell-prims/cell-prims.js";
 
 // Reload the page when esbuild issues a change event.
 //
@@ -486,6 +486,64 @@ class CellEditingView extends EditorView {
     }
 
     /**
+     * @typedef {"Left" | "Right" | "Above" | "Below"} InformalEdgeLocation
+     */
+
+    /**
+     * Record if the mouse is near an edge of a leaf.
+     *
+     * @type {{
+     *   leaf: grid.Leaf<state.Cell>,
+     *   edge: InformalEdgeLocation
+     * } | null}
+     */
+    #mouseNearEdge = null
+
+    /**
+     * Check if the given leaf and edge combination are selectable.
+     *
+     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {InformalEdgeLocation}  edge
+     * @returns {boolean}
+     */
+    #checkMouseNearEdgeIsSelectable(leaf, edge) {
+        switch(edge) {
+        case "Left":  return cellPrims.canSelectEdgeLeftOf (this.#ceState, leaf);
+        case "Right": return cellPrims.canSelectEdgeRightOf(this.#ceState, leaf);
+        case "Above": return cellPrims.canSelectEdgeAbove  (this.#ceState, leaf);
+        case "Below": return cellPrims.canSelectEdgeBelow  (this.#ceState, leaf);
+        }
+    }
+
+    /**
+     * Set the `#mouseNearEdge` property, requesting a re-draw only if
+     * necessary.
+     *
+     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {InformalEdgeLocation} edge
+     */
+    #setMouseNearEdgeAndRedrawIfNecessary(leaf, edge) {
+        if(this.#checkMouseNearEdgeIsSelectable(leaf, edge)
+           && (this.#mouseNearEdge === null
+               || this.#mouseNearEdge.leaf !== leaf
+               || this.#mouseNearEdge.edge !== edge)) {
+            this.#mouseNearEdge = { leaf, edge };
+            this.requestRedraw();
+        }
+    }
+
+    /**
+     * Clear the `#mouseNearEdge` property, requesting a re-draw only
+     * if necessary.
+     */
+    #clearMouseNearEdgeAndRedrawIfNecessary() {
+        if(this.#mouseNearEdge !== null) {
+            this.#mouseNearEdge = null;
+            this.requestRedraw();
+        }
+    }
+
+    /**
      * @param {View} parent
      * @param {state.EditingCells} st The initial edit state.
      */
@@ -529,7 +587,42 @@ class CellEditingView extends EditorView {
     viewLeaf(leaf, pt) {
         const leafElem = super.viewLeaf(leaf, pt);
 
+        leafElem.onmousemove = (e) => {
+            const rect = leafElem.getBoundingClientRect();
+            const relX = e.clientX - rect.left;
+            const relY = e.clientY - rect.top;
+
+            // Classify the mouse click into one of five zones.  If
+            // we're closest to one of the edges, we should select an
+            // edge, while if we're closest to the center, we should
+            // select the cell itself.
+            /** @type {[number, InformalEdgeLocation]} */
+            const distanceToLeftEdge   = [relX,               "Left"];
+            /** @type {[number, InformalEdgeLocation]} */
+            const distanceToRightEdge  = [rect.width - relX,  "Right"];
+            /** @type {[number, InformalEdgeLocation]} */
+            const distanceToTopEdge    = [relY,               "Above"];
+            /** @type {[number, InformalEdgeLocation]} */
+            const distanceToBottomEdge = [rect.height - relY, "Below"];
+
+            const [minD, edge] = [
+                distanceToLeftEdge,
+                distanceToRightEdge,
+                distanceToTopEdge,
+                distanceToBottomEdge
+            ].reduce((minD, d) => minD < d ? minD : d, distanceToBottomEdge);
+
+            if(minD <= 2) {
+                this.#setMouseNearEdgeAndRedrawIfNecessary(leaf, edge);
+            } else {
+                this.#clearMouseNearEdgeAndRedrawIfNecessary();
+            }
+        };
+
         leafElem.onclick = (e) => {
+            // const isDoubleClick = this.#classifyDoubleClick(leaf);
+            // console.log(isDoubleClick);
+
             const rect = leafElem.getBoundingClientRect();
             const relX = e.clientX - rect.left;
             const relY = e.clientY - rect.top;
@@ -539,13 +632,13 @@ class CellEditingView extends EditorView {
             // edge, while if we're closest to the center, we should
             // select the cell itself.
             /** @type {[number, (st: state.EditorState, p: point.P2) => boolean]} */
-            const distanceToLeftEdge   = [relX,               selectEdgeLeftOfLeafAtPoint];
+            const distanceToLeftEdge   = [relX,               cellPrims.selectEdgeLeftOfLeafAtPoint];
             /** @type {[number, (st: state.EditorState, p: point.P2) => boolean]} */
-            const distanceToRightEdge  = [rect.width - relX,  selectEdgeRightOfLeafAtPoint];
+            const distanceToRightEdge  = [rect.width - relX,  cellPrims.selectEdgeRightOfLeafAtPoint];
             /** @type {[number, (st: state.EditorState, p: point.P2) => boolean]} */
-            const distanceToTopEdge    = [relY,               selectEdgeAboveLeafAtPoint];
+            const distanceToTopEdge    = [relY,               cellPrims.selectEdgeAboveLeafAtPoint];
             /** @type {[number, (st: state.EditorState, p: point.P2) => boolean]} */
-            const distanceToBottomEdge = [rect.height - relY, selectEdgeBelowLeafAtPoint];
+            const distanceToBottomEdge = [rect.height - relY, cellPrims.selectEdgeBelowLeafAtPoint];
 
             const [minD, edgeFn] = [
                 distanceToLeftEdge,
@@ -558,10 +651,10 @@ class CellEditingView extends EditorView {
             // If the minimum distance to an edge is greater than 4px,
             // then we want to select the cell itself rather than one
             // of its edges.
-            if(minD > 2) {
-                state.cellPrims.selectLeafUnderPoint(this.#ceState, pt, !e.shiftKey);
-            } else {
+            if(minD <= 2) {
                 edgeFn(this.#ceState, pt);
+            } else {
+                state.cellPrims.selectLeafUnderPoint(this.#ceState, pt, !e.shiftKey);
             }
             this.requestRedraw();
         };
@@ -589,18 +682,50 @@ class CellEditingView extends EditorView {
             haloElem.className = "editor-edge-halo";
 
             if(sel.node.type === "Vert") {
-                haloElem.style.left = "0";
+                haloElem.style.left   = "0";
                 haloElem.style.bottom = "-2px";
-                haloElem.style.width = "100%";
+                haloElem.style.width  = "100%";
                 haloElem.style.height = "4px";
             } else {
-                haloElem.style.right = "-2px";
-                haloElem.style.top = "0";
+                haloElem.style.right  = "-2px";
+                haloElem.style.top    = "0";
                 haloElem.style.height = "100%";
-                haloElem.style.width = "4px";
+                haloElem.style.width  = "4px";
             }
 
             leafElem.appendChild(haloElem);
+        }
+
+        if(this.#mouseNearEdge !== null && this.#mouseNearEdge.leaf === leaf) {
+            const edgePreviewHaloElem = document.createElement("div");
+            edgePreviewHaloElem.className = "editor-edge-halo editor-edge-preview-halo";
+
+            switch(this.#mouseNearEdge.edge) {
+            case "Above":
+            case "Below":
+                if(this.#mouseNearEdge.edge === "Above") {
+                    edgePreviewHaloElem.style.top = "-2px";
+                } else {
+                    edgePreviewHaloElem.style.bottom = "-2px";
+                }
+                edgePreviewHaloElem.style.left = "0";
+                edgePreviewHaloElem.style.width = "100%";
+                edgePreviewHaloElem.style.height = "4px";
+                break;
+            case "Left":
+            case "Right":
+                if(this.#mouseNearEdge.edge === "Left") {
+                    edgePreviewHaloElem.style.left = "-2px";
+                } else {
+                    edgePreviewHaloElem.style.right = "-2px";
+                }
+                edgePreviewHaloElem.style.top = "0";
+                edgePreviewHaloElem.style.height = "100%";
+                edgePreviewHaloElem.style.width = "4px";
+                break;
+            }
+
+            leafElem.appendChild(edgePreviewHaloElem);
         }
     }
 

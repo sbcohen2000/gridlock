@@ -10,6 +10,62 @@ import { assert } from "../../util.js";
 import * as state from "../state.js";
 
 /**
+ * Check if there is a select-able edge to the left of `leaf`.
+ *
+ * @param {state.EditingCells} st
+ * @param {grid.Leaf<state.Cell>} leaf
+ * @returns {boolean}
+ */
+export function canSelectEdgeLeftOf(st, leaf) {
+    if(!grid.nodeIsInTree(st.grid, leaf)) return false;
+    const leafB = grid.leafToLeftOf(st.grid, leaf);
+    if(leafB === undefined) return false;
+    return grid.checkLeavesAdjacent(st.grid, leaf, leafB) !== null;
+}
+
+/**
+ * Check if there is a select-able edge to the right of `leaf`.
+ *
+ * @param {state.EditingCells} st
+ * @param {grid.Leaf<state.Cell>} leaf
+ * @returns {boolean}
+ */
+export function canSelectEdgeRightOf(st, leaf) {
+    if(!grid.nodeIsInTree(st.grid, leaf)) return false;
+    const leafB = grid.leafToRightOf(st.grid, leaf);
+    if(leafB === undefined) return false;
+    return grid.checkLeavesAdjacent(st.grid, leaf, leafB) !== null;
+}
+
+/**
+ * Check if there is a select-able edge above `leaf`.
+ *
+ * @param {state.EditingCells} st
+ * @param {grid.Leaf<state.Cell>} leaf
+ * @returns {boolean}
+ */
+export function canSelectEdgeAbove(st, leaf) {
+    if(!grid.nodeIsInTree(st.grid, leaf)) return false;
+    const leafB = grid.leafAbove(st.grid, leaf);
+    if(leafB === undefined) return false;
+    return grid.checkLeavesAdjacent(st.grid, leaf, leafB) !== null;
+}
+
+/**
+ * Check if there is a select-able edge below `leaf`.
+ *
+ * @param {state.EditingCells} st
+ * @param {grid.Leaf<state.Cell>} leaf
+ * @returns {boolean}
+ */
+export function canSelectEdgeBelow(st, leaf) {
+    if(!grid.nodeIsInTree(st.grid, leaf)) return false;
+    const leafB = grid.leafBelow(st.grid, leaf);
+    if(leafB === undefined) return false;
+    return grid.checkLeavesAdjacent(st.grid, leaf, leafB) !== null;
+}
+
+/**
  * Select the edge to the left of the leaf under `pt`. If `leaf` is on
  * the left edge of the document, this function does not change the
  * selection.
@@ -22,6 +78,7 @@ import * as state from "../state.js";
 export function selectEdgeLeftOfLeafAtPoint(st, pt) {
     const leafA = grid.leafUnderPoint(st.grid, pt);
     const leafB = grid.leafToLeftOf(st.grid, leafA);
+    if(leafB === undefined) return false;
     return _selectEdgeStraddlingLeaves(st, leafA, leafB);
 }
 
