@@ -103,23 +103,56 @@ describe("splitCellHorizontallyAtColumn", () => {
     });
 });
 
-describe("selectEdgeStraddlingPoints", () => {
-    it("Selects a vertical edge between horizontally adjacent leaves", () => {
+describe("selectEdgeLeftOfLeafAtPoint", () => {
+    it("Selects the edge to the left of a leaf", () => {
         const st = mkCellState(
             "hello there\n" +
             "+-----+-----+\n" +
             "+-----+-----+"
         );
 
-        const result = cellPrims.selectEdgeStraddlingPoints(
-            st, point.mkP2(2, 0), point.mkP2(7, 0)
+        const result = cellPrims.selectEdgeLeftOfLeafAtPoint(
+            st, point.mkP2(7, 0)
         );
 
         expect(result).to.be.true;
         expect(st.selection.type).to.equal("Edge");
     });
 
-    it("Selects a horizontal edge between vertically adjacent leaves", () => {
+    it("Returns false when leaf is on the left edge", () => {
+        const st = mkCellState(
+            "hello there\n" +
+            "+-----+-----+\n" +
+            "+-----+-----+"
+        );
+
+        const result = cellPrims.selectEdgeLeftOfLeafAtPoint(
+            st, point.mkP2(2, 0)
+        );
+
+        expect(result).to.be.false;
+    });
+});
+
+describe("selectEdgeRightOfLeafAtPoint", () => {
+    it("Selects the edge to the right of a leaf", () => {
+        const st = mkCellState(
+            "hello there\n" +
+            "+-----+-----+\n" +
+            "+-----+-----+"
+        );
+
+        const result = cellPrims.selectEdgeRightOfLeafAtPoint(
+            st, point.mkP2(2, 0)
+        );
+
+        expect(result).to.be.true;
+        expect(st.selection.type).to.equal("Edge");
+    });
+});
+
+describe("selectEdgeAboveLeafAtPoint", () => {
+    it("Selects the edge above a leaf", () => {
         const st = mkCellState(
             "top\n" +
             "bot\n" +
@@ -128,39 +161,59 @@ describe("selectEdgeStraddlingPoints", () => {
             "+---+"
         );
 
-        const result = cellPrims.selectEdgeStraddlingPoints(
-            st, point.mkP2(0, 0), point.mkP2(0, 1)
+        const result = cellPrims.selectEdgeAboveLeafAtPoint(
+            st, point.mkP2(0, 1)
         );
 
         expect(result).to.be.true;
         expect(st.selection.type).to.equal("Edge");
     });
+});
 
-    it("Returns false for non-adjacent leaves", () => {
+describe("selectEdgeBelowLeafAtPoint", () => {
+    it("Selects the edge below a leaf", () => {
         const st = mkCellState(
-            "hello there world\n" +
-            "+-----+-----+-----+\n" +
-            "+-----+-----+-----+"
+            "top\n" +
+            "bot\n" +
+            "+---+\n" +
+            "+---+\n" +
+            "+---+"
         );
 
-        const result = cellPrims.selectEdgeStraddlingPoints(
-            st, point.mkP2(2, 0), point.mkP2(14, 0)
+        const result = cellPrims.selectEdgeBelowLeafAtPoint(
+            st, point.mkP2(0, 0)
         );
 
-        expect(result).to.be.false;
+        expect(result).to.be.true;
+        expect(st.selection.type).to.equal("Edge");
     });
+});
 
-    it("Returns false when both points are in the same leaf", () => {
+describe("selectEdge restructures non-sibling leaves", () => {
+    it("Merges and re-splits when selecting an edge between cousin leaves", () => {
+        // In a 2x2 grid, parseASCII produces Horz(Vert(TL,BL), Vert(TR,BR)).
+        // TL and TR are cousins, not siblings. Selecting the edge to the
+        // right of TL should restructure the tree so they become siblings.
         const st = mkCellState(
-            "hello\n" +
-            "+-----+\n" +
-            "+-----+"
+            "TL  TR\n" +
+            "BL  BR\n" +
+            "+---+---+\n" +
+            "+---+---+\n" +
+            "+---+---+"
         );
 
-        const result = cellPrims.selectEdgeStraddlingPoints(
-            st, point.mkP2(0, 0), point.mkP2(2, 0)
+        const result = cellPrims.selectEdgeRightOfLeafAtPoint(
+            st, point.mkP2(0, 0)
         );
 
-        expect(result).to.be.false;
+        expect(result).to.be.true;
+        expect(st.selection.type).to.equal("Edge");
+
+        // The selected edge node should be a Horz split whose children
+        // are the two top leaves.
+        const edge = /** @type {state.EdgeSelection} */ (st.selection).node;
+        expect(edge.type).to.equal("Horz");
+        expect(edge.left.type).to.equal("Leaf");
+        expect(edge.right.type).to.equal("Leaf");
     });
 });

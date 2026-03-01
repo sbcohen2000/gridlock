@@ -3,6 +3,7 @@ import * as point from "./point.js";
 import * as state from "./editor.js";
 import * as serialize from "./editor/serialize.js";
 import GLPK from "glpk.js";
+import { selectEdgeAboveLeafAtPoint, selectEdgeBelowLeafAtPoint, selectEdgeLeftOfLeafAtPoint, selectEdgeRightOfLeafAtPoint } from "./editor/cell-prims/cell-prims.js";
 
 // Reload the page when esbuild issues a change event.
 //
@@ -260,7 +261,7 @@ class EditorView extends View {
      * @returns {HTMLElement} The HTML element generated to represent
      *     this leaf.
      */
-    #viewLeaf(leaf, p) {
+    viewLeaf(leaf, p) {
         const sz = leaf.dims;
 
         // Specify the position of the cell using CSS grid syntax.
@@ -307,7 +308,7 @@ class EditorView extends View {
 
         const leaves = grid.allLeavesWithPosition(this.state.grid);
         for(const [leaf, p] of leaves) {
-            root.appendChild(this.#viewLeaf(leaf, p));
+            root.appendChild(this.viewLeaf(leaf, p));
         }
 
         return root;
@@ -450,6 +451,41 @@ class CellEditingView extends EditorView {
     #ceState;
 
     /**
+     * @typedef {{
+     *   leaf: grid.Leaf<state.Cell>,
+     * }} LastClickInfo
+     */
+
+    /**
+     * Information which records the leaf of the last click. This
+     * field is automatically cleared after a time; it is used to
+     * detect when the user has double-clicked on a leaf.
+     *
+     * @type {LastClickInfo | null}
+     */
+    #lastClick;
+
+    /**
+     * Check if a click, which clicked on `leaf` should be classified
+     * as a double-click by consulting `#lastClick`.
+     *
+     * @param {grid.Leaf<state.Cell>} leaf
+     * @returns {boolean} `true` if this click should be handled as a
+     *     double-click, and `false` if it should be handled as a
+     *     single-click.
+     */
+    #classifyDoubleClick(leaf) {
+        if(this.#lastClick !== null && this.#lastClick.leaf === leaf) {
+            this.#lastClick = null;
+            return true;
+        } else {
+            this.#lastClick = { leaf };
+            window.setTimeout(() => this.#lastClick = null, 200);
+            return false;
+        }
+    }
+
+    /**
      * @param {View} parent
      * @param {state.EditingCells} st The initial edit state.
      */
@@ -473,14 +509,99 @@ class CellEditingView extends EditorView {
      *     this line.
      */
     viewLine(rowNo, leaf, p) {
+        void p;
+
         const line = leaf.data.lines[rowNo];
         const lineElem = document.createElement("div");
         lineElem.className = "editor-line";
         lineElem.innerText = line;
-        lineElem.onmousedown = (e) => {
-            console.log("Clikd");
-        };
         return lineElem;
+    }
+
+    /**
+     * View a particular leaf of the grid.
+     *
+     * @param {grid.Leaf<state.Cell>} leaf The leaf to view.
+     * @param {point.P2} pt The position of the upper-left corner of the leaf.
+     * @returns {HTMLElement} The HTML element generated to represent
+     *     this leaf.
+     */
+    viewLeaf(leaf, pt) {
+        const leafElem = super.viewLeaf(leaf, pt);
+
+        leafElem.onclick = (e) => {
+            const rect = leafElem.getBoundingClientRect();
+            const relX = e.clientX - rect.left;
+            const relY = e.clientY - rect.top;
+
+            // Classify the mouse click into one of five zones.  If
+            // we're closest to one of the edges, we should select an
+            // edge, while if we're closest to the center, we should
+            // select the cell itself.
+            /** @type {[number, (st: state.EditorState, p: point.P2) => boolean]} */
+            const distanceToLeftEdge   = [relX,               selectEdgeLeftOfLeafAtPoint];
+            /** @type {[number, (st: state.EditorState, p: point.P2) => boolean]} */
+            const distanceToRightEdge  = [rect.width - relX,  selectEdgeRightOfLeafAtPoint];
+            /** @type {[number, (st: state.EditorState, p: point.P2) => boolean]} */
+            const distanceToTopEdge    = [relY,               selectEdgeAboveLeafAtPoint];
+            /** @type {[number, (st: state.EditorState, p: point.P2) => boolean]} */
+            const distanceToBottomEdge = [rect.height - relY, selectEdgeBelowLeafAtPoint];
+
+            const [minD, edgeFn] = [
+                distanceToLeftEdge,
+                distanceToRightEdge,
+                distanceToTopEdge,
+                distanceToBottomEdge
+            ].reduce(([minD, minFn], [d, fn]) => minD < d ? [minD, minFn] : [d, fn],
+                     distanceToBottomEdge);
+
+            // If the minimum distance to an edge is greater than 4px,
+            // then we want to select the cell itself rather than one
+            // of its edges.
+            if(minD > 2) {
+                state.cellPrims.selectLeafUnderPoint(this.#ceState, pt, !e.shiftKey);
+            } else {
+                edgeFn(this.#ceState, pt);
+            }
+            this.requestRedraw();
+        };
+        return leafElem;
+    }
+
+    /**
+     * Draw the selection of a leaf, if any, given an element
+     * representing the leaf.
+     *
+     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {HTMLElement} leafElem
+     */
+    viewLeafSelection(leaf, leafElem) {
+        const sel = this.#ceState.selection;
+        const haloElem = document.createElement("div");
+        if(sel.type === "Leaves" && sel.leaves.has(leaf)) {
+            // We're selecting leaves, so draw a halo around all of
+            // the selected leaves.
+            haloElem.className = "editor-cell-halo";
+            leafElem.appendChild(haloElem);
+        } else if(sel.type === "Edge" && sel.node.left === leaf) {
+            // We're selecting edges, so draw a halo around the
+            // selected edge.
+            haloElem.className = "editor-edge-halo";
+
+            if(sel.node.type === "Vert") {
+                haloElem.style.left = "0";
+                haloElem.style.bottom = "-2px";
+                haloElem.style.width = "100%";
+                haloElem.style.height = "4px";
+            } else {
+                haloElem.style.right = "-2px";
+                haloElem.style.top = "0";
+                haloElem.style.height = "100%";
+                haloElem.style.width = "4px";
+            }
+
+            leafElem.appendChild(haloElem);
+        }
     }
 
     toolbarItems() {

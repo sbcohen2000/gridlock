@@ -139,7 +139,7 @@ export function testFlag(flags, flag) {
  *
  * @typedef {Object} EdgeSelection
  * @property {"Edge"} type A tag indicating the kind of selection.
- * @property {grid.Grid<Cell>} node The node corresponding to the
+ * @property {grid.Split<Cell>} node The node corresponding to the
  *     selected edge.
  */
 

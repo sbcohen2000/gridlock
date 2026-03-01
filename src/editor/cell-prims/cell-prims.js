@@ -10,20 +10,81 @@ import { assert } from "../../util.js";
 import * as state from "../state.js";
 
 /**
- * Select the edge straddling points `ptA` and `ptB`, where `ptA` and
- * `ptB` are in different leaves. If the leaves under `ptA` and `ptB`
- * are not adjacent (by the definition of adjacent in `grid`, then
- * this function does not change the selection.
+ * Select the edge to the left of the leaf under `pt`. If `leaf` is on
+ * the left edge of the document, this function does not change the
+ * selection.
  *
  * @param {state.EditingCells} st
- * @param {point.P2} ptA
- * @param {point.P2} ptB
- * @returns {boolean} `true` if the selection was changed, `false` otherwise.
+ * @param {point.P2} pt
+ * @returns {boolean} `true` if the selection was changed, `false`
+ *     otherwise.
  */
-export function selectEdgeStraddlingPoints(st, ptA, ptB) {
-    const leafA = grid.leafUnderPoint(st.grid, ptA);
-    const leafB = grid.leafUnderPoint(st.grid, ptB);
+export function selectEdgeLeftOfLeafAtPoint(st, pt) {
+    const leafA = grid.leafUnderPoint(st.grid, pt);
+    const leafB = grid.leafToLeftOf(st.grid, leafA);
+    return _selectEdgeStraddlingLeaves(st, leafA, leafB);
+}
 
+/**
+ * Select the edge to the right of the leaf under `pt`. If `leaf` is on
+ * the right edge of the document, this function does not change the
+ * selection.
+ *
+ * @param {state.EditingCells} st
+ * @param {point.P2} pt
+ * @returns {boolean} `true` if the selection was changed, `false`
+ *     otherwise.
+ */
+export function selectEdgeRightOfLeafAtPoint(st, pt) {
+    const leafA = grid.leafUnderPoint(st.grid, pt);
+    const leafB = grid.leafToRightOf(st.grid, leafA);
+    return _selectEdgeStraddlingLeaves(st, leafA, leafB);
+}
+
+/**
+ * Select the edge above the leaf under `pt`. If `leaf` is on
+ * the top edge of the document, this function does not change the
+ * selection.
+ *
+ * @param {state.EditingCells} st
+ * @param {point.P2} pt
+ * @returns {boolean} `true` if the selection was changed, `false`
+ *     otherwise.
+ */
+export function selectEdgeAboveLeafAtPoint(st, pt) {
+    const leafA = grid.leafUnderPoint(st.grid, pt);
+    const leafB = grid.leafAbove(st.grid, leafA);
+    return _selectEdgeStraddlingLeaves(st, leafA, leafB);
+}
+
+/**
+ * Select the edge below the leaf under `pt`. If `leaf` is on
+ * the bottom edge of the document, this function does not change the
+ * selection.
+ *
+ * @param {state.EditingCells} st
+ * @param {point.P2} pt
+ * @returns {boolean} `true` if the selection was changed, `false`
+ *     otherwise.
+ */
+export function selectEdgeBelowLeafAtPoint(st, pt) {
+    const leafA = grid.leafUnderPoint(st.grid, pt);
+    const leafB = grid.leafBelow(st.grid, leafA);
+    return _selectEdgeStraddlingLeaves(st, leafA, leafB);
+}
+
+/**
+ * Select the edge straddling leaves `leafA` and `leafB`.  If `leafA`
+ * and `leafB` are not adjacent (by the definition of adjacent in
+ * `grid`, then this function does not change the selection.
+ *
+ * @param {state.EditingCells} st
+ * @param {grid.Leaf<state.Cell>} leafA
+ * @param {grid.Leaf<state.Cell>} leafB
+ * @returns {boolean} `true` if the selection was changed, `false`
+ *     otherwise.
+ */
+function _selectEdgeStraddlingLeaves(st, leafA, leafB) {
     if(!leafA || !leafB) return false;
 
     // Check that the leaves are adjacent.
@@ -55,6 +116,7 @@ export function selectEdgeStraddlingPoints(st, ptA, ptB) {
         [edgeNode, splitGrid] = grid.splitLeafHorizontally(newGrid, newLeaf, leafB.dims.width, () => [leafB.data, leafA.data]);
     }
 
+    assert(edgeNode.type !== "Leaf");
     st.grid = splitGrid;
     st.selection = {
         type: "Edge",
@@ -179,7 +241,6 @@ export async function modifyVerticalEdge(st, n, glpk) {
     }
 
     const parent = st.selection.node;
-    assert(parent.type !== "Leaf");
 
     // Guard against the wrong kind of edge.
     if(parent.type === "Vert") return false;
@@ -205,7 +266,6 @@ export function modifyHorizontalEdge(st, n) {
     }
 
     const parent = st.selection.node;
-    assert(parent.type !== "Leaf");
 
     // Guard against the wrong kind of edge.
     if(parent.type === "Horz") return false;

@@ -1,7 +1,3 @@
-html {
-    background-color: tan;
-}
-
 #editor-root {
     font-family: monospace;
 }
@@ -21,8 +17,7 @@ html {
     pointer-events: none;
     width: 1ch;
     height: 1em;
-    mix-blend-mode: difference;
-    background-color: white;
+    border-bottom: 4px solid black;
     z-index: 100;
 }
 
@@ -38,4 +33,20 @@ html {
     font-size: 0.8em;
     outline: 1px solid gray;
     background-image: linear-gradient(gray, gainsboro);
+}
+
+.editor-edge-halo {
+    background-color: #96d8eb;
+    position: absolute;
+    z-index: -1;
+}
+
+.editor-cell-halo {
+    height: 100%;
+    left: 0;
+    outline: 4px solid #96d8eb;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    z-index: -1;
 }

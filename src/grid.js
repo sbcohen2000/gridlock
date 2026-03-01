@@ -946,6 +946,66 @@ export function leafUnderPoint(g, p) {
 }
 
 /**
+ * Find the leaf to the left of `leaf` in `g`, if it exists.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} leaf
+ * @returns {Leaf<A> | undefined} The leaf to the left of `leaf`, or `undefined`
+ *     if there is no leaf to the left of `leaf`.
+ */
+export function leafToLeftOf(g, leaf) {
+    const upperLeft = posOfLeaf(g, leaf);
+    const query = point.offset(upperLeft, point.mkV2(-1, 0));
+    return leafUnderPoint(g, query);
+}
+
+/**
+ * Find the leaf to the right of `leaf` in `g`, if it exists.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} leaf
+ * @returns {Leaf<A> | undefined} The leaf to the right of `leaf`, or `undefined`
+ *     if there is no leaf to the right of `leaf`.
+ */
+export function leafToRightOf(g, leaf) {
+    const upperLeft = posOfLeaf(g, leaf);
+    const query = point.offset(upperLeft, point.mkV2(leaf.dims.width, 0));
+    return leafUnderPoint(g, query);
+}
+
+/**
+ * Find the leaf above `leaf` in `g`, if it exists.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} leaf
+ * @returns {Leaf<A> | undefined} The leaf above `leaf`, or `undefined`
+ *     if there is no leaf above `leaf`.
+ */
+export function leafAbove(g, leaf) {
+    const upperLeft = posOfLeaf(g, leaf);
+    const query = point.offset(upperLeft, point.mkV2(0, -1));
+    return leafUnderPoint(g, query);
+}
+
+/**
+ * Find the leaf below `leaf` in `g`, if it exists.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} leaf
+ * @returns {Leaf<A> | undefined} The leaf below `leaf`, or `undefined`
+ *     if there is no leaf below `leaf`.
+ */
+export function leafBelow(g, leaf) {
+    const upperLeft = posOfLeaf(g, leaf);
+    const query = point.offset(upperLeft, point.mkV2(0, leaf.dims.height));
+    return leafUnderPoint(g, query);
+}
+
+/**
  * Remove from the grid all leaf nodes which have zero width or
  * height.
  *
