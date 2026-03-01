@@ -1,5 +1,7 @@
 #editor-root {
     font-family: monospace;
+    -webkit-user-select: none; /* Safari */
+    user-select: none;
 }
 
 .editor-leaf {

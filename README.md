@@ -27,10 +27,13 @@ This will run the test called "Can parse a leaf".
 - [ ] Visualize spaces in the editor with a dot.
 - [ ] Ctrl-f should skip over the end/beginning of a leaf if there is
       nothing in the way.
-- [ ] Dragging a rule resizes the leaf to the left of it.
-  - [ ] Need to introduce a new selection mode whose atomic selections
+- [X] Dragging a rule resizes the leaf to the left of it.
+  - [X] Need to introduce a new selection mode whose atomic selections
         are leaves rather than points. The dragging should operate
         on this kind of selection.
+  - [ ] Change the selection type for edge selections so that they reference
+        a single leaf and a direction, rather than a parent node (this will
+        permit selecting more kinds of edges).
 - [ ] Other leaf-level tools:
   - [ ] Trimming a rule (merges the cells to the left and right)
   - [ ] Introducing a new rule inside a cell (maybe it gets put in the

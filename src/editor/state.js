@@ -133,14 +133,18 @@ export function testFlag(flags, flag) {
  */
 
 /**
+ * @typedef {"Left" | "Right" | "Above" | "Below"} RelEdgeLocation
+ */
+
+/**
  * Describe the selection of a single edge in the document. We
  * describe the selection of an edge by recording the grid cell whose
  * partition is the same as the selected edge.
  *
  * @typedef {Object} EdgeSelection
  * @property {"Edge"} type A tag indicating the kind of selection.
- * @property {grid.Split<Cell>} node The node corresponding to the
- *     selected edge.
+ * @property {RelEdgeLocation} edge
+ * @property {grid.Leaf<Cell>} leaf
  */
 
 /*****************************************************************************/
