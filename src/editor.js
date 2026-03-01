@@ -7,3 +7,4 @@ export const PRIMITIVES = [...TEXT_PRIMITIVES, ...CELL_PRIMITIVES];
 
 export * as textPrims from "./editor/text-prims/text-prims.js";
 export * as cellPrims from "./editor/cell-prims/cell-prims.js";
+export * as slicePrims from "./editor/slice-prims.js";

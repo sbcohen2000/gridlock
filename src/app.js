@@ -4,6 +4,7 @@ import * as view from "./view.js";
 import GLPK from "glpk.js";
 import { CellEditingView } from "./editor-view/cell-editing-view.js";
 import { EditorView } from "./editor-view.js";
+import { VerticalCellSlicingView, HorizontalCellSlicingView } from "./editor-view/cell-slicing-view.js";
 import { TextEditingView } from "./editor-view/text-editing-view.js";
 import { View } from "./view.js";
 import { theGLPKInstance } from "./glpk.js";
@@ -91,6 +92,13 @@ class AppView extends View {
             this.#editorView = new TextEditingView(this, st); break;
         case "EditingCells":
             this.#editorView = new CellEditingView(this, st); break;
+        case "SlicingCells":
+            if(st.direction === "Vertical") {
+                this.#editorView = new VerticalCellSlicingView(this, st);
+            } else {
+                this.#editorView = new HorizontalCellSlicingView(this, st);
+            }
+            break;
         }
         this.notifyViewDeleted(old);
         this.requestRedraw();

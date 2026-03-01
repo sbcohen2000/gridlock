@@ -115,9 +115,30 @@ export class CellEditingView extends EditorView {
     }
 
     /**
-     * @type {boolean}
+     * An `AbortController` which is used to discard GLPK results
+     * which become out-of-date before they can be applied to graph
+     * when the user drags a vertical guide quickly.
+     *
+     * @type {AbortController | null}
      */
-    #isDraggingSelectedLeaf;
+    #GLPKAbortController = null;
+
+    /**
+     * @typedef {Object} DragState
+     * @property {point.P2} dragOriginPx          The drag origin in pixels
+     * @property {point.P2} dragOriginGrid        The drag origin in grid units
+     * @property {point.V2} gridScale             The number of pixels in a grid square
+     * @property {"UpDown" | "LeftRight"} dir     The direction of the drag.
+     * @property {grid.Leaf<state.Cell>} leftLeaf The leaf whose width or height to modify.
+     */
+
+    /**
+     * State captured at the start of a drag, used to compute stable
+     * deltas even when the grid's total dimensions change mid-drag.
+     *
+     * @type {DragState | null}
+     */
+    #dragState = null;
 
     /**
      * View a particular leaf of the grid.
@@ -230,7 +251,35 @@ export class CellEditingView extends EditorView {
             if(minD <= 2) {
                 this.#ceState.selection = { type: "Edge", edge, leaf };
                 this._root.setPointerCapture(e.pointerId);
-                this.#isDraggingSelectedLeaf = true;
+                const rootRect = this._root.getBoundingClientRect();
+                const gridW   = this.#ceState.grid.dims.width;
+                const gridH   = this.#ceState.grid.dims.height;
+                const gridCol = Math.round(point.lerp(0, gridW, rootRect.left, e.clientX, rootRect.right));
+                const gridRow = Math.round(point.lerp(0, gridH, rootRect.top, e.clientY, rootRect.bottom));
+
+                let leftLeaf;
+                switch(edge) {
+                case "Left": {
+                    leftLeaf = grid.leafToLeftOf(this.#ceState.grid, leaf);
+                } break;
+                case "Right": {
+                    leftLeaf = leaf;
+                } break;
+                case "Above": {
+                    leftLeaf = grid.leafAbove(this.#ceState.grid, leaf);
+                } break;
+                case "Below": {
+                    leftLeaf = leaf;
+                }
+                }
+
+                this.#dragState = {
+                    dragOriginPx: point.mkP2(e.clientX, e.clientY),
+                    dragOriginGrid: point.mkP2(gridCol, gridRow),
+                    gridScale: point.mkV2(rootRect.width / gridW, rootRect.height / gridH),
+                    dir: edge === "Above" || edge === "Below" ? "UpDown" : "LeftRight",
+                    leftLeaf
+                };
             } else {
                 state.cellPrims.selectLeafUnderPoint(this.#ceState, pt, !e.shiftKey);
             }
@@ -313,43 +362,53 @@ export class CellEditingView extends EditorView {
         const root = super.view();
 
         root.onpointermove = (e) => {
-            if(!this.#isDraggingSelectedLeaf) return;
+            if(!this.#dragState) return;
             if(this.#ceState.selection.type !== "Edge") return;
 
-            const rootRect = root.getBoundingClientRect();
-            const globalX = e.clientX - rootRect.left;
-            const globalY = e.clientY - rootRect.top;
-
-            const gridW = this.#ceState.grid.dims.width;
-            const gridH = this.#ceState.grid.dims.height;
-
-            const globalCol = Math.floor(point.lerp(0, gridW, 0, globalX, rootRect.width));
-            const globalRow = Math.floor(point.lerp(0, gridH, 0, globalY, rootRect.height));
+            // Construct a new `AbortController` for this drag action,
+            // aborting the previous abort controller if it exists.
+            if(this.#GLPKAbortController !== null) {
+                this.#GLPKAbortController.abort();
+            }
+            this.#GLPKAbortController = new AbortController();
 
             const sel = this.#ceState.selection;
 
-            if(sel.edge === "Above" || sel.edge === "Below") {
-                const aboveLeaf = state.cellPrims.leafAboveSelectedEdge(this.#ceState);
-                const upperLeft = grid.posOfLeaf(this.#ceState.grid, aboveLeaf);
-                const dh = globalRow - (upperLeft.y + aboveLeaf.dims.height);
+            const ds = this.#dragState;
+            if(ds.dir === "UpDown") {
+                const dyPx   = e.clientY - ds.dragOriginPx.y;
+                const dyGrid = ds.dragOriginGrid.y + Math.round(dyPx / ds.gridScale.dy);
 
-                state.cellPrims.modifyHorizontalEdge(this.#ceState, dh);
-                this.requestRedraw();
+                throw new Error("TODO");
             } else {
-                const leftLeaf = state.cellPrims.leafLeftOfSelectedEdge(this.#ceState);
-                const upperLeft = grid.posOfLeaf(this.#ceState.grid, leftLeaf);
-                const dw = globalCol - (upperLeft.x + leftLeaf.dims.width);
+                const dxPx         = e.clientX - ds.dragOriginPx.x;
+                const dxGrid       = ds.dragOriginGrid.x + Math.round(dxPx / ds.gridScale.dx);
+                const upperLeft    = grid.posOfLeaf(this.#ceState.grid, ds.leftLeaf);
+                // Find the current position of the edge, and the
+                // target position of the edge, both in global grid
+                // coordinates.
+                const currentEdgeX = upperLeft.x + ds.leftLeaf.dims.width;
+                // The target position is the x-location of the cursor in grid units.
+                const targetEdgeX  = dxGrid;
+                const dw = targetEdgeX - currentEdgeX;
 
-                state.cellPrims.modifyVerticalEdge(this.#ceState, dw, theGLPKInstance.glpk).then(() => {
-                    this.requestRedraw();
+                // Invoke the solver to modify the `leftLeaf`'s width by `dw`.
+                const settings = {
+                    abortSignal: this.#GLPKAbortController.signal
+                };
+
+                grid.modifyWidth(this.#ceState.grid, dw, ds.leftLeaf, theGLPKInstance.glpk, settings).then(grid => {
+                    if(grid !== null) {
+                        this.#ceState.grid = grid;
+                        this.requestRedraw();
+                    }
                 });
             }
         };
 
         root.onpointerup = (e) => {
-            console.log("POINTER UP!");
-            if(this.#isDraggingSelectedLeaf) {
-                this.#isDraggingSelectedLeaf = false;
+            if(this.#dragState) {
+                this.#dragState = null;
                 root.releasePointerCapture(e.pointerId);
             }
         };
@@ -365,6 +424,20 @@ export class CellEditingView extends EditorView {
             this.requestReplaceEditorView(state.editText(this.#ceState))
         };
 
-        return [textModeButton, this.saveButton()];
+        const sliceVButton = document.createElement("span");
+        sliceVButton.className = "editor-button";
+        sliceVButton.innerText = "slice ─";
+        sliceVButton.onclick = () => {
+            this.requestReplaceEditorView(state.sliceCellsVertically(this.#ceState));
+        };
+
+        const sliceHButton = document.createElement("span");
+        sliceHButton.className = "editor-button";
+        sliceHButton.innerText = "slice │";
+        sliceHButton.onclick = () => {
+            this.requestReplaceEditorView(state.sliceCellsHorizontally(this.#ceState));
+        };
+
+        return [textModeButton, sliceVButton, sliceHButton, this.saveButton()];
     }
 }

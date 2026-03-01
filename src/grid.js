@@ -756,6 +756,22 @@ export function allPaths(tree) {
 }
 
 /**
+ * Settings to do with resolving the cell widths in a grid.
+ *
+ * @template A
+ * @typedef {Object} SolveSettings
+ * @property {Tree<A>[]} [deps] A set of dependency trees recording the
+ *     horizontal positioning relationships in the grid. If it is not
+ *     provided, a dependency tree will be generated from scratch.
+ * @property {Leaf<A>[][]} [constraints] Sets of leaves which should
+ *     have the same relative position and/or same size after the
+ *     width has been modified.
+ * @property {AbortSignal} [abortSignal] An abort signal, which will be
+ *     checked after GLPK has finished solving. If the abort has been signaled,
+ *     the input graph will _not_ be mutated, and the function will return null.
+ */
+
+/**
  * Modify the focused `Grid`'s width.
  *
  * @see constructDependencyTrees
@@ -765,25 +781,20 @@ export function allPaths(tree) {
  * @param {number} w The amount expand horizontally.
  * @param {Grid<A>} focus The grid cell to modify.
  * @param {any} glpk The GLPK instance to use for solving.
- * @param {Tree<A>[]} [deps] A set of dependency trees recording the
- *     horizontal positioning relationships in the grid. If it is not
- *     provided, a dependency tree will be generated from scratch.
- * @param {Leaf<A>[][]} [constraints] Sets of leaves which should have
- *     the same relative position and/or same size after the width has
- *     been modified.
- * @returns {Promise<Grid<A>>} The grid.
+ * @param {SolveSettings<A>} [settings] The solve settings.
+ * @returns {Promise<Grid<A> | null>} The grid.
  */
-export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
+export async function modifyWidth(g, w, focus, glpk, settings) {
+    settings = settings ?? {};
+
     const sign = Math.sign(w);
     w = Math.abs(w);
 
-    if(deps === undefined) {
-        deps = constructDependencyTrees(g);
-    }
+    /** @type {Tree<A>[]} */
+    const deps = settings.deps ?? constructDependencyTrees(g);
 
-    if(constraints === undefined) {
-        constraints = [];
-    }
+    /** @type {Leaf<A>[][]} */
+    const constraints = settings.constraints ?? [];
 
     // Step 1: Get all leaves
     const leaves = [...allLeaves(g)];
@@ -877,6 +888,11 @@ export async function modifyWidth(g, w, focus, glpk, deps, constraints) {
         subjectTo: subjectTo,
         generals: vars.map(v => v.name)
     });
+
+    if(settings.abortSignal && settings.abortSignal.aborted) {
+        console.log("Discarding GLPK result due to abort");
+        return null;
+    }
 
     if(result.result.status !== glpk.GLP_OPT) {
         throw new Error("invalid constraint set");

@@ -151,7 +151,19 @@ export function testFlag(flags, flag) {
 /** Editor State                                                            **/
 
 /**
- * @typedef {EditingText | EditingCells} EditorState
+ * @typedef {"Vertical" | "Horizontal"} SliceDirection
+ */
+
+/**
+ * @typedef {{
+ *   type: "SlicingCells",
+ *   direction: SliceDirection,
+ *   grid: grid.Grid<Cell>,
+ * }} SlicingCells
+ */
+
+/**
+ * @typedef {EditingText | EditingCells | SlicingCells} EditorState
  */
 
 /**
@@ -177,7 +189,7 @@ export function mk(g) {
 }
 
 /**
- * Transform an editor state into one which is read to edit cells.
+ * Transform an editor state into one which is ready to edit cells.
  *
  * @param {EditorState} st
  * @returns {EditingCells}
@@ -192,6 +204,26 @@ export function editCells(st) {
             leaves: new Set()
         }
     }
+}
+
+/**
+ * Transform an editor state into one which is slicing cells vertically.
+ *
+ * @param {EditorState} st
+ * @returns {SlicingCells}
+ */
+export function sliceCellsVertically(st) {
+    return { type: "SlicingCells", direction: "Vertical", grid: st.grid };
+}
+
+/**
+ * Transform an editor state into one which is slicing cells horizontally.
+ *
+ * @param {EditorState} st
+ * @returns {SlicingCells}
+ */
+export function sliceCellsHorizontally(st) {
+    return { type: "SlicingCells", direction: "Horizontal", grid: st.grid };
 }
 
 /**

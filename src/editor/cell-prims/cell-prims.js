@@ -145,29 +145,6 @@ export function splitCellHorizontallyAtColumn(st, col) {
 }
 
 /**
- * Shift the selected vertical edge by the given number of columns.
- * If the selected edge is not vertical, or there is no selected edge,
- * then this function does nothing.
- *
- * @param {state.EditingCells} st
- * @param {number} n
- * @param {any} glpk The GLPK instance.
- * @returns {Promise<boolean>} `true` if the edge position was changed, and
- *     false otherwise.
- */
-export async function modifyVerticalEdge(st, n, glpk) {
-    if(st.selection.type === "Leaves") {
-        return false;
-    }
-
-    const leftLeaf = leafLeftOfSelectedEdge(st);
-
-    // TODO: how to shift text between cells?
-    st.grid = await grid.modifyWidth(st.grid, n, leftLeaf, glpk);
-    return true;
-}
-
-/**
  * Shift the selected horizontal edge by the given number of rows. If
  * the selected edge is not horizontal, or there is no selected edge,
  * then this function does nothing.

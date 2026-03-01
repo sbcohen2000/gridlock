@@ -538,7 +538,7 @@ describe("modifyWidth", () => {
 
         // Increase the width of leaf `x` by two. This should induce a
         // change in the width of `z` or `w`.
-        await grid.modifyWidth(g, 2, x, glpk, deps, [[a, b]]);
+        await grid.modifyWidth(g, 2, x, glpk, { deps, constraints: [[a, b]] });
 
         const alt1 =
               "+---+-+--+\n" +
@@ -563,7 +563,7 @@ describe("modifyWidth", () => {
 
         // Increase the width of leaf `a` by one. This should induce a
         // change in the width of `b`
-        await grid.modifyWidth(g, 1, a, glpk, deps, [[a, b]]);
+        await grid.modifyWidth(g, 1, a, glpk, { deps, constraints: [[a, b]] });
 
         const alt3 =
               "+---+-+---+\n" +
