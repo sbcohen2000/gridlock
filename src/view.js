@@ -99,10 +99,11 @@ export class View {
 
     /**
      * @virtual
+     * @param {HTMLElement} [prev] An existing element to update in place.
      * @returns {HTMLElement}
      */
-    view() {
-        return document.createElement("div");
+    view(prev) {
+        return prev ?? document.createElement("div");
     }
 
     /**

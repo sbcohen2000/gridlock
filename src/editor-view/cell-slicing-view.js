@@ -46,10 +46,11 @@ class CellSlicingView extends EditorView {
     /**
      * @param {grid.Leaf<state.Cell>} leaf
      * @param {point.P2} pt
+     * @param {HTMLElement} [prev]
      * @returns {HTMLElement}
      */
-    viewLeaf(leaf, pt) {
-        const leafElem = super.viewLeaf(leaf, pt);
+    viewLeaf(leaf, pt, prev) {
+        const leafElem = super.viewLeaf(leaf, pt, prev);
 
         leafElem.onmousemove = (e) => {
             const rect = leafElem.getBoundingClientRect();
@@ -95,6 +96,9 @@ class CellSlicingView extends EditorView {
      * @param {HTMLElement} leafElem
      */
     viewLeafSelection(leaf, leafElem) {
+        // Remove old preview elements
+        leafElem.querySelectorAll(".editor-slice-preview").forEach(el => el.remove());
+
         if(this.#hoveredPos === null) return;
 
         const leafPos = grid.posOfLeaf(this.#scState.grid, leaf);

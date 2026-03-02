@@ -11,15 +11,16 @@
  */
 
 /**
- * Construct an HTML element suitable for putting in the view toolbar.
+ * Construct or update an HTML element suitable for putting in the view toolbar.
  *
  * @param {ToolbarButtonDescription} [descr]
+ * @param {HTMLElement} [prev] An existing button element to update in place.
  * @returns {HTMLElement}
  */
-function mkToolbarButton(descr) {
+function mkToolbarButton(descr, prev) {
     descr = descr ?? { type: "button" };
 
-    const buttonElem = document.createElement("span");
+    const buttonElem = prev ?? document.createElement("span");
     buttonElem.className = "editor-button";
     if(descr.disabled ?? false) {
         buttonElem.classList.add("editor-button-disabled");
@@ -31,13 +32,14 @@ function mkToolbarButton(descr) {
 }
 
 /**
- * Construct an HTML element representing the given description.
+ * Construct or update an HTML element representing the given description.
  *
  * @param {ToolbarDescription} descr
+ * @param {HTMLElement} [prev] An existing element to update in place.
  * @returns {HTMLElement}
  */
-export function mkToolbarItem(descr) {
+export function mkToolbarItem(descr, prev) {
     switch(descr.type) {
-    case "button": return mkToolbarButton(descr);
+    case "button": return mkToolbarButton(descr, prev);
     }
 }

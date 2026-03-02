@@ -130,11 +130,12 @@ export class CellEditingView extends EditorView {
      *
      * @param {grid.Leaf<state.Cell>} leaf The leaf to view.
      * @param {point.P2} pt The position of the upper-left corner of the leaf.
+     * @param {HTMLElement} [prev] An existing leaf element to update in place.
      * @returns {HTMLElement} The HTML element generated to represent
      *     this leaf.
      */
-    viewLeaf(leaf, pt) {
-        const leafElem = super.viewLeaf(leaf, pt);
+    viewLeaf(leaf, pt, prev) {
+        const leafElem = super.viewLeaf(leaf, pt, prev);
 
         /**
          * Convert a point in screen space to a point in the local
@@ -303,16 +304,15 @@ export class CellEditingView extends EditorView {
      * @param {HTMLElement} leafElem
      */
     viewLeafSelection(leaf, leafElem) {
+        // Remove old halo/overlay elements
+        leafElem.querySelectorAll(".editor-cell-halo, .editor-edge-halo").forEach(el => el.remove());
+
         const sel = this.#ceState.selection;
         const haloElem = document.createElement("div");
         if(sel.type === "Leaves" && sel.leaves.has(leaf)) {
-            // We're selecting leaves, so draw a halo around all of
-            // the selected leaves.
             haloElem.className = "editor-cell-halo";
             leafElem.appendChild(haloElem);
         } else if(sel.type === "Edge" && sel.leaf === leaf) {
-            // We're selecting edges, so draw a halo around the
-            // selected edge.
             haloElem.className = "editor-edge-halo";
             this.#positionEdgeHalo(haloElem, sel.edge);
             leafElem.appendChild(haloElem);
@@ -327,10 +327,11 @@ export class CellEditingView extends EditorView {
     }
 
     /**
+     * @param {HTMLElement} [prev]
      * @returns {HTMLElement}
      */
-    view() {
-        const root = super.view();
+    view(prev) {
+        const root = super.view(prev);
 
         root.onpointermove = (e) => {
             if(!this.#dragState) return;

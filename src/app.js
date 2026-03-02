@@ -1,5 +1,6 @@
 import * as serialize from "./editor/serialize.js";
 import * as state from "./editor.js";
+import * as util from "./util.js";
 import * as view from "./view.js";
 import GLPK from "glpk.js";
 import { CellEditingView } from "./editor-view/cell-editing-view.js";
@@ -8,6 +9,7 @@ import { VerticalCellSlicingView, HorizontalCellSlicingView } from "./editor-vie
 import { TextEditingView } from "./editor-view/text-editing-view.js";
 import { View } from "./view.js";
 import { theGLPKInstance } from "./glpk.js";
+import { mkToolbarItem } from "./editor-view/toolbar.js";
 
 // Reload the page when esbuild issues a change event.
 //
@@ -51,32 +53,37 @@ class AppView extends View {
     /**
      * View the editor's toolbar.
      *
+     * @param {HTMLElement} [prev] An existing toolbar element to update in place.
      * @returns {HTMLElement} The HTML element generated to represent
      *     the editor's toolbar.
      */
-    #viewToolbar() {
-        const toolbarElem = document.createElement("div");
+    #viewToolbar(prev) {
+        const toolbarElem = prev ?? document.createElement("div");
         toolbarElem.className = "editor-toolbar";
-        this.#editorView.toolbarItems().forEach((item) => {
-            toolbarElem.appendChild(item);
-        });
+
+        const descriptions = this.#editorView.describeToolbarItems();
+        util.reconcileChildren(
+            toolbarElem, descriptions,
+            (descr, prevItem) => mkToolbarItem(descr, prevItem),
+            (descr) => mkToolbarItem(descr)
+        );
         return toolbarElem;
     }
 
     /**
      * View the application rooted at the element `root`.
      *
+     * @param {HTMLElement} [prev] An existing element to update in place.
      * @returns {HTMLElement}
      */
-    view() {
-        if(!this._root) {
-            this._root = document.createElement("div");
-        }
-        this._root.replaceChildren(
-            this.#viewToolbar(),
-            this.#editorView.view()
+    view(prev) {
+        const root = prev ?? document.createElement("div");
+        util.reconcileChildren(
+            root, [0, 1],
+            (idx, prev) => idx === 0 ? this.#viewToolbar(prev) : this.#editorView.view(prev),
+            (idx) => idx === 0 ? this.#viewToolbar() : this.#editorView.view()
         );
-        return this._root;
+        return root;
     }
 
     /**
@@ -223,7 +230,7 @@ async function main() {
 
         /** @returns {HTMLElement} */
         view() {
-            editorRoot.replaceChildren(this.#appView.view());
+            this.#appView.view(editorRoot);
             return editorRoot;
         }
     })(null, initialState);

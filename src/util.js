@@ -60,6 +60,39 @@ export function padRightToLength(str, len) {
 }
 
 /**
+ * Reconcile the children of `parent` against a list of items.
+ *
+ * For each item, if there's an existing child at that index, call
+ * `reconcile(item, existingChild)` to update it in place. If there's
+ * no existing child, call `create(item)` to build one from scratch
+ * and append it. After processing all items, remove any leftover
+ * children.
+ *
+ * @template T
+ * @param {HTMLElement} parent
+ * @param {T[]} items
+ * @param {(item: T, prev: HTMLElement) => HTMLElement} reconcile
+ * @param {(item: T) => HTMLElement} create
+ */
+export function reconcileChildren(parent, items, reconcile, create) {
+    const oldChildren = [...parent.children];
+    for(let i = 0; i < items.length; ++i) {
+        if(i < oldChildren.length) {
+            const updated = reconcile(items[i], /** @type {HTMLElement} */ (oldChildren[i]));
+            if(updated !== oldChildren[i]) {
+                oldChildren[i].replaceWith(updated);
+            }
+        } else {
+            parent.appendChild(create(items[i]));
+        }
+    }
+    // Remove leftover old children
+    for(let i = items.length; i < oldChildren.length; ++i) {
+        oldChildren[i].remove();
+    }
+}
+
+/**
  * Log the given string as a copy-pastable JavaScript expression.
  *
  * @param {string} str

@@ -31,11 +31,12 @@ export class TextEditingView extends EditorView {
      * @param {number} rowNo The index of the line to view.
      * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
      * @param {point.P2} p The position of the upper-left corner of the leaf.
+     * @param {HTMLElement} [prev] An existing line element to update in place.
      * @returns {HTMLElement} The HTML element generated to represent
      *     this line.
      */
-    viewLine(rowNo, leaf, p) {
-        const lineElem = super.viewLine(rowNo, leaf, p);
+    viewLine(rowNo, leaf, p, prev) {
+        const lineElem = super.viewLine(rowNo, leaf, p, prev);
 
         const line = leaf.data.lines[rowNo];
         lineElem.onmousedown = (e) => {
@@ -80,9 +81,12 @@ export class TextEditingView extends EditorView {
      * @param {HTMLElement} leafElem
      */
     viewLeafSelection(leaf, leafElem) {
-        // Construct the cursor.
-        const cursorElem = this.#mkCursorElem();
-        leafElem.appendChild(cursorElem);
+        // Reuse existing cursor element or create a new one.
+        let cursorElem = /** @type {HTMLElement | null} */ (leafElem.querySelector(".editor-cursor"));
+        if(!cursorElem) {
+            cursorElem = this.#mkCursorElem();
+            leafElem.appendChild(cursorElem);
+        }
         cursorElem.style.display = "none";
 
         // If the leaf is selected, we need to draw the cursor.

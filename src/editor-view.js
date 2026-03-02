@@ -40,21 +40,13 @@ export class EditorView extends View {
     }
 
     /**
-     * View a particular line of the given leaf.
+     * Build the contents (span fragments) for a line element.
      *
-     * @param {number} rowNo The index of the line to view.
-     * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
-     * @param {point.P2} p The position of the upper-left corner of the leaf.
-     * @returns {HTMLElement} The HTML element generated to represent
-     *     this line.
+     * @param {HTMLElement} lineElem
+     * @param {string} line
      */
-    viewLine(rowNo, leaf, p) {
-        void p;
-
-        const line = leaf.data.lines[rowNo];
-        const lineElem = document.createElement("div");
-        lineElem.className = "editor-line";
-
+    #buildLineFragments(lineElem, line) {
+        lineElem.replaceChildren();
         const groups = [...groupBySpaces(line)];
         for(let i = 0; i < groups.length; ++i) {
             const group = groups[i];
@@ -81,7 +73,25 @@ export class EditorView extends View {
                 lineElem.appendChild(fragElem);
             }
         }
+    }
 
+    /**
+     * View a particular line of the given leaf.
+     *
+     * @param {number} rowNo The index of the line to view.
+     * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
+     * @param {point.P2} p The position of the upper-left corner of the leaf.
+     * @param {HTMLElement} [prev] An existing line element to update in place.
+     * @returns {HTMLElement} The HTML element generated to represent
+     *     this line.
+     */
+    viewLine(rowNo, leaf, p, prev) {
+        void p;
+
+        const line = leaf.data.lines[rowNo];
+        const lineElem = prev ?? document.createElement("div");
+        lineElem.className = "editor-line";
+        this.#buildLineFragments(lineElem, line);
         return lineElem;
     }
 
@@ -103,25 +113,26 @@ export class EditorView extends View {
      *
      * @param {grid.Leaf<state.Cell>} leaf The leaf to view.
      * @param {point.P2} p The position of the upper-left corner of the leaf.
+     * @param {HTMLElement} [prev] An existing leaf element to update in place.
      * @returns {HTMLElement} The HTML element generated to represent
      *     this leaf.
      */
-    viewLeaf(leaf, p) {
+    viewLeaf(leaf, p, prev) {
         const sz = leaf.dims;
-
-        // Specify the position of the cell using CSS grid syntax.
         const gridSpec = `${p.y + 1}/${p.x + 1}/span ${sz.height}/span ${sz.width}`;
 
-        const leafElem = document.createElement("div");
+        const leafElem = prev ?? document.createElement("div");
         leafElem.className      = "editor-leaf";
         leafElem.style.width    = `${sz.width}ch`;
         leafElem.style.position = "relative";
         leafElem.style.gridArea = gridSpec;
 
-        // Construct the inside of the cell.
-        for(let rowNo = 0; rowNo < leaf.data.lines.length; ++rowNo) {
-            leafElem.appendChild(this.viewLine(rowNo, leaf, p));
-        }
+        const lineIndices = leaf.data.lines.map((_, i) => i);
+        util.reconcileChildren(
+            leafElem, lineIndices,
+            (rowNo, lineElem) => this.viewLine(rowNo, leaf, p, lineElem),
+            (rowNo) => this.viewLine(rowNo, leaf, p)
+        );
 
         this.viewLeafSelection(leaf, leafElem);
         return leafElem;
@@ -188,24 +199,24 @@ export class EditorView extends View {
     /**
      * View the editor state as an HTML object rooted at `root`.
      *
+     * @param {HTMLElement} [prev] An existing element to update in place.
      * @returns {HTMLElement}
      */
-    view() {
-        if(!this._root) {
-            this._root = document.createElement("div");
-            this._root.style.display = "inline-grid";
-            this._root.style.gridTemplateColumns = "1ch";
-            this._root.style.gridTemplateRows = "1em";
-        }
+    view(prev) {
+        const root = prev ?? document.createElement("div");
+        root.style.display = "inline-grid";
+        root.style.gridTemplateColumns = "1ch";
+        root.style.gridTemplateRows = "1em";
+        this._root = root;
 
-        this._root.replaceChildren();
+        const leaves = [...grid.allLeavesWithPosition(this.state.grid)];
+        util.reconcileChildren(
+            root, leaves,
+            ([leaf, p], prev) => this.viewLeaf(leaf, p, prev),
+            ([leaf, p]) => this.viewLeaf(leaf, p)
+        );
 
-        const leaves = grid.allLeavesWithPosition(this.state.grid);
-        for(const [leaf, p] of leaves) {
-            this._root.appendChild(this.viewLeaf(leaf, p));
-        }
-
-        return this._root;
+        return root;
     }
 
     /**
