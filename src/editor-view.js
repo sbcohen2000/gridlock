@@ -2,6 +2,7 @@ import * as grid from "./grid.js";
 import * as point from "./point.js";
 import * as serialize from "./editor/serialize.js";
 import * as state from "./editor.js";
+import * as util from "./util.js";
 import { View } from "./view.js";
 
 /**
@@ -94,6 +95,7 @@ export class EditorView extends View {
         btn.innerText = "save";
         btn.onclick = () => {
             const serialized = serialize.printCellGrid(this.state.grid);
+            console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
             localStorage.setItem("editorState", serialized);
         };
         return btn;

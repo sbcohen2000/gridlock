@@ -42,3 +42,33 @@ export function assert(cond, msg) {
     if(cond) return;
     throw new Error(`Assertion failure. ${msg ?? ""}`);
 }
+
+/**
+ * Pad a string to the right with spaces so that, if it was shorter
+ * than `len`, its width is equal to `len`.
+ *
+ * @param {string} str The string to pad
+ * @param {number} len The desired length of the string
+ * @returns {string}
+ */
+export function padRightToLength(str, len) {
+    let out = str;
+    for(let i = str.length; i < len; ++i) {
+        out += " ";
+    }
+    return out;
+}
+
+/**
+ * Log the given string as a copy-pastable JavaScript expression.
+ *
+ * @param {string} str
+ */
+export function showMultilineString(str) {
+    const linePfx = "      ";
+    const lines   = str.split("\n");
+    const escaped = lines.map(line => JSON.stringify(line + "\n"));
+    const longest = escaped.reduce((maxL, line) => Math.max(maxL, line.length), 0);
+    const padded  = escaped.map(line => padRightToLength(line, longest));
+    return "const src =\n" + linePfx + padded.join(`+\n${linePfx}`) + ";"
+}
