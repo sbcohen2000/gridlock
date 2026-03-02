@@ -33,6 +33,7 @@ $  npx mocha -g "Can parse a leaf"
 This will run the test called "Can parse a leaf".
 
 ## TODO
+- [ ] Example palette
 - [ ] Command palette
 - [x] Visualize spaces in the editor with a dot.
 - [x] Ctrl-f should skip over the end/beginning of a leaf if there is
@@ -55,6 +56,18 @@ This will run the test called "Can parse a leaf".
     - [ ] Dragging a rule without resizing the cell to the left (it
             shifts contents between two cells, effectively only changing
             the position of the rule).
+- [ ] Usability
+  - [ ] It should be possible to enter select/cell/edge mode by
+      clicking on an edge while in text mode.
+  - [ ] Select edges/cells should be split into two separate modes
+  - [ ] It should be possible to enter cell selection mode from text
+      mode by double-clicking. (Maybe double-clicking explicitly on a
+      non-text portion of the cell?)
+  - [ ] A cell should be designated with a "fill" character other than
+        space.
+- [ ] Aesthetics
+  - [ ] It should be possible to hide a guide (how will the user show
+        it again? Is hover sufficient?)
 
 ## Dev's TODOs
 - [ ] Can we start with a table, which always stays constrained (for
