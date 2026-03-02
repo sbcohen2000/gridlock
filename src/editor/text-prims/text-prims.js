@@ -223,6 +223,7 @@ export function putPointAtEndOfGlobalLine(st) {
     st.selection.leaf = last;
     st.selection.pt.y = relRow;
     st.selection.pt.x = col;
+    _updateLastGlobalCol(st);
     return true;
 }
 
@@ -256,12 +257,16 @@ export function putPointOnNextGlobalLine(st) {
     if(pointOnLastGlobalLine(st)) {
         return false;
     }
-
     const globalPt = _findGlobalPoint(st);
+
+    // Find the last column with textual content.
+    const textOnNextGlobalLine = textOnGlobalLine(st, globalPt.y + 1);
+    const lastColumn           = textOnNextGlobalLine.length;
+
     return putPointOnGlobalPosition(
         st,
         point.mkP2(
-            st.selection.lastGlobalCol,
+            Math.min(st.selection.lastGlobalCol, lastColumn),
             globalPt.y + 1
         ),
         false
@@ -297,12 +302,16 @@ export function putPointOnPrevGlobalLine(st) {
     if(pointOnFirstGlobalLine(st)) {
         return false;
     }
-
     const globalPt = _findGlobalPoint(st);
+
+    // Find the last column with textual content.
+    const textOnNextGlobalLine = textOnGlobalLine(st, globalPt.y - 1);
+    const lastColumn           = textOnNextGlobalLine.length;
+
     return putPointOnGlobalPosition(
         st,
         point.mkP2(
-            st.selection.lastGlobalCol,
+            Math.min(st.selection.lastGlobalCol, lastColumn),
             globalPt.y - 1
         ),
         false
@@ -338,8 +347,25 @@ export function putPointOnNextGlobalCol(st) {
         return false;
     }
 
-    const globalPt = _findGlobalPoint(st);
-    return putPointOnGlobalPosition(st, point.offset(globalPt, point.mkV2(1, 0)));
+    const localLine = st.selection.leaf.data.lines[st.selection.pt.y];
+    const atEndOfLocalLine = st.selection.pt.x === localLine.length;
+
+    if(atEndOfLocalLine) {
+        // Skip ahead to the beginning of the next leaf.
+
+        const upperLeft = grid.posOfLeaf(st.grid, st.selection.leaf);
+        // Offset the leaf's upper left by the full width of the leaf
+        // and the local row number.
+        const globalPt  = point.offset(upperLeft, point.mkV2(
+            st.selection.leaf.dims.width,
+            st.selection.pt.y
+        ));
+        return putPointOnGlobalPosition(st, globalPt);
+    } else {
+        // Advance the point locally.
+        return putPointOnNextCol(st);
+    }
+
 }
 
 /**
@@ -486,6 +512,33 @@ export function globalLineIsEmpty(st) {
 
         return leaf.data.lines[relRow].length === 0;
     });
+}
+
+/**
+ * Get the full text content of the given row by concatenating the
+ * local lines from each leaf on the row, and inserting spaces to make
+ * up the space between leaves.
+ *
+ * @param {state.EditingText} st
+ * @param {number} row
+ * @returns {string}
+ */
+export function textOnGlobalLine(st, row) {
+    let text = '';
+    let x = 0;
+    for(const leaf of grid.leavesUnderRow(st.grid, row)) {
+        const leafPos = grid.posOfLeaf(st.grid, leaf);
+        const relRow = row - leafPos.y;
+        const line = leaf.data.lines[relRow];
+
+        for(let xx = x; xx < leafPos.x; ++xx) {
+            text += " ";
+        }
+
+        text += line;
+        x += text.length;
+    }
+    return text.trimEnd();
 }
 
 /*****************************************************************************/

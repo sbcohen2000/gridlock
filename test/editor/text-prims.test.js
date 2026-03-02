@@ -315,3 +315,82 @@ describe("removeGlobalLine", () => {
         expect(serialize.printCellGrid(st.grid)).to.equal(exp);
     });
 });
+
+describe("putPointOnNextGlobalLine", () => {
+    it("Does the `right` thing on a large document", async () => {
+        const src =
+              "function x() {             // Note 3\n"              +
+              "  return 2;                // Note 1\n"              +
+              "}\n"                                                 +
+              "                           // Note 2\n"              +
+              "\n"                                                  +
+              "// blah blah hello.\n"                               +
+              "\n"                                                  +
+              "\n"                                                  +
+              "function y(modify     y, z) {\n"                     +
+              "           // p1\n"                                  +
+              "              //      p2\n"                          +
+              "                      // p3   // Note 2\n"           +
+              "}\n"                                                 +
+              "+--------------------------+---------------------+\n"+
+              "|                          |                     |\n"+
+              "|                          |                     |\n"+
+              "|                          |                     |\n"+
+              "+--------------------------+--+------------------+\n"+
+              "|                             |                  |\n"+
+              "|                             |                  |\n"+
+              "+---------------------+-------+--------+-+-------+\n"+
+              "|                     |       |        | |       |\n"+
+              "|                     |       |        | |       |\n"+
+              "|                     |       |        | |       |\n"+
+              "|                     |       |        +-+       |\n"+
+              "|                     |       |        +-+       |\n"+
+              "+---------------------+-------+--------+-+-------+";
+
+        const st = serialize.editorStateFromString(src);
+
+        // Put point on the end of the first line.
+        state.textPrims.putPointOnGlobalPosition(st, point.mkOrigin(), true);
+        state.textPrims.putPointAtEndOfGlobalLine(st);
+
+        // Put an `X` and go down a line.
+        let fuel = 1000;
+        do {
+            await state.textPrims.insertString(st, "X", glpk, false);
+            ++fuel;
+        } while(state.textPrims.putPointOnNextGlobalLine(st) && fuel > 0);
+
+        expect(fuel).to.be.greaterThan(0);
+
+        const exp =
+              "function x() {             // Note 3X\n"              +
+              "  return 2;                // Note 1X\n"              +
+              "}X\n"                                                 +
+              "                           // Note 2X\n"              +
+              "X\n"                                                  +
+              "// blah blah hello.X\n"                               +
+              "X\n"                                                  +
+              "X\n"                                                  +
+              "function y(modify     y, z) {X\n"                     +
+              "           // p1X\n"                                  +
+              "              //      p2X\n"                          +
+              "                      // p3   // NotXe 2\n"           +
+              "}X\n"                                                 +
+              "+--------------------------+----------------------+\n"+
+              "|                          |                      |\n"+
+              "|                          |                      |\n"+
+              "|                          |                      |\n"+
+              "+--------------------------+--+-------------------+\n"+
+              "|                             |                   |\n"+
+              "|                             |                   |\n"+
+              "+---------------------+-------+---------+-+-------+\n"+
+              "|                     |       |         | |       |\n"+
+              "|                     |       |         | |       |\n"+
+              "|                     |       |         | |       |\n"+
+              "|                     |       |         +-+       |\n"+
+              "|                     |       |         +-+       |\n"+
+              "+---------------------+-------+---------+-+-------+";
+
+        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+    });
+});
