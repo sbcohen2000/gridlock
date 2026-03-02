@@ -28,7 +28,6 @@ export class EditorView extends View {
     /**
      * View a particular line of the given leaf.
      *
-     * @abstract
      * @param {number} rowNo The index of the line to view.
      * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
      * @param {point.P2} p The position of the upper-left corner of the leaf.
@@ -36,10 +35,13 @@ export class EditorView extends View {
      *     this line.
      */
     viewLine(rowNo, leaf, p) {
-        void rowNo;
-        void leaf;
         void p;
-        throw new Error("Method not implemented");
+
+        const line = leaf.data.lines[rowNo];
+        const lineElem = document.createElement("div");
+        lineElem.className = "editor-line";
+        lineElem.innerText = line;
+        return lineElem;
     }
 
     /**

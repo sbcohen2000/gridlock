@@ -34,10 +34,9 @@ export class TextEditingView extends EditorView {
      *     this line.
      */
     viewLine(rowNo, leaf, p) {
+        const lineElem = super.viewLine(rowNo, leaf, p);
+
         const line = leaf.data.lines[rowNo];
-        const lineElem = document.createElement("div");
-        lineElem.className = "editor-line";
-        lineElem.innerText = line;
         lineElem.onmousedown = (e) => {
             const rect = lineElem.getBoundingClientRect();
             // Find the portion of the `lineElem` which is

@@ -30,22 +30,6 @@ class CellSlicingView extends EditorView {
     }
 
     /**
-     * @param {number} rowNo
-     * @param {grid.Leaf<state.Cell>} leaf
-     * @param {point.P2} p
-     * @returns {HTMLElement}
-     */
-    viewLine(rowNo, leaf, p) {
-        void p;
-
-        const line = leaf.data.lines[rowNo];
-        const lineElem = document.createElement("div");
-        lineElem.className = "editor-line";
-        lineElem.innerText = line;
-        return lineElem;
-    }
-
-    /**
      * Perform the slice at the current hover position and return to
      * cell-editing mode.
      *

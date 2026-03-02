@@ -96,25 +96,6 @@ export class CellEditingView extends EditorView {
     }
 
     /**
-     * View a particular line of the given leaf.
-     *
-     * @param {number} rowNo The index of the line to view.
-     * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
-     * @param {point.P2} p The position of the upper-left corner of the leaf.
-     * @returns {HTMLElement} The HTML element generated to represent
-     *     this line.
-     */
-    viewLine(rowNo, leaf, p) {
-        void p;
-
-        const line = leaf.data.lines[rowNo];
-        const lineElem = document.createElement("div");
-        lineElem.className = "editor-line";
-        lineElem.innerText = line;
-        return lineElem;
-    }
-
-    /**
      * An `AbortController` which is used to discard GLPK results
      * which become out-of-date before they can be applied to graph
      * when the user drags a vertical guide quickly.
