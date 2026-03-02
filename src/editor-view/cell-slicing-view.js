@@ -104,15 +104,14 @@ class CellSlicingView extends EditorView {
         }
     }
 
-    toolbarItems() {
-        const cellModeButton = document.createElement("span");
-        cellModeButton.className = "editor-button";
-        cellModeButton.innerText = "cell mode";
-        cellModeButton.onclick = () => {
-            this.requestReplaceEditorView(state.editCells(this.#scState));
-        };
-
-        return [cellModeButton, this.saveButton()];
+    describeToolbarItems() {
+        return [{
+            type: "button",
+            label: "cell mode",
+            onclick: () => {
+                this.requestReplaceEditorView(state.editCells(this.#scState));
+            },
+        }, ...super.describeToolbarItems()];
     }
 }
 

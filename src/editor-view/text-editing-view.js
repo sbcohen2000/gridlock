@@ -96,22 +96,14 @@ export class TextEditingView extends EditorView {
         }
     }
 
-    /**
-     * Return a sequence of HTML elements representing the editor
-     * view's toolbar items.
-     *
-     * @virtual
-     * @returns {HTMLElement[]}
-     */
-    toolbarItems() {
-        const cellModeButton = document.createElement("span");
-        cellModeButton.className = "editor-button";
-        cellModeButton.innerText = "cell mode";
-        cellModeButton.onclick = () => {
-            this.requestReplaceEditorView(state.editCells(this.#teState))
-        };
-
-        return [cellModeButton, this.saveButton()];
+    describeToolbarItems() {
+        return [{
+            type: "button",
+            label: "cell mode",
+            onclick: () => {
+                this.requestReplaceEditorView(state.editCells(this.#teState))
+            },
+        }, ...super.describeToolbarItems()];
     }
 
     /**

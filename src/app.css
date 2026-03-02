@@ -41,10 +41,16 @@
 }
 
 .editor-button {
+    background-image: linear-gradient(gainsboro, gray);
+    color: white;
     cursor: pointer;
     font-family: sans-serif;
     font-size: 0.8em;
     outline: 1px solid gray;
+    text-shadow: 0 0 2px black;
+}
+
+.editor-button:hover {
     background-image: linear-gradient(gray, gainsboro);
 }
 

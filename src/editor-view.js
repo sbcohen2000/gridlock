@@ -2,6 +2,7 @@ import * as grid from "./grid.js";
 import * as point from "./point.js";
 import * as serialize from "./editor/serialize.js";
 import * as state from "./editor.js";
+import * as toolbar from "./editor-view/toolbar.js";
 import * as util from "./util.js";
 import { View } from "./view.js";
 
@@ -121,31 +122,37 @@ export class EditorView extends View {
     }
 
     /**
-     * Create a save button that persists the current grid to localStorage.
+     * Return a sequence of HTML elements representing the editor
+     * view's toolbar items.
      *
-     * @returns {HTMLElement}
+     * @returns {toolbar.ToolbarDescription[]}
      */
-    saveButton() {
-        const btn = document.createElement("span");
-        btn.className = "editor-button";
-        btn.innerText = "save";
-        btn.onclick = () => {
-            const serialized = serialize.printCellGrid(this.state.grid);
-            console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
-            localStorage.setItem("editorState", serialized);
-        };
-        return btn;
+    describeToolbarItems() {
+        return [{
+            type: "button",
+            label: "clear",
+            onclick: () => {
+                this.requestReplaceEditorView(state.mk());
+            },
+        }, {
+            type: "button",
+            label: "save",
+            onclick: () => {
+                const serialized = serialize.printCellGrid(this.state.grid);
+                console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
+                localStorage.setItem("editorState", serialized);
+            },
+        }]
     }
 
     /**
      * Return a sequence of HTML elements representing the editor
      * view's toolbar items.
      *
-     * @virtual
      * @returns {HTMLElement[]}
      */
     toolbarItems() {
-        return [];
+        return this.describeToolbarItems().map(toolbar.mkToolbarItem);
     }
 
     /**

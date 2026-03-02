@@ -398,28 +398,25 @@ export class CellEditingView extends EditorView {
         return root;
     }
 
-    toolbarItems() {
-        const textModeButton = document.createElement("span");
-        textModeButton.className = "editor-button";
-        textModeButton.innerText = "text mode";
-        textModeButton.onclick = () => {
-            this.requestReplaceEditorView(state.editText(this.#ceState))
-        };
-
-        const sliceVButton = document.createElement("span");
-        sliceVButton.className = "editor-button";
-        sliceVButton.innerText = "slice ─";
-        sliceVButton.onclick = () => {
-            this.requestReplaceEditorView(state.sliceCellsVertically(this.#ceState));
-        };
-
-        const sliceHButton = document.createElement("span");
-        sliceHButton.className = "editor-button";
-        sliceHButton.innerText = "slice │";
-        sliceHButton.onclick = () => {
-            this.requestReplaceEditorView(state.sliceCellsHorizontally(this.#ceState));
-        };
-
-        return [textModeButton, sliceVButton, sliceHButton, this.saveButton()];
+    describeToolbarItems() {
+        return [{
+            type: "button",
+            label: "text mode",
+            onclick: () => {
+                this.requestReplaceEditorView(state.editText(this.#ceState))
+            },
+        }, {
+            type: "button",
+            label: "slice ─",
+            onclick: () => {
+                this.requestReplaceEditorView(state.sliceCellsVertically(this.#ceState));
+            },
+        }, {
+            type: "button",
+            label: "slice │",
+            onclick: () => {
+                this.requestReplaceEditorView(state.sliceCellsHorizontally(this.#ceState));
+            },
+        }, ...super.describeToolbarItems()];
     }
 }
