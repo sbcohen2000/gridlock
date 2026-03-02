@@ -25,6 +25,13 @@
     background-repeat: no-repeat;
 }
 
+.editor-trailing-space-fragment {
+    background-image: radial-gradient(circle at 50% 60%,
+                                      orange      20%,
+                                      transparent 20%,
+                                      transparent 100%);
+}
+
 .editor-cursor {
     pointer-events: none;
     width: 1ch;

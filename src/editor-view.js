@@ -55,7 +55,10 @@ export class EditorView extends View {
         const lineElem = document.createElement("div");
         lineElem.className = "editor-line";
 
-        for(const group of groupBySpaces(line)) {
+        const groups = [...groupBySpaces(line)];
+        for(let i = 0; i < groups.length; ++i) {
+            const group = groups[i];
+            const isLastGroup = i === groups.length - 1;
             if(group[0] === ' ') {
                 // Unfortunately, Safari does not respect the css
                 // background-size property in the correct way, so we
@@ -65,6 +68,9 @@ export class EditorView extends View {
                 for(let i = 0; i < group.length; ++i) {
                     const fragElem = document.createElement("span");
                     fragElem.className = "editor-space-fragment";
+                    if(isLastGroup) {
+                        fragElem.classList.add("editor-trailing-space-fragment");
+                    }
                     fragElem.innerText = ' ';
                     lineElem.appendChild(fragElem);
                 }
