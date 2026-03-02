@@ -4,6 +4,7 @@
  * @module cell-prims
  */
 
+import * as util from "../../util.js";
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as state from "../state.js";
@@ -145,6 +146,34 @@ export function splitCellHorizontallyAtColumn(st, col) {
 }
 
 /**
+ * Count the number of trailing blank lines in a leaf.
+ *
+ * @param {grid.Leaf<state.Cell>} leaf
+ * @returns {number}
+ */
+function countTrailingBlankLines(leaf) {
+    let count = 0;
+    for(let i = leaf.data.lines.length - 1; i >= 0; --i) {
+        if(leaf.data.lines[i].trim() !== "") {
+            break;
+        }
+        ++count;
+    }
+    return count;
+}
+
+/**
+ * Count the number of contentful (non blank trailing lines) in a
+ * leaf.
+ *
+ * @param {grid.Leaf<state.Cell>} leaf
+ * @returns number
+ */
+function countContentfulLines(leaf) {
+    return leaf.data.lines.length - countTrailingBlankLines(leaf);
+}
+
+/**
  * Shift the selected horizontal edge by the given number of rows. If
  * the selected edge is not horizontal, or there is no selected edge,
  * then this function does nothing.
@@ -168,12 +197,30 @@ export function modifyHorizontalEdge(st, n) {
     const leaves = [...grid.leavesUnderRow(st.grid, globalRow)];
 
     // Find the minimum height of all of the leaves.
-    const remainingHeight = leaves.reduce((h, leaf) => Math.min(h, leaf.dims.height), Infinity);
-    n = Math.max(-remainingHeight + 1, n);
+    const spaceAbove = leaves.reduce((lowest, leaf) => {
+        const trailingBlanks = Math.min(countTrailingBlankLines(leaf), leaf.data.lines.length - 1);
+        return Math.min(lowest, trailingBlanks);
+    }, Infinity);
+    n = Math.max(-spaceAbove, n);
     if(n === 0) {
         return false;
     }
 
     st.grid = grid.modifyHeightOfLeaves(st.grid, n, leaves);
+
+    // Add or remove lines of text from each leaf so that the leaf's
+    // grid height agrees with the number of lines.
+    for(const leaf of leaves) {
+        const h = leaf.dims.height;
+
+        if(leaf.data.lines.length < h) {
+            // Need to add additional lines.
+            for(let i = leaf.data.lines.length; i < h; ++i) leaf.data.lines.push("");
+        } else {
+            // Need to remove lines.
+            leaf.data.lines = leaf.data.lines.slice(0, h);
+        }
+    }
+
     return true;
 }

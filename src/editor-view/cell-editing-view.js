@@ -375,12 +375,7 @@ export class CellEditingView extends EditorView {
             const sel = this.#ceState.selection;
 
             const ds = this.#dragState;
-            if(ds.dir === "UpDown") {
-                const dyPx   = e.clientY - ds.dragOriginPx.y;
-                const dyGrid = ds.dragOriginGrid.y + Math.round(dyPx / ds.gridScale.dy);
-
-                throw new Error("TODO");
-            } else {
+            if(ds.dir === "LeftRight") {
                 const dxPx         = e.clientX - ds.dragOriginPx.x;
                 const dxGrid       = ds.dragOriginGrid.x + Math.round(dxPx / ds.gridScale.dx);
                 const upperLeft    = grid.posOfLeaf(this.#ceState.grid, ds.leftLeaf);
@@ -403,7 +398,19 @@ export class CellEditingView extends EditorView {
                         this.requestRedraw();
                     }
                 });
+            } else {
+                const dyPx         = e.clientY - ds.dragOriginPx.y;
+                const dyGrid       = ds.dragOriginGrid.y + Math.round(dyPx / ds.gridScale.dy);
+                const upperLeft    = grid.posOfLeaf(this.#ceState.grid, ds.leftLeaf);
+                const currentEdgeY = upperLeft.y + ds.leftLeaf.dims.height;
+                const targetEdgeY  = dyGrid;
+                const dh = targetEdgeY - currentEdgeY;
+
+                if(state.cellPrims.modifyHorizontalEdge(this.#ceState, dh)) {
+                    this.requestRedraw();
+                }
             }
+
         };
 
         root.onpointerup = (e) => {
