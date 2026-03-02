@@ -399,24 +399,7 @@ export class CellEditingView extends EditorView {
     }
 
     describeToolbarItems() {
-        return [{
-            type: "button",
-            label: "text mode",
-            onclick: () => {
-                this.requestReplaceEditorView(state.editText(this.#ceState))
-            },
-        }, {
-            type: "button",
-            label: "slice ─",
-            onclick: () => {
-                this.requestReplaceEditorView(state.sliceCellsVertically(this.#ceState));
-            },
-        }, {
-            type: "button",
-            label: "slice │",
-            onclick: () => {
-                this.requestReplaceEditorView(state.sliceCellsHorizontally(this.#ceState));
-            },
-        }, ...super.describeToolbarItems()];
+        return super.describeToolbarItems().map(descr =>
+            descr.label === "select cells/edges" ? { ...descr, disabled: true } : descr);
     }
 }

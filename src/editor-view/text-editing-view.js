@@ -1,6 +1,7 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as state from "../editor.js";
+import * as toolbar from "./toolbar.js";
 import * as view from "../view.js";
 import { EditorView } from "../editor-view.js";
 import { View } from "../view.js";
@@ -96,14 +97,12 @@ export class TextEditingView extends EditorView {
         }
     }
 
+    /**
+     * @returns {toolbar.ToolbarDescription[]}
+     */
     describeToolbarItems() {
-        return [{
-            type: "button",
-            label: "cell mode",
-            onclick: () => {
-                this.requestReplaceEditorView(state.editCells(this.#teState))
-            },
-        }, ...super.describeToolbarItems()];
+        return super.describeToolbarItems().map(descr =>
+            descr.label === "edit text" ? { ...descr, disabled: true } : descr);
     }
 
     /**

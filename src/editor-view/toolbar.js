@@ -1,8 +1,9 @@
 /**
  * @typedef {Object} ToolbarButtonDescription
- * @property {"button"}   type      The type of description.
- * @property {string}     [label]   The button's label.
- * @property {() => void} [onclick] What should happen when the button is clicked.
+ * @property {"button"}   type       The type of description.
+ * @property {string}     [label]    The button's label.
+ * @property {boolean}    [disabled] Whether or not the button is disabled.
+ * @property {() => void} [onclick]  What should happen when the button is clicked.
  */
 
 /**
@@ -20,6 +21,9 @@ function mkToolbarButton(descr) {
 
     const buttonElem = document.createElement("span");
     buttonElem.className = "editor-button";
+    if(descr.disabled ?? false) {
+        buttonElem.classList.add("editor-button-disabled");
+    }
     buttonElem.innerText = descr.label ?? "button";
     buttonElem.onclick = descr.onclick ?? (() => {});
 

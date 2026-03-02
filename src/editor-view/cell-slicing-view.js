@@ -103,16 +103,6 @@ class CellSlicingView extends EditorView {
             leafElem.appendChild(preview);
         }
     }
-
-    describeToolbarItems() {
-        return [{
-            type: "button",
-            label: "cell mode",
-            onclick: () => {
-                this.requestReplaceEditorView(state.editCells(this.#scState));
-            },
-        }, ...super.describeToolbarItems()];
-    }
 }
 
 export class VerticalCellSlicingView extends CellSlicingView {
@@ -149,6 +139,11 @@ export class VerticalCellSlicingView extends CellSlicingView {
         preview.style.pointerEvents = "none";
         return preview;
     }
+
+    describeToolbarItems() {
+        return super.describeToolbarItems().map(descr =>
+            descr.label === "split vertically" ? { ...descr, disabled: true } : descr);
+    }
 }
 
 export class HorizontalCellSlicingView extends CellSlicingView {
@@ -184,5 +179,10 @@ export class HorizontalCellSlicingView extends CellSlicingView {
         preview.style.borderLeft = "1px dashed";
         preview.style.pointerEvents = "none";
         return preview;
+    }
+
+    describeToolbarItems() {
+        return super.describeToolbarItems().map(descr =>
+            descr.label === "split horizontally" ? { ...descr, disabled: true } : descr);
     }
 }

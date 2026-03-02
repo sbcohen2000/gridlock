@@ -130,6 +130,30 @@ export class EditorView extends View {
     describeToolbarItems() {
         return [{
             type: "button",
+            label: "edit text",
+            onclick: () => {
+                this.requestReplaceEditorView(state.editText(this.state));
+            }
+        }, {
+            type: "button",
+            label: "select cells/edges",
+            onclick: () => {
+                this.requestReplaceEditorView(state.editCells(this.state));
+            }
+        }, {
+            type: "button",
+            label: "split vertically",
+            onclick: () => {
+                this.requestReplaceEditorView(state.sliceCellsVertically(this.state));
+            }
+        }, {
+            type: "button",
+            label: "split horizontally",
+            onclick: () => {
+                this.requestReplaceEditorView(state.sliceCellsHorizontally(this.state));
+            }
+        }, {
+            type: "button",
             label: "clear",
             onclick: () => {
                 this.requestReplaceEditorView(state.mk());

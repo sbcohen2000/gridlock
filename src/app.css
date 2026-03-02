@@ -54,6 +54,10 @@
     background-image: linear-gradient(gray, gainsboro);
 }
 
+.editor-button-disabled {
+    filter: contrast(50%);
+}
+
 .editor-edge-halo {
     background-color: #96d8eb;
     position: absolute;
