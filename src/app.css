@@ -16,20 +16,24 @@
 }
 
 .editor-space-fragment {
-    background-image: radial-gradient(circle at 50% 60%,
-                                      gainsboro   20%,
-                                      transparent 20%,
-                                      transparent 100%);
+    background-image: radial-gradient(
+        circle at 50% 60%,
+        gainsboro   20%,
+        transparent 20%,
+        transparent 100%
+    );
     background-attachment: local;
     background-size: 1ch 1em;
     background-repeat: no-repeat;
 }
 
 .editor-trailing-space-fragment {
-    background-image: radial-gradient(circle at 50% 60%,
-                                      orange      20%,
-                                      transparent 20%,
-                                      transparent 100%);
+    background-image: radial-gradient(
+        circle at 50% 60%,
+        orange      20%,
+        transparent 20%,
+        transparent 100%
+    );
 }
 
 .editor-cursor {
