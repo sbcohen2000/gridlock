@@ -129,6 +129,10 @@ export class CellEditingView extends EditorView {
      * @property {point.P2} dragOriginGrid        The drag origin in grid units
      * @property {point.V2} gridScale             The number of pixels in a grid square
      * @property {"UpDown" | "LeftRight"} dir     The direction of the drag.
+     * @property {number} lastArg                 The last dh/dw argument we passed to
+     *                                            modifyHeight/modifyHeight. We remember
+     *                                            this in order to not call these functions
+     *                                            unless their argument has actually changed.
      * @property {grid.Leaf<state.Cell>} leftLeaf The leaf whose width or height to modify.
      */
 
@@ -263,7 +267,8 @@ export class CellEditingView extends EditorView {
                     dragOriginGrid: point.mkP2(gridCol, gridRow),
                     gridScale: point.mkV2(rootRect.width / gridW, rootRect.height / gridH),
                     dir: edge === "Above" || edge === "Below" ? "UpDown" : "LeftRight",
-                    leftLeaf
+                    leftLeaf,
+                    lastArg: 0
                 };
             } else {
                 state.cellPrims.selectLeafUnderPoint(this.#ceState, pt, !e.shiftKey);
@@ -377,11 +382,14 @@ export class CellEditingView extends EditorView {
                     abortSignal: this.#GLPKAbortController.signal
                 };
 
-                state.cellPrims.modifyVerticalEdge(this.#ceState, dw, theGLPKInstance.glpk, settings).then(didUpdate => {
-                    if(didUpdate) {
-                        this.requestRedraw();
-                    }
-                });
+                if(this.#dragState.lastArg !== dw && dw !== 0) {
+                    state.cellPrims.modifyVerticalEdge(this.#ceState, dw, theGLPKInstance.glpk, settings).then(didUpdate => {
+                        if(didUpdate) {
+                            this.requestRedraw();
+                        }
+                    });
+                }
+                this.#dragState.lastArg = dw;
             } else {
                 const dyPx         = e.clientY - ds.dragOriginPx.y;
                 const dyGrid       = ds.dragOriginGrid.y + Math.round(dyPx / ds.gridScale.dy);
@@ -390,9 +398,12 @@ export class CellEditingView extends EditorView {
                 const targetEdgeY  = dyGrid;
                 const dh = targetEdgeY - currentEdgeY;
 
-                if(state.cellPrims.modifyHorizontalEdge(this.#ceState, dh)) {
-                    this.requestRedraw();
+                if(this.#dragState.lastArg !== dh && dh !== 0) {
+                    if(state.cellPrims.modifyHorizontalEdge(this.#ceState, dh)) {
+                        this.requestRedraw();
+                    }
                 }
+                this.#dragState.lastArg = dh;
             }
         };
 

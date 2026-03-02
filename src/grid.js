@@ -818,22 +818,14 @@ export async function modifyWidth(g, w, focus, glpk, settings) {
 
     // Step 3: Build the LP problem
 
-    // Create variable names: s_0, s_1, ..., s_n-1, e_0, e_1, ..., e_n-1
+    // Create variable names: e_0, e_1, ..., e_n-1
     const vars = [];
     const subjectTo = [];
 
-    // Variables for each leaf (shift and expand)
+    // Variables for each leaf
     for(let i = 0; i < leaves.length; i++) {
-        vars.push({ name: `s_${i}`, coef: 0 });
         vars.push({ name: `e_${i}`, coef: 0 });
     }
-
-    // Constraint: s_focus = 0
-    subjectTo.push({
-        name: `focus_shift`,
-        vars: [{ name: `s_${focusIdx}`, coef: 1 }],
-        bnds: { type: glpk.GLP_FX, ub: 0, lb: 0 }
-    });
 
     // Constraint: e_focus = n
     subjectTo.push({
@@ -862,14 +854,13 @@ export async function modifyWidth(g, w, focus, glpk, settings) {
 
 
     // Constraint: For each connected component, and each path of the
-    // connected component, sum of shifts and expansions = n
+    // connected component, sum of expansions = n
     deps.forEach((cc, ccIdx) => {
         allPaths(cc).forEach(path => {
-            const pathVars = path.flatMap(leaf => {
+            const pathVars = path.map(leaf => {
                 const idx = leafToIdx.get(leaf);
-                return [ { name: `s_${idx}`, coef: 1 }, { name: `e_${idx}`, coef: 1 } ];
+                return { name: `e_${idx}`, coef: 1 };
             });
-
             subjectTo.push({
                 name: `cc_${ccIdx}`,
                 vars: pathVars,
@@ -878,22 +869,13 @@ export async function modifyWidth(g, w, focus, glpk, settings) {
         });
     });
 
-    // Constraint: For each alignment set, shifts are equal and expansions are equal
+    // Constraint: For each alignment set, expansions are equal
     constraints.forEach((alignSet, setIdx) => {
         if(alignSet.length < 2) return;
 
         const firstIdx = leafToIdx.get(alignSet[0]);
         for(let i = 1; i < alignSet.length; i++) {
             const idx = leafToIdx.get(alignSet[i]);
-            // s_first - s_i = 0
-            subjectTo.push({
-                name: `align_s_${setIdx}_${i}`,
-                vars: [
-                    { name: `s_${firstIdx}`, coef: 1 },
-                    { name: `s_${idx}`, coef: -1 }
-                ],
-                bnds: { type: glpk.GLP_FX, ub: 0, lb: 0 }
-            });
             // e_first - e_i = 0
             subjectTo.push({
                 name: `align_e_${setIdx}_${i}`,

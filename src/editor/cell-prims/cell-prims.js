@@ -165,6 +165,9 @@ export async function modifyVerticalEdge(st, n, glpk, settings) {
         return false;
     }
 
+    settings.measure = (leaf) => leaf.data.lines.reduce((maxLen, line) =>
+        Math.max(maxLen, line.length), 0);
+
     const leftLeaf = leafAssociatedWithEdgeSelection(st);
     const g = await grid.modifyWidth(st.grid, n, leftLeaf, glpk, settings);
     if(g !== null) {
