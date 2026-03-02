@@ -62,10 +62,9 @@ class AppView extends View {
         toolbarElem.className = "editor-toolbar";
 
         const descriptions = this.#editorView.describeToolbarItems();
-        util.reconcileChildren(
+        util.recycleChildren(
             toolbarElem, descriptions,
-            (descr, prevItem) => mkToolbarItem(descr, prevItem),
-            (descr) => mkToolbarItem(descr)
+            (descr, prev) => mkToolbarItem(descr, prev)
         );
         return toolbarElem;
     }
@@ -78,10 +77,9 @@ class AppView extends View {
      */
     view(prev) {
         const root = prev ?? document.createElement("div");
-        util.reconcileChildren(
-            root, [0, 1],
-            (idx, prev) => idx === 0 ? this.#viewToolbar(prev) : this.#editorView.view(prev),
-            (idx) => idx === 0 ? this.#viewToolbar() : this.#editorView.view()
+        util.recycleConstChildren(root,
+            (prev) => this.#viewToolbar(prev),
+            (prev) => this.#editorView.view(prev)
         );
         return root;
     }

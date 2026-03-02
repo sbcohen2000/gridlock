@@ -128,10 +128,9 @@ export class EditorView extends View {
         leafElem.style.gridArea = gridSpec;
 
         const lineIndices = leaf.data.lines.map((_, i) => i);
-        util.reconcileChildren(
+        util.recycleChildren(
             leafElem, lineIndices,
-            (rowNo, lineElem) => this.viewLine(rowNo, leaf, p, lineElem),
-            (rowNo) => this.viewLine(rowNo, leaf, p)
+            (rowNo, prev) => this.viewLine(rowNo, leaf, p, prev)
         );
 
         this.viewLeafSelection(leaf, leafElem);
@@ -193,7 +192,7 @@ export class EditorView extends View {
      * @returns {HTMLElement[]}
      */
     toolbarItems() {
-        return this.describeToolbarItems().map(toolbar.mkToolbarItem);
+        return this.describeToolbarItems().map(descr => toolbar.mkToolbarItem(descr));
     }
 
     /**
@@ -210,10 +209,9 @@ export class EditorView extends View {
         this._root = root;
 
         const leaves = [...grid.allLeavesWithPosition(this.state.grid)];
-        util.reconcileChildren(
+        util.recycleChildren(
             root, leaves,
-            ([leaf, p], prev) => this.viewLeaf(leaf, p, prev),
-            ([leaf, p]) => this.viewLeaf(leaf, p)
+            ([leaf, p], prev) => this.viewLeaf(leaf, p, prev)
         );
 
         return root;

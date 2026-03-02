@@ -62,34 +62,52 @@ export function padRightToLength(str, len) {
 /**
  * Reconcile the children of `parent` against a list of items.
  *
- * For each item, if there's an existing child at that index, call
- * `reconcile(item, existingChild)` to update it in place. If there's
- * no existing child, call `create(item)` to build one from scratch
- * and append it. After processing all items, remove any leftover
+ * For each item, call `render(item, prev)` where `prev` is the
+ * existing child at that index (if any). When `prev` is provided,
+ * `render` should update it in place; when absent, it should create
+ * a fresh element. After processing all items, remove any leftover
  * children.
  *
  * @template T
  * @param {HTMLElement} parent
  * @param {T[]} items
- * @param {(item: T, prev: HTMLElement) => HTMLElement} reconcile
- * @param {(item: T) => HTMLElement} create
+ * @param {(item: T, prev?: HTMLElement) => HTMLElement} render
  */
-export function reconcileChildren(parent, items, reconcile, create) {
+export function recycleChildren(parent, items, render) {
     const oldChildren = [...parent.children];
     for(let i = 0; i < items.length; ++i) {
         if(i < oldChildren.length) {
-            const updated = reconcile(items[i], /** @type {HTMLElement} */ (oldChildren[i]));
-            if(updated !== oldChildren[i]) {
+            const oldChild = /** @type {HTMLElement} */ (oldChildren[i]);
+            // Remove attributes from `oldChild` in case `oldChild` is
+            // used for a different purpose.
+            oldChild.getAttributeNames().forEach(attr => oldChild.removeAttribute(attr));
+
+            const updated = render(items[i], oldChild);
+            if(updated !== oldChild) {
+                // Updated doesn't use the same node as `oldChild`.
                 oldChildren[i].replaceWith(updated);
             }
         } else {
-            parent.appendChild(create(items[i]));
+            parent.appendChild(render(items[i]));
         }
     }
     // Remove leftover old children
     for(let i = items.length; i < oldChildren.length; ++i) {
         oldChildren[i].remove();
     }
+}
+
+/**
+ * Like `recycleChildren`, but for a fixed set of children. Each
+ * render callback produces one child; the callback receives the
+ * existing child element (if any) as `prev`.
+ *
+ * @param {HTMLElement} parent
+ * @param  {...(prev?: HTMLElement) => HTMLElement} renders
+ */
+export function recycleConstChildren(parent, ...renders) {
+    const indices = renders.map((_, i) => i);
+    recycleChildren(parent, indices, (i, prev) => renders[i](prev));
 }
 
 /**
