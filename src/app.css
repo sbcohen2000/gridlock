@@ -15,6 +15,16 @@
     white-space: preserve;
 }
 
+.editor-space-fragment {
+    background-image: radial-gradient(circle at 50% 60%,
+                                      gainsboro   20%,
+                                      transparent 20%,
+                                      transparent 100%);
+    background-attachment: local;
+    background-size: 1ch 1em;
+    background-repeat: no-repeat;
+}
+
 .editor-cursor {
     pointer-events: none;
     width: 1ch;

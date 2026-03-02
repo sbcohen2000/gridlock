@@ -24,7 +24,7 @@ This will run the test called "Can parse a leaf".
 
 ## TODO
 - [ ] Command palette
-- [ ] Visualize spaces in the editor with a dot.
+- [x] Visualize spaces in the editor with a dot.
 - [x] Ctrl-f should skip over the end/beginning of a leaf if there is
       nothing in the way.
 - [x] Dragging a rule resizes the leaf to the left of it.

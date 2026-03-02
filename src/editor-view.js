@@ -6,6 +6,19 @@ import * as util from "./util.js";
 import { View } from "./view.js";
 
 /**
+ * Group a string into a list of strings, those strings which contain
+ * no spaces, and those strings with one or more spaces.
+ *
+ * @param {string} str
+ * @returns {IteratorObject<String>}
+ */
+function groupBySpaces(str) {
+    const re = /([^ ]+)|( +)/g;
+    const matches = str.matchAll(re);
+    return matches.map(match => match[0]);
+}
+
+/**
  * An editor view is an instance of an editor state, which can show
  * itself on screen and respond to events.
  */
@@ -40,7 +53,28 @@ export class EditorView extends View {
         const line = leaf.data.lines[rowNo];
         const lineElem = document.createElement("div");
         lineElem.className = "editor-line";
-        lineElem.innerText = line;
+
+        for(const group of groupBySpaces(line)) {
+            if(group[0] === ' ') {
+                // Unfortunately, Safari does not respect the css
+                // background-size property in the correct way, so we
+                // cannot use a single element to represent all of the
+                // dots (using a background with repeat-x). Instead,
+                // we must create an element for every space.
+                for(let i = 0; i < group.length; ++i) {
+                    const fragElem = document.createElement("span");
+                    fragElem.className = "editor-space-fragment";
+                    fragElem.innerText = ' ';
+                    lineElem.appendChild(fragElem);
+                }
+            } else {
+                const fragElem = document.createElement("span");
+                fragElem.className = "editor-text-fragment";
+                fragElem.innerText = group;
+                lineElem.appendChild(fragElem);
+            }
+        }
+
         return lineElem;
     }
 
