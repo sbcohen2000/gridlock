@@ -36,40 +36,24 @@ export function selectLeafUnderPoint(st, pt, clear) {
 }
 
 /**
- * Find the leaf to the left of the selected edge. If the selection
- * isn't on edges, or the selection is on edges but a vertical edge is
- * selected, this function returns `undefined`.
+ * Find the leaf to the left, or above, the selected edge. If the
+ * selection isn't on edges, this function returns `undefined`.
+ *
+ * We care about the leaf to the left (or above) the selected edge
+ * since it's the leaf that will be expanded/contracted when the edge
+ * is moved.
  *
  * @param {state.EditingCells} st
  * @returns {grid.Leaf<state.Cell> | undefined}
  */
-export function leafLeftOfSelectedEdge(st) {
+export function leafAssociatedWithEdgeSelection(st) {
     if(st.selection.type === "Leaves") return undefined;
 
     switch(st.selection.edge) {
-    case "Left": return grid.leafToLeftOf(st.grid, st.selection.leaf);
+    case "Left":  return grid.leafToLeftOf(st.grid, st.selection.leaf);
     case "Right": return st.selection.leaf;
-    default:
-        return undefined;
-    }
-}
-
-/**
- * Find the leaf above the selected edge. If the selection isn't on
- * edges, or the selection is on edges but a horizontal edge is
- * selected, this function returns `undefined`.
- *
- * @param {state.EditingCells} st
- * @returns {grid.Leaf<state.Cell> | undefined}
- */
-export function leafAboveSelectedEdge(st) {
-    if(st.selection.type === "Leaves") return undefined;
-
-    switch(st.selection.edge) {
     case "Above": return grid.leafAbove(st.grid, st.selection.leaf);
     case "Below": return st.selection.leaf;
-    default:
-        return undefined;
     }
 }
 
@@ -163,14 +147,32 @@ function countTrailingBlankLines(leaf) {
 }
 
 /**
- * Count the number of contentful (non blank trailing lines) in a
- * leaf.
+ * Shift the selected vertical edge by the given number of rows. If
+ * the selected edge is not vertical, or there is no selected edge,
+ * then this function does nothing.
  *
- * @param {grid.Leaf<state.Cell>} leaf
- * @returns number
+ * @param {state.EditingCells} st
+ * @param {number} n
+ * @param {any} glpk
+ * @param {grid.SolveSettings<state.Cell>} [settings]
+ * @returns {Promise<boolean>} `true` if the edge position was
+ *     changed, and false otherwise.
  */
-function countContentfulLines(leaf) {
-    return leaf.data.lines.length - countTrailingBlankLines(leaf);
+export async function modifyVerticalEdge(st, n, glpk, settings) {
+    if(st.selection.type === "Leaves"
+       || st.selection.edge === "Above"
+       || st.selection.edge === "Below") {
+        return false;
+    }
+
+    const leftLeaf = leafAssociatedWithEdgeSelection(st);
+    const g = await grid.modifyWidth(st.grid, n, leftLeaf, glpk, settings);
+    if(g !== null) {
+        st.grid = g;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 /**
@@ -184,11 +186,13 @@ function countContentfulLines(leaf) {
  *     false otherwise.
  */
 export function modifyHorizontalEdge(st, n) {
-    if(st.selection.type === "Leaves") {
+    if(st.selection.type === "Leaves"
+       || st.selection.edge === "Left"
+       || st.selection.edge === "Right") {
         return false;
     }
 
-    const leftLeaf = leafAboveSelectedEdge(st);
+    const leftLeaf = leafAssociatedWithEdgeSelection(st);
 
     // TODO: how to shift text between cells?
 
