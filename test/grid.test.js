@@ -481,6 +481,27 @@ describe("modifyWidth", () => {
         expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
     });
 
+    it("Can modify the width of a leaf in a small tree, using a large negative width", async () => {
+        // This is meant to test that modifyWidth will not shrink
+        // leaves beyond a width of 1.
+        const src =
+              "+-+---+\n" +
+              "| +---+\n" +
+              "| |a  |\n" +
+              "+-+---+";
+
+        const g = grid.parseASCII(src);
+        const a = grid.leafWithLabel(g, "a");
+        await grid.modifyWidth(g, -100, a, glpk);
+        expect(grid.printASCII(g)).to.equal(
+            "+-++\n" +
+            "| ++\n" +
+            "| ||\n" +
+            "+-++"
+        );
+        expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
+    });
+
     it("Can modify the width of a leaf in a small tree (3)", async () => {
         const src =
               "+-+---+\n" +
@@ -504,7 +525,7 @@ describe("modifyWidth", () => {
         fc.assert(
             fc.property(
                 arbg.grid.tree.chain(g => {
-                    const nodes = grid.allNodes(g);
+                    const nodes = grid.allLeaves(g);
                     return fc.record({
                         g: fc.constant(g),
                         focus: fc.constantFrom(...nodes),

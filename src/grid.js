@@ -760,6 +760,9 @@ export function allPaths(tree) {
  *
  * @template A
  * @typedef {Object} SolveSettings
+ * @property {(leaf: Leaf<A>) => number} [measure] Measure the minimum
+ *     width of a leaf, so that the `modifyWidth` operation will not
+ *     shrink a smaller than the size of its content.
  * @property {Tree<A>[]} [deps] A set of dependency trees recording the
  *     horizontal positioning relationships in the grid. If it is not
  *     provided, a dependency tree will be generated from scratch.
@@ -779,7 +782,7 @@ export function allPaths(tree) {
  * @template A
  * @param {Grid<A>} g The root node of the grid.
  * @param {number} w The amount expand horizontally.
- * @param {Grid<A>} focus The grid cell to modify.
+ * @param {Leaf<A>} focus The leaf to modify.
  * @param {any} glpk The GLPK instance to use for solving.
  * @param {SolveSettings<A>} [settings] The solve settings.
  * @returns {Promise<Grid<A> | null>} The grid.
@@ -787,14 +790,21 @@ export function allPaths(tree) {
 export async function modifyWidth(g, w, focus, glpk, settings) {
     settings = settings ?? {};
 
-    const sign = Math.sign(w);
-    w = Math.abs(w);
-
     /** @type {Tree<A>[]} */
     const deps = settings.deps ?? constructDependencyTrees(g);
 
     /** @type {Leaf<A>[][]} */
     const constraints = settings.constraints ?? [];
+
+    /** @type {(a: Leaf<A>) => number} */
+    const measure = settings.measure ?? ((_) => 1);
+
+    // Adjust `w`, making it positive and also clamped on the minimum
+    // size of the focused leaf.
+    const sign = Math.sign(w);
+
+    const focusUb = sign < 0 ? focus.dims.width - Math.max(measure(focus), 1) : Infinity;
+    w = Math.min(Math.abs(w), focusUb);
 
     // Step 1: Get all leaves
     const leaves = [...allLeaves(g)];
@@ -831,6 +841,25 @@ export async function modifyWidth(g, w, focus, glpk, settings) {
         vars: [{ name: `e_${focusIdx}`, coef: 1 }],
         bnds: { type: glpk.GLP_FX, ub: w, lb: w }
     });
+
+    // Constraint: For each e_i, ensure that e_i is greater than the
+    // minimum width of its corresponding leaf. We only care about
+    // this condition when we're shrinking a leaf.
+    if(sign < 0) {
+        for(let i = 0; i < leaves.length; ++i) {
+            const leaf = leaves[i];
+            // Find the "headroom"; the width that the leaf could
+            // shrink and still have at least its minimum width.
+            const ub   = leaf.dims.width - Math.max(measure(leaf), 1);
+            const ei   = { name: `e_${i}`, coef: 1 };
+            subjectTo.push({
+                name: `${ei.name}_minWidth`,
+                vars: [ei],
+                bnds: { type: glpk.GLP_UP, ub, lb: 0 }
+            });
+        }
+    }
+
 
     // Constraint: For each connected component, and each path of the
     // connected component, sum of shifts and expansions = n
