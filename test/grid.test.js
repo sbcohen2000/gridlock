@@ -611,7 +611,7 @@ describe("modifyWidth", () => {
         fc.assert(
             fc.property(
                 arbg.grid.tree.chain(g => {
-                    const nodes = grid.allNodes(g);
+                    const nodes = grid.allLeaves(g);
                     return fc.record({
                         g: fc.constant(g),
                         focus: fc.constantFrom(...nodes),

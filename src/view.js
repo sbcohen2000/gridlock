@@ -1,3 +1,5 @@
+import * as state from "./editor.js";
+
 /**
  * @typedef {{
  *  initiator: View

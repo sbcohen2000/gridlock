@@ -659,7 +659,7 @@ export function splitCellVerticallyAtPoint(st) {
         return false;
     }
 
-    st.grid = grid.splitLeafVertically(
+    const [_newParent, newGrid] = grid.splitLeafVertically(
         st.grid,
         st.selection.leaf,
         localRow,
@@ -668,6 +668,8 @@ export function splitCellVerticallyAtPoint(st) {
             { lines: data.lines.slice(localRow) },
         ]
     );
+    st.grid = newGrid;
+
     // Recalculate selection.
     putPointOnGlobalPosition(st, globalPoint, false);
     return true;
@@ -691,7 +693,7 @@ export function splitCellHorizontallyAtPoint(st) {
         return false;
     }
 
-    st.grid = grid.splitLeafHorizontally(
+    const [_newParent, newGrid] = grid.splitLeafHorizontally(
         st.grid,
         st.selection.leaf,
         localCol,
@@ -700,6 +702,8 @@ export function splitCellHorizontallyAtPoint(st) {
             { lines: data.lines.map(line => line.slice(localCol)) },
         ]
     );
+    st.grid = newGrid;
+
     // Recalculate selection.
     putPointOnGlobalPosition(st, globalPoint, false);
     return true;

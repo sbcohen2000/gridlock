@@ -9,6 +9,16 @@ $ npm run watch
 This will start a server on `localhost` which can be accessed in your browser.
 When a source file is changed, the browser tab will be automatically refreshed.
 
+## Type Checking
+
+To typecheck all of the code in `src`, run:
+``` sh
+$ npm run typecheck
+```
+
+You may note that there are two `tsc` configuration files in the repository. `jsconfig.json` is meant to be picked-up by the editor to support typechecking in `src` and `test`.
+But, `npm run typecheck` uses `jsconfig.typecheck.json` which excludes the `test` dir, because `chai`'s type annotations don't work so well and cause too many errors.
+
 ## Running Tests
 
 To run all of the tests, run:

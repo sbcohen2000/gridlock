@@ -4,7 +4,8 @@
         "target": "esnext",
         "module": "esnext",
         "moduleResolution": "bundler",
-        "noEmit": true
+        "noEmit": true,
+        "skipLibCheck": true
     },
     "include": ["src/**/*.js", "src/**/*.d.ts", "test/**/*.js"],
     "exclude": ["node_modules", "www"]
