@@ -426,14 +426,16 @@ export function textOnGlobalLine(st, row) {
     for(const leaf of grid.leavesUnderRow(st.grid, row)) {
         const leafPos = grid.posOfLeaf(st.grid, leaf);
         const relRow = row - leafPos.y;
-        const line = leaf.data.lines[relRow];
 
         for(let xx = x; xx < leafPos.x; ++xx) {
             text += " ";
+            ++x;
         }
 
+        const line = leaf.data.lines[relRow];
+        x += line.length;
+
         text += line;
-        x += text.length;
     }
     return text.trimEnd();
 }

@@ -1,10 +1,12 @@
 import * as grid from "../grid.js";
-import * as point from "../point.js";
 import * as textPrims from "../editor/text-prims/text-prims.js";
-import * as toolbar from "./toolbar.js";
+import * as cellPrims from "../editor/cell-prims/cell-prims.js";
 import * as view from "../view.js";
-import { EditorView } from "../editor-view.js";
+import { CellEditingView } from "./cell-editing-view.js";
+import { EdgeEditingView } from "./edge-editing-view.js";
+import { EditorView, PointerEventContext } from "../editor-view.js";
 import { View } from "../view.js";
+import { standardToolbarItems } from "./standard-toolbar.js";
 import { theGLPKInstance } from "../glpk.js";
 
 /** @import { TextPrimsState, Cell } from "../editor/text-prims/state.d.ts" */
@@ -28,39 +30,32 @@ export class TextEditingView extends EditorView {
     }
 
     /**
-     * View a particular line of the given leaf.
+     * Handle a pointer-down event inside a leaf element.
      *
-     * @param {number} rowNo The index of the line to view.
-     * @param {grid.Leaf<Cell>} leaf The line's parent leaf.
-     * @param {point.P2} p The position of the upper-left corner of the leaf.
-     * @param {HTMLElement} [prev] An existing line element to update in place.
-     * @returns {HTMLElement} The HTML element generated to represent
-     *     this line.
+     * @param {PointerEventContext} ctx
      */
-    viewLine(rowNo, leaf, p, prev) {
-        const lineElem = super.viewLine(rowNo, leaf, p, prev);
+    onPointerDownInLeaf(ctx) {
+        if(this.startDraggingEdgeWhenCloseToOne(ctx)) {
+            return;
+        }
 
-        const line = leaf.data.lines[rowNo];
-        lineElem.onmousedown = (e) => {
-            const rect = lineElem.getBoundingClientRect();
-            // Find the portion of the `lineElem` which is
-            // actually occupied by text.
-            const pctFilled = line.length / leaf.dims.width;
+        const gridPt = ctx.flooredGridPt;
 
-            const x = e.clientX;
-            const i = Math.floor(point.lerp(
-                0,
-                line.length,
-                rect.left,
-                x,
-                rect.left + rect.width * pctFilled
-            ));
+        if(ctx.event.shiftKey && ctx.leaf !== this.#teState.selection.leaf) {
+            // The gridPt is outside of the current cell, so
+            // transition to a cell-editing state where the two
+            // cells are selected.
 
-            textPrims.putPointOnGlobalPosition(this.state, point.offset(p, point.mkV2(i, rowNo)));
+            const st = cellPrims.editCells(this.state);
+            st.selection.leaves.add(this.#teState.selection.leaf);
+            st.selection.leaves.add(ctx.leaf);
+            this.requestReplaceEditorView(new CellEditingView(this.parent, st));
+        } else {
+            // Move the point to `gridPt`.
+            textPrims.putPointOnGlobalPosition(this.state, gridPt);
             this.requestFocus();
             this.requestRedraw();
-        };
-        return lineElem;
+        }
     }
 
     /**
@@ -83,6 +78,8 @@ export class TextEditingView extends EditorView {
      * @param {HTMLElement} leafElem
      */
     viewLeafSelection(leaf, leafElem) {
+        super.viewLeafSelection(leaf, leafElem);
+
         // Reuse existing cursor element or create a new one.
         let cursorElem = /** @type {HTMLElement | null} */ (leafElem.querySelector(".editor-cursor"));
         if(!cursorElem) {
@@ -101,15 +98,24 @@ export class TextEditingView extends EditorView {
             cursorElem.style.left = xScreen;
             cursorElem.style.top  = yScreen;
         }
+
+        // Remove old halo elements
+        leafElem.querySelectorAll(".editor-cell-halo").forEach(el => el.remove());
+
+        const haloElem = document.createElement("div");
+        if(this.#teState.selection.leaf === leaf) {
+            haloElem.className = "editor-cell-halo";
+            leafElem.appendChild(haloElem);
+        }
     }
 
-    /**
-     * @returns {toolbar.ToolbarDescription[]}
-     */
     describeToolbarItems() {
-        return super.describeToolbarItems().map(descr =>
-            descr.label === "edit text" ? { ...descr, disabled: true } : descr);
+        return standardToolbarItems(this, "edit text");
     }
+
+    createTextEditingView(parent, st) { return new TextEditingView(parent, st); }
+    createEdgeEditingView(parent, dragState, st) { return new EdgeEditingView(parent, dragState, st); }
+    createCellEditingView(parent, st) { return new CellEditingView(parent, st); }
 
     /**
      * Handle a keyboard event.

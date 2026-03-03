@@ -3,15 +3,13 @@ import * as textPrims from "./editor/text-prims/text-prims.js";
 import * as util from "./util.js";
 import * as view from "./view.js";
 import GLPK from "glpk.js";
-import { CellEditingView } from "./editor-view/cell-editing-view.js";
 import { EditorView } from "./editor-view.js";
-import { VerticalCellSlicingView, HorizontalCellSlicingView } from "./editor-view/cell-slicing-view.js";
 import { TextEditingView } from "./editor-view/text-editing-view.js";
 import { View } from "./view.js";
 import { theGLPKInstance } from "./glpk.js";
 import { mkToolbarItem } from "./editor-view/toolbar.js";
 
-/** @import { AnyState } from "./editor/any-state.d.ts" */
+/** @import { CommonState } from "./editor/common-state.d.ts" */
 
 // Reload the page when esbuild issues a change event.
 //
@@ -45,11 +43,11 @@ class AppView extends View {
 
     /**
      * @param {View} parent
-     * @param {AnyState} st
+     * @param {EditorView} initialEditorView
      */
-    constructor(parent, st) {
+    constructor(parent, initialEditorView) {
         super(parent);
-        this.#replaceViewFromState(st);
+        this.#replaceViewFromState(initialEditorView);
     }
 
     /**
@@ -87,26 +85,14 @@ class AppView extends View {
     }
 
     /**
-     * Replace the app's editor view based on the kind of state passed
-     * to this function.
+     * Replace the app's editor view.
      *
-     * @param {AnyState} st
+     * @param {EditorView} newView
      */
-    #replaceViewFromState(st) {
+    #replaceViewFromState(newView) {
         const old = this.#editorView;
-        switch(st.type) {
-        case "TextPrimsState":
-            this.#editorView = new TextEditingView(this, st); break;
-        case "CellPrimsState":
-            this.#editorView = new CellEditingView(this, st); break;
-        case "SlicePrimsState":
-            if(st.direction === "Vertical") {
-                this.#editorView = new VerticalCellSlicingView(this, st);
-            } else {
-                this.#editorView = new HorizontalCellSlicingView(this, st);
-            }
-            break;
-        }
+        this.#editorView = newView;
+        newView.parent = this;
         this.notifyViewDeleted(old);
         this.requestRedraw();
     }
@@ -118,8 +104,16 @@ class AppView extends View {
     handleEvent(e) {
         switch(e.type) {
         case "ReplaceEditorViewEvent": {
-            this.#replaceViewFromState(e.newState);
-            return true;
+            if (e.newView instanceof EditorView) {
+                this.#replaceViewFromState(e.newView);
+                return true;
+            } else {
+                console.warn(
+                    "Tried to replace the editor view with " +
+                        "a class which doesn't inherit from EditorView"
+                );
+                return false;
+            }
         }
         default:
             return false;
@@ -136,12 +130,12 @@ async function main() {
     }
 
     let initialStateStr = localStorage.getItem("editorState");
-    /** @type {AnyState} */
-    let initialState;
+    /** @type {EditorView} */
+    let initialView;
     if(initialStateStr) {
-        initialState = textPrims.editText(serialize.commonStateFromString(initialStateStr));
+        initialView = new TextEditingView(null, textPrims.editText(serialize.commonStateFromString(initialStateStr)));
     } else {
-        initialState = textPrims.editText(serialize.mkCommonState());
+        initialView = new TextEditingView(null, textPrims.editText(serialize.mkCommonState()));
     }
 
     const topLevelView = new (class extends View {
@@ -156,11 +150,11 @@ async function main() {
 
         /**
          * @param {View} parent
-         * @param {AnyState} st The initial state
+         * @param {EditorView} initialView The initial editor view
          */
-        constructor(parent, st) {
+        constructor(parent, initialView) {
             super(parent);
-            this.#appView = new AppView(this, st);
+            this.#appView = new AppView(this, initialView);
             this.#focusedView = this;
         }
 
@@ -235,8 +229,7 @@ async function main() {
             // console.log(util.RecycleStatistics.report());
             return editorRoot;
         }
-    })(null, initialState);
-
+    })(null, initialView);
 
     document.addEventListener("keydown", async (e) => {
         topLevelView.handleKeyEvent(e);

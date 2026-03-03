@@ -68,6 +68,7 @@ This will run the test called "Can parse a leaf".
 - [ ] Aesthetics
   - [ ] It should be possible to hide a guide (how will the user show
         it again? Is hover sufficient?)
+- [ ] Align-right/align left?
 
 ## Dev's TODOs
 - [ ] Can we start with a table, which always stays constrained (for

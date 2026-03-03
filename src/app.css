@@ -69,26 +69,27 @@
     filter: contrast(50%);
 }
 
-.editor-edge-halo {
-    background-color: #96d8eb;
+.editor-edge-halo,
+.editor-edge-preview-halo {
     position: absolute;
-    z-index: -1;
+    z-index: 1;
+    cursor: pointer;
+}
+
+.editor-edge-halo {
+    background-color: green;
 }
 
 .editor-edge-preview-halo {
-    background-color: gainsboro;
-}
-
-.editor-non-selectable-edge {
-    background-color: red;
+    background-color: rgba(200, 200, 200, 0.5);
 }
 
 .editor-cell-halo {
     height: 100%;
-    left: 0;
-    outline: 4px solid #96d8eb;
-    position: absolute;
-    top: 0;
     width: 100%;
+    left: 0;
+    top: 0;
+    position: absolute;
     z-index: -1;
+    box-shadow: inset 0 0 8px deepskyblue;
 }

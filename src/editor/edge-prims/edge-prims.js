@@ -32,11 +32,6 @@ export function selectEdgeUnderPoint(st, pt, edge) {
     case "Below": break;
     }
 
-    // Check that this isn't already the current selection.
-    if(st.selection.edge === edge && st.selection.leaf === leaf) {
-        return false;
-    }
-
     st.selection = { edge, leaf };
     return true;
 }

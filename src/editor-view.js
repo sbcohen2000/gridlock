@@ -1,15 +1,13 @@
+import * as edgePrims from "./editor/edge-prims/edge-prims.js";
 import * as grid from "./grid.js";
 import * as point from "./point.js";
-import * as serialize from "./editor/serialize-common-state.js";
 import * as textPrims from "./editor/text-prims/text-prims.js";
-import * as cellPrims from "./editor/cell-prims/cell-prims.js";
-import * as slicePrims from "./editor/slice-prims/slice-prims.js";
-import * as toolbar from "./editor-view/toolbar.js";
 import * as util from "./util.js";
 import { View } from "./view.js";
 
-/** @import { AnyState } from "./editor/any-state.d.ts" */
 /** @import { CommonState, Cell } from "./editor/common-state.d.ts" */
+/** @import { EdgeLocation } from "./editor/edge-prims/state.d.ts" */
+/** @import { ToolbarDescription } from "./editor-view/toolbar.js" */
 
 /**
  * Group a string into a list of strings, those strings which contain
@@ -23,6 +21,12 @@ function groupBySpaces(str) {
     const matches = str.matchAll(re);
     return matches.map(match => match[0]);
 }
+
+/**
+ * The thickness of the draggable region around an edge.
+ * @type {number}
+ */
+const EDGE_HALO_THICK = 6;
 
 /**
  * An editor view is an instance of an editor state, which can show
@@ -42,6 +46,41 @@ export class EditorView extends View {
      */
     get state() {
         throw new Error("Method not implemented");
+    }
+
+    /**
+     * @typedef {{
+     *   leaf: grid.Leaf<Cell>,
+     * }} LastClickInfo
+     */
+
+    /**
+     * Information which records the leaf of the last click. This
+     * field is automatically cleared after a time; it is used to
+     * detect when the user has double-clicked on a leaf.
+     *
+     * @type {LastClickInfo | null}
+     */
+    #lastClick = null;
+
+    /**
+     * Check if a click, which clicked on `leaf` should be classified
+     * as a double-click by consulting `#lastClick`.
+     *
+     * @param {grid.Leaf<Cell>} leaf
+     * @returns {boolean} `true` if this click should be handled as a
+     *     double-click, and `false` if it should be handled as a
+     *     single-click.
+     */
+    #classifyDoubleClick(leaf) {
+        if(this.#lastClick !== null && this.#lastClick.leaf === leaf) {
+            this.#lastClick = null;
+            return true;
+        } else {
+            this.#lastClick = { leaf };
+            window.setTimeout(() => this.#lastClick = null, 200);
+            return false;
+        }
     }
 
     /**
@@ -101,30 +140,258 @@ export class EditorView extends View {
     }
 
     /**
+     * Position an edge halo element based on the edge direction.
+     *
+     * @param {HTMLElement} elem
+     * @param {EdgeLocation} edge
+     */
+    #positionEdgeHalo(elem, edge) {
+        const haloOffset = `${-EDGE_HALO_THICK/2}px`;
+        const haloThick  = `${EDGE_HALO_THICK}px`;
+
+        switch(edge) {
+        case "Above":
+            elem.style.top = haloOffset;
+            elem.style.left = "0";
+            elem.style.width = "100%";
+            elem.style.height = haloThick;
+            break;
+        case "Below":
+            elem.style.bottom = haloOffset;
+            elem.style.left = "0";
+            elem.style.width = "100%";
+            elem.style.height = haloThick;
+            break;
+        case "Left":
+            elem.style.left = haloOffset;
+            elem.style.top = "0";
+            elem.style.height = "100%";
+            elem.style.width = haloThick;
+            break;
+        case "Right":
+            elem.style.right = haloOffset;
+            elem.style.top = "0";
+            elem.style.height = "100%";
+            elem.style.width = haloThick;
+            break;
+        }
+    }
+
+    /**
+     * Record if the mouse is near an edge of a leaf.
+     *
+     * @type {{
+     *   leaf: grid.Leaf<Cell>,
+     *   edge: EdgeLocation
+     * } | null}
+     */
+    #mouseNearEdge = null;
+
+    /**
+     * Set the `#mouseNearEdge` property, requesting a re-draw only if
+     * necessary.
+     *
+     * @param {grid.Leaf<Cell>} leaf
+     * @param {EdgeLocation} edge
+     */
+    #setMouseNearEdgeAndRedrawIfNecessary(leaf, edge) {
+        if(this.#mouseNearEdge === null
+           || this.#mouseNearEdge.leaf !== leaf
+           || this.#mouseNearEdge.edge !== edge) {
+            this.#mouseNearEdge = { leaf, edge };
+            this.requestRedraw();
+        }
+    }
+
+    /**
+     * Clear the `#mouseNearEdge` property, requesting a re-draw only
+     * if necessary.
+     */
+    #clearMouseNearEdgeAndRedrawIfNecessary() {
+        if(this.#mouseNearEdge !== null) {
+            this.#mouseNearEdge = null;
+            this.requestRedraw();
+        }
+    }
+
+    /**
      * Draw the selection of a leaf, if any, given an element
      * representing the leaf.
      *
-     * @virtual
      * @param {grid.Leaf<Cell>} leaf
      * @param {HTMLElement} leafElem
      */
     viewLeafSelection(leaf, leafElem) {
-        void leaf;
-        void leafElem;
+        // Remove old halo/overlay elements
+        leafElem.querySelectorAll(".editor-edge-preview-halo")
+            .forEach(el => el.remove());
+
+        if(this.#mouseNearEdge !== null && this.#mouseNearEdge.leaf === leaf) {
+            const edgePreviewHaloElem = document.createElement("div");
+            edgePreviewHaloElem.className = "editor-edge-preview-halo";
+            this.#positionEdgeHalo(edgePreviewHaloElem, this.#mouseNearEdge.edge);
+            leafElem.appendChild(edgePreviewHaloElem);
+        }
+    }
+
+    /**
+     * Highlight an edge which is nearby to the pointer in the given
+     * pointer event context.
+     *
+     * @param {PointerEventContext} ctx
+     */
+    highlightNearbyEdge(ctx) {
+        const rect = ctx.leafRect;
+        const relX = ctx.event.clientX - rect.left;
+        const relY = ctx.event.clientY - rect.top;
+
+        // Classify the mouse position into one of five zones.  If
+        // we're closest to one of the edges, we should preview
+        // that edge, while if we're closest to the center, we
+        // should clear the preview.
+        /** @type {[number, EdgeLocation]} */
+        const distanceToLeftEdge   = [relX,               "Left"];
+        /** @type {[number, EdgeLocation]} */
+        const distanceToRightEdge  = [rect.width - relX,  "Right"];
+        /** @type {[number, EdgeLocation]} */
+        const distanceToTopEdge    = [relY,               "Above"];
+        /** @type {[number, EdgeLocation]} */
+        const distanceToBottomEdge = [rect.height - relY, "Below"];
+
+        const [minD, edge] = [
+            distanceToLeftEdge,
+            distanceToRightEdge,
+            distanceToTopEdge,
+            distanceToBottomEdge
+        ].reduce((minD, d) => minD < d ? minD : d, distanceToBottomEdge);
+
+        if(minD <= EDGE_HALO_THICK / 2) {
+            this.#setMouseNearEdgeAndRedrawIfNecessary(ctx.leaf, edge);
+        } else {
+            this.#clearMouseNearEdgeAndRedrawIfNecessary();
+        }
+    }
+
+    /**
+     * Given the global grid location of a click, try to edit the text
+     * underneath the position.
+     *
+     * @param {PointerEventContext} ctx
+     * @returns {boolean} `true` if the editor was re-targeted for
+     *     text editing, and `false` otherwise.
+     */
+    editTextOnDoubleClick(ctx) {
+        const isDoubleClick = this.#classifyDoubleClick(ctx.leaf);
+        console.log("isDoubleClick", isDoubleClick);
+        if(isDoubleClick) {
+            // If the user double-clicked on the leaf, we want to
+            // change to text-editing mode, setting the selection
+            // to the point under the cursor.
+
+            const st = textPrims.editText(this.state);
+            textPrims.putPointOnGlobalPosition(st, ctx.flooredGridPt, true);
+
+            this.requestReplaceEditorView(this.createTextEditingView(this.parent, st));
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Try to drag an edge, but only if the click was close to one.
+     *
+     * @param {PointerEventContext} ctx
+     * @returns {boolean} `true` if the editor was re-targeted for
+     *     dragging an edge, and `false` otherwise.
+     */
+    startDraggingEdgeWhenCloseToOne(ctx) {
+        const rect = ctx.leafRect;
+        const relX = ctx.event.clientX - rect.left;
+        const relY = ctx.event.clientY - rect.top;
+
+        // Classify the mouse click into one of five zones.  If
+        // we're closest to one of the edges, we should select an
+        // edge, while if we're closest to the center, we should
+        // select the cell itself.
+        /** @type {[number, EdgeLocation]} */
+        const distanceToLeftEdge   = [relX,               "Left"];
+        /** @type {[number, EdgeLocation]} */
+        const distanceToRightEdge  = [rect.width - relX,  "Right"];
+        /** @type {[number, EdgeLocation]} */
+        const distanceToTopEdge    = [relY,               "Above"];
+        /** @type {[number, EdgeLocation]} */
+        const distanceToBottomEdge = [rect.height - relY, "Below"];
+
+        const [minD, edge] = [
+            distanceToLeftEdge,
+            distanceToRightEdge,
+            distanceToTopEdge,
+            distanceToBottomEdge
+        ].reduce((minD, d) => minD < d ? minD : d, distanceToBottomEdge);
+
+        if(minD <= EDGE_HALO_THICK / 2) {
+            // Move to edge selection mode and select the edge.
+            const st = edgePrims.editEdge(this.state);
+            console.log(ctx.leafPosition, edge);
+            if(!edgePrims.selectEdgeUnderPoint(st, ctx.leafPosition, edge)) {
+                return false;
+            }
+
+            // Capture the pointer of the root element so that the
+            // user can drag outside of the current bounds of the
+            // element if necessary.
+            this._root.setPointerCapture(ctx.event.pointerId);
+
+            /** @type {import("./editor-view/edge-editing-view.js").DragState} */
+            const dragState = {
+                dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
+                dragOriginGrid: ctx.roundedGridPt,
+                gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
+                lastArg: 0
+            };
+
+            this.requestReplaceEditorView(this.createEdgeEditingView(this.parent, dragState, st));
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Handle a pointer-down event inside a leaf element.
+     *
+     * @param {PointerEventContext} ctx
+     */
+    onPointerDownInLeaf(ctx) {
+        if(this.editTextOnDoubleClick(ctx)) {
+            return;
+        }
+
+        this.startDraggingEdgeWhenCloseToOne(ctx);
+    }
+
+    /**
+     * Handle a pointer-move event inside a leaf element.
+     *
+     * @param {PointerEventContext} ctx
+     */
+    onPointerMoveInLeaf(ctx) {
+        this.highlightNearbyEdge(ctx);
     }
 
     /**
      * View a particular leaf of the grid.
      *
      * @param {grid.Leaf<Cell>} leaf The leaf to view.
-     * @param {point.P2} p The position of the upper-left corner of the leaf.
+     * @param {point.P2} leafUl The position of the upper-left corner of the leaf.
      * @param {HTMLElement} [prev] An existing leaf element to update in place.
      * @returns {HTMLElement} The HTML element generated to represent
      *     this leaf.
      */
-    viewLeaf(leaf, p, prev) {
+    viewLeaf(leaf, leafUl, prev) {
         const sz = leaf.dims;
-        const gridSpec = `${p.y + 1}/${p.x + 1}/span ${sz.height}/span ${sz.width}`;
+        const gridSpec = `${leafUl.y + 1}/${leafUl.x + 1}/span ${sz.height}/span ${sz.width}`;
 
         const leafElem = prev ?? document.createElement("div");
         leafElem.className      = "editor-leaf";
@@ -132,10 +399,20 @@ export class EditorView extends View {
         leafElem.style.position = "relative";
         leafElem.style.gridArea = gridSpec;
 
+        leafElem.onpointermove = (e) => {
+            const ctx = new PointerEventContext(e, this, leaf, leafElem);
+            this.onPointerMoveInLeaf(ctx);
+        };
+
+        leafElem.onpointerdown = (e) => {
+            const ctx = new PointerEventContext(e, this, leaf, leafElem);
+            this.onPointerDownInLeaf(ctx);
+        }
+
         const lineIndices = leaf.data.lines.map((_, i) => i);
         util.recycleChildren(
             leafElem, lineIndices,
-            (rowNo, prev) => this.viewLine(rowNo, leaf, p, prev)
+            (rowNo, prev) => this.viewLine(rowNo, leaf, leafUl, prev)
         );
 
         this.viewLeafSelection(leaf, leafElem);
@@ -146,58 +423,50 @@ export class EditorView extends View {
      * Return a sequence of HTML elements representing the editor
      * view's toolbar items.
      *
-     * @returns {toolbar.ToolbarDescription[]}
+     * @returns {ToolbarDescription[]}
      */
     describeToolbarItems() {
-        return [{
-            type: "button",
-            label: "edit text",
-            onclick: () => {
-                this.requestReplaceEditorView(textPrims.editText(this.state));
-            }
-        }, {
-            type: "button",
-            label: "select cells/edges",
-            onclick: () => {
-                this.requestReplaceEditorView(cellPrims.editCells(this.state));
-            }
-        }, {
-            type: "button",
-            label: "split vertically",
-            onclick: () => {
-                this.requestReplaceEditorView(slicePrims.editSlice(this.state, "Vertical"));
-            }
-        }, {
-            type: "button",
-            label: "split horizontally",
-            onclick: () => {
-                this.requestReplaceEditorView(slicePrims.editSlice(this.state, "Horizontal"));
-            }
-        }, {
-            type: "button",
-            label: "clear",
-            onclick: () => {
-                this.requestReplaceEditorView(textPrims.editText(serialize.mkCommonState()));
-            },
-        }, {
-            type: "button",
-            label: "save",
-            onclick: () => {
-                const serialized = serialize.printCommonState(this.state);
-                console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
-                localStorage.setItem("editorState", serialized);
-            },
-        }]
+        return [];
     }
 
     /**
-     * Return a sequence of HTML elements representing the editor
-     * view's toolbar items.
+     * Create a text editing view. Subclasses must implement this.
      *
-     * @returns {HTMLElement[]}
+     * @abstract
+     * @param {View} parent
+     * @param {import("./editor/text-prims/state.d.ts").TextPrimsState} st
+     * @returns {EditorView}
      */
-    toolbarItems() {
-        return this.describeToolbarItems().map(descr => toolbar.mkToolbarItem(descr));
+    createTextEditingView(parent, st) {
+        void parent; void st;
+        throw new Error("Method not implemented");
+    }
+
+    /**
+     * Create an edge editing view. Subclasses must implement this.
+     *
+     * @abstract
+     * @param {View} parent
+     * @param {import("./editor-view/edge-editing-view.js").DragState} dragState
+     * @param {import("./editor/edge-prims/state.d.ts").EdgePrimsState} st
+     * @returns {EditorView}
+     */
+    createEdgeEditingView(parent, dragState, st) {
+        void parent; void dragState; void st;
+        throw new Error("Method not implemented");
+    }
+
+    /**
+     * Create a cell editing view. Subclasses must implement this.
+     *
+     * @abstract
+     * @param {View} parent
+     * @param {import("./editor/cell-prims/state.d.ts").CellPrimsState} st
+     * @returns {EditorView}
+     */
+    createCellEditingView(parent, st) {
+        void parent; void st;
+        throw new Error("Method not implemented");
     }
 
     /**
@@ -232,13 +501,168 @@ export class EditorView extends View {
     }
 
     /**
-     * @param {AnyState} newState
+     * @param {View} newView
      */
-    requestReplaceEditorView(newState) {
+    requestReplaceEditorView(newView) {
         this.notify({
             type: "ReplaceEditorViewEvent",
-            newState,
+            newView,
             bubbles: true
         });
+    }
+}
+
+/**
+ * Records computed information about a pointer event, so that we
+ * don't have to recompute it all the time.
+ */
+export class PointerEventContext {
+    /** @type {PointerEvent} */
+    #event
+
+    /** @type {EditorView} */
+    #view
+
+    /** @type {grid.Leaf<Cell>} */
+    #leaf
+
+    /** @type {HTMLElement} */
+    #leafElem
+
+    /**
+     * Construct a new `PointerEventContext`.
+     *
+     * @param {PointerEvent}    event    The pointer event.
+     * @param {EditorView}      view     The editor view.
+     * @param {grid.Leaf<Cell>} leaf     The leaf under the pointer.
+     * @param {HTMLElement}     leafElem The HTML
+     *     element used to represent the leaf.
+     */
+    constructor(event, view, leaf, leafElem) {
+        this.#event    = event;
+        this.#view     = view;
+        this.#leaf     = leaf;
+        this.#leafElem = leafElem;
+    }
+
+    /**
+     * Get the pointer event that started it all.
+     *
+     * @returns {PointerEvent}
+     */
+    get event() {
+        return this.#event;
+    }
+
+    /**
+     * The leaf under the pointer.
+     *
+     * @returns {grid.Leaf<Cell>}
+     */
+    get leaf() {
+        return this.#leaf;
+    }
+
+    /**
+     * Get the HTML element used to represent the leaf.
+     *
+     * @returns {HTMLElement}
+     */
+    get leafElem() {
+        return this.#leafElem;
+    }
+
+    /** @type {point.P2 | undefined} */
+    #leafPosCache;
+
+    /**
+     * The position of the leaf's upper-left corner in grid
+     * coordiantes.
+     *
+     * @returns {point.P2}
+     */
+    get leafPosition() {
+        if(!this.#leafPosCache) {
+            this.#leafPosCache = grid.posOfLeaf(this.state.grid, this.leaf);
+        }
+        return this.#leafPosCache;
+    }
+
+    /**
+     * Get the `CommonState` of the `View`.
+     */
+    get state() {
+        return this.#view.state;
+    }
+
+    /**
+     * Find the location of the event in grid coordinates, represented
+     * as a point with decimal components.
+     *
+     * @returns {point.P2}
+     */
+    get #gridPt() {
+        const rect = this.rootRect;
+        const gridW    = this.state.grid.dims.width;
+        const gridH    = this.state.grid.dims.height;
+        const gridColF = point.lerp(0, gridW, rect.left, this.#event.clientX, rect.right);
+        const gridRowF = point.lerp(0, gridH, rect.top, this.#event.clientY, rect.bottom);
+        return point.mkP2(gridColF, gridRowF);
+    }
+
+    /**
+     * Get the location of the event in grid coordinates, floored to
+     * the nearest integer. This is useful to test which location was
+     * clicked.
+     *
+     * @returns {point.P2}
+     */
+    get flooredGridPt() {
+        return point.floorP2(this.#gridPt);
+    }
+
+    /**
+     * Get the location of the event in grid coordinates, rounded to
+     * the nearest integer. This is useful for positioning
+     * between-location elements such as guides.
+     *
+     * @returns {point.P2}
+     */
+    get roundedGridPt() {
+        return point.roundP2(this.#gridPt);
+    }
+
+    /**
+     * The client bounding rectangle of the editor root element.
+     *
+     * @returns {DOMRect}
+     */
+    get rootRect() {
+        return this.#view._root.getBoundingClientRect();
+    }
+
+    /**
+     * The client bounding rectangle of the leaf under the pointer.
+     */
+    get leafRect() {
+        return this.#leafElem.getBoundingClientRect();
+    }
+
+    /**
+     * The number of columns in the top-level element of the grid.
+     *
+     * @returns {number}
+     */
+    get gridW() {
+        return this.#view.state.grid.dims.width;
+    }
+
+    /**
+     * The number of rows in the top-level element of the grid.
+     *
+     * @returns {number}
+     */
+    get gridH() {
+        return this.#view.state.grid.dims.height;
     }
 }

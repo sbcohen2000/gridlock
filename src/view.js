@@ -1,5 +1,3 @@
-/** @import { AnyState } from "./editor/any-state.d.ts" */
-
 /**
  * @typedef {{
  *  initiator: View
@@ -62,7 +60,7 @@
 /**
  * @typedef {{
  *  type: "ReplaceEditorViewEvent",
- *  newState: AnyState
+ *  newView: View
  *  bubbles: true
  * } & EventBase} ReplaceEditorViewEvent
  */
@@ -81,14 +79,7 @@ export class View {
     /** @type {View | null}
      *
      * The parent view, or `null`, if this view is topmost. */
-    #parent;
-
-    /**
-     * @returns {View | null}
-     */
-    get parent() {
-        return this.#parent;
-    }
+    parent;
 
     /**
      * Construct a new `View`, providing the `View's` parent.
@@ -96,7 +87,7 @@ export class View {
      * @param {View | null} parent
      */
     constructor(parent) {
-        this.#parent = parent;
+        this.parent = parent;
     }
 
     /**
@@ -122,7 +113,7 @@ export class View {
             this.handleEvent(withInitiator);
         }
 
-        let parent = this.#parent;
+        let parent = this.parent;
 
         while(parent && e.bubbles) {
             if(parent.handleEvent(withInitiator)) break;

@@ -1,9 +1,12 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
-import * as cellPrims from "../editor/cell-prims/cell-prims.js";
 import * as slicePrims from "../editor/slice-prims/slice-prims.js";
-import { EditorView } from "../editor-view.js";
+import { CellEditingView } from "./cell-editing-view.js";
+import { EdgeEditingView } from "./edge-editing-view.js";
+import { EditorView, PointerEventContext } from "../editor-view.js";
+import { TextEditingView } from "./text-editing-view.js";
 import { View } from "../view.js";
+import { standardToolbarItems } from "./standard-toolbar.js";
 
 /** @import { SlicePrimsState } from "../editor/slice-prims/state.d.ts" */
 /** @import { Cell } from "../editor/common-state.d.ts" */
@@ -48,39 +51,30 @@ class CellSlicingView extends EditorView {
     }
 
     /**
-     * @param {grid.Leaf<Cell>} leaf
-     * @param {point.P2} pt
-     * @param {HTMLElement} [prev]
-     * @returns {HTMLElement}
+     * Handle a pointer-down event inside a leaf element.
+     *
+     * @param {PointerEventContext} _ctx
      */
-    viewLeaf(leaf, pt, prev) {
-        const leafElem = super.viewLeaf(leaf, pt, prev);
+    onPointerDownInLeaf(_ctx) {
+        if(this.#hoveredPos === null) return;
+        this.#scState.grid = this.sliceAt(this.#scState.grid, this.#hoveredPos);
+        this.requestRedraw();
+    }
 
-        leafElem.onmousemove = (e) => {
-            const rect = leafElem.getBoundingClientRect();
+    /**
+     * Handle a pointer-move event inside a leaf element.
+     *
+     * @param {PointerEventContext} ctx
+     */
+    onPointerMoveInLeaf(ctx) {
+        const pos = ctx.roundedGridPt;
 
-            const relCol = Math.round(point.lerp(0, leaf.dims.width,  rect.left, e.clientX, rect.right));
-            const relRow = Math.round(point.lerp(0, leaf.dims.height, rect.top, e.clientY,  rect.bottom));
-
-            const globalX = pt.x + relCol;
-            const globalY = pt.y + relRow;
-
-            const newPos = point.mkP2(globalX, globalY);
-            if(this.#hoveredPos === null
-               || this.#hoveredPos.x !== newPos.x
-               || this.#hoveredPos.y !== newPos.y) {
-                this.#hoveredPos = newPos;
-                this.requestRedraw();
-            }
-        };
-
-        leafElem.onpointerdown = () => {
-            if(this.#hoveredPos === null) return;
-            this.#scState.grid = this.sliceAt(this.#scState.grid, this.#hoveredPos);
-            this.requestReplaceEditorView(cellPrims.editCells(this.#scState));
-        };
-
-        return leafElem;
+        if(this.#hoveredPos === null
+           || this.#hoveredPos.x !== pos.x
+           || this.#hoveredPos.y !== pos.y) {
+            this.#hoveredPos = pos;
+            this.requestRedraw();
+        }
     }
 
     /**
@@ -100,6 +94,8 @@ class CellSlicingView extends EditorView {
      * @param {HTMLElement} leafElem
      */
     viewLeafSelection(leaf, leafElem) {
+        super.viewLeafSelection(leaf, leafElem);
+
         // Remove old preview elements
         leafElem.querySelectorAll(".editor-slice-preview").forEach(el => el.remove());
 
@@ -111,6 +107,10 @@ class CellSlicingView extends EditorView {
             leafElem.appendChild(preview);
         }
     }
+
+    createTextEditingView(parent, st) { return new TextEditingView(parent, st); }
+    createEdgeEditingView(parent, dragState, st) { return new EdgeEditingView(parent, dragState, st); }
+    createCellEditingView(parent, st) { return new CellEditingView(parent, st); }
 }
 
 export class VerticalCellSlicingView extends CellSlicingView {
@@ -151,8 +151,7 @@ export class VerticalCellSlicingView extends CellSlicingView {
     }
 
     describeToolbarItems() {
-        return super.describeToolbarItems().map(descr =>
-            descr.label === "split vertically" ? { ...descr, disabled: true } : descr);
+        return standardToolbarItems(this, "split vertically");
     }
 }
 
@@ -194,7 +193,6 @@ export class HorizontalCellSlicingView extends CellSlicingView {
     }
 
     describeToolbarItems() {
-        return super.describeToolbarItems().map(descr =>
-            descr.label === "split horizontally" ? { ...descr, disabled: true } : descr);
+        return standardToolbarItems(this, "split horizontally");
     }
 }

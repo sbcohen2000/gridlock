@@ -26,10 +26,13 @@ export function selectLeafUnderPoint(st, pt, clear) {
 
     if(clear) {
         st.selection = { leaves: new Set([leaf]) };
+        return true;
+    } else if(st.selection.leaves.has(leaf)) {
+        return false;
     } else {
         st.selection.leaves.add(leaf);
+        return true;
     };
-    return true;
 }
 
 /**
