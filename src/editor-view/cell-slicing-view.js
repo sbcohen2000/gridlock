@@ -1,15 +1,19 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
-import * as state from "../editor.js";
+import * as cellPrims from "../editor/cell-prims/cell-prims.js";
+import * as slicePrims from "../editor/slice-prims/slice-prims.js";
 import { EditorView } from "../editor-view.js";
 import { View } from "../view.js";
+
+/** @import { SlicePrimsState } from "../editor/slice-prims/state.d.ts" */
+/** @import { Cell } from "../editor/common-state.d.ts" */
 
 /**
  * A base class for slice cell views. Subclasses provide the direction-
  * specific preview rendering and slice prim.
  */
 class CellSlicingView extends EditorView {
-    /** @type {state.SlicingCells} */
+    /** @type {SlicePrimsState} */
     #scState;
 
     /** @type {point.P2 | null} */
@@ -17,14 +21,14 @@ class CellSlicingView extends EditorView {
 
     /**
      * @param {View} parent
-     * @param {state.SlicingCells} st
+     * @param {SlicePrimsState} st
      */
     constructor(parent, st) {
         super(parent);
         this.#scState = st;
     }
 
-    /** @returns {state.SlicingCells} */
+    /** @returns {SlicePrimsState} */
     get state() {
         return this.#scState;
     }
@@ -34,9 +38,9 @@ class CellSlicingView extends EditorView {
      * cell-editing mode.
      *
      * @abstract
-     * @param {grid.Grid<state.Cell>} g
+     * @param {grid.Grid<Cell>} g
      * @param {point.P2} globalPos
-     * @returns {grid.Grid<state.Cell>}
+     * @returns {grid.Grid<Cell>}
      */
     sliceAt(g, globalPos) {
         void g; void globalPos;
@@ -44,7 +48,7 @@ class CellSlicingView extends EditorView {
     }
 
     /**
-     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} pt
      * @param {HTMLElement} [prev]
      * @returns {HTMLElement}
@@ -73,7 +77,7 @@ class CellSlicingView extends EditorView {
         leafElem.onpointerdown = () => {
             if(this.#hoveredPos === null) return;
             this.#scState.grid = this.sliceAt(this.#scState.grid, this.#hoveredPos);
-            this.requestReplaceEditorView(state.editCells(this.#scState));
+            this.requestReplaceEditorView(cellPrims.editCells(this.#scState));
         };
 
         return leafElem;
@@ -81,7 +85,7 @@ class CellSlicingView extends EditorView {
 
     /**
      * @abstract
-     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
      * @returns {HTMLElement | null}
@@ -92,7 +96,7 @@ class CellSlicingView extends EditorView {
     }
 
     /**
-     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {grid.Leaf<Cell>} leaf
      * @param {HTMLElement} leafElem
      */
     viewLeafSelection(leaf, leafElem) {
@@ -111,16 +115,18 @@ class CellSlicingView extends EditorView {
 
 export class VerticalCellSlicingView extends CellSlicingView {
     /**
-     * @param {grid.Grid<state.Cell>} g
+     * @param {grid.Grid<Cell>} g
      * @param {point.P2} globalPos
-     * @returns {grid.Grid<state.Cell>}
+     * @returns {grid.Grid<Cell>}
      */
     sliceAt(g, globalPos) {
-        return state.slicePrims.splitVerticallyAtGlobalPosition(g, globalPos);
+        const st = slicePrims.editSlice({ grid: g }, "Vertical");
+        slicePrims.splitCellVerticallyAtGlobalRow(st, globalPos);
+        return st.grid;
     }
 
     /**
-     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
      * @returns {HTMLElement | null}
@@ -152,16 +158,18 @@ export class VerticalCellSlicingView extends CellSlicingView {
 
 export class HorizontalCellSlicingView extends CellSlicingView {
     /**
-     * @param {grid.Grid<state.Cell>} g
+     * @param {grid.Grid<Cell>} g
      * @param {point.P2} globalPos
-     * @returns {grid.Grid<state.Cell>}
+     * @returns {grid.Grid<Cell>}
      */
     sliceAt(g, globalPos) {
-        return state.slicePrims.splitHorizontallyAtGlobalPosition(g, globalPos);
+        const st = slicePrims.editSlice({ grid: g }, "Horizontal");
+        slicePrims.splitCellHorizontallyAtGlobalCol(st, globalPos);
+        return st.grid;
     }
 
     /**
-     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
      * @returns {HTMLElement | null}

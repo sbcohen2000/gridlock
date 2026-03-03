@@ -1,4 +1,4 @@
-import * as state from "./editor.js";
+/** @import { AnyState } from "./editor/any-state.d.ts" */
 
 /**
  * @typedef {{
@@ -62,7 +62,7 @@ import * as state from "./editor.js";
 /**
  * @typedef {{
  *  type: "ReplaceEditorViewEvent",
- *  newState: state.EditorState
+ *  newState: AnyState
  *  bubbles: true
  * } & EventBase} ReplaceEditorViewEvent
  */

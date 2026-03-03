@@ -1,9 +1,6 @@
 import * as prims from "./cell-prims.js";
 
-/**
- * @typedef {import("../text-prims/registry.js").Type} Type
- * @typedef {import("../text-prims/registry.js").PrimitiveSignature} PrimitiveSignature
- */
+/** @import {PrimitiveSignature} from "../common-state.js" */
 
 /**
  * The cell primitive operations.

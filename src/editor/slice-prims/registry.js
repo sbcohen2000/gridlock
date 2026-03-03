@@ -1,9 +1,6 @@
 import * as prims from "./slice-prims.js";
 
-/**
- * @typedef {import("../text-prims/registry.js").Type} Type
- * @typedef {import("../text-prims/registry.js").PrimitiveSignature} PrimitiveSignature
- */
+/** @import {PrimitiveSignature} from "../common-state.js" */
 
 /**
  * The slice primitive operations.
@@ -12,19 +9,19 @@ import * as prims from "./slice-prims.js";
  */
 export const PRIMITIVES = [
     {
-        function: prims.splitVerticallyAtGlobalPosition,
+        function: prims.splitCellVerticallyAtGlobalRow,
         args: ["point"],
-        retty: "grid",
+        retty: "boolean",
         async: false,
-        const: true,
-        description: "Split grid vertically at a global position"
+        const: false,
+        description: "Split a cell vertically at a global row"
     },
     {
-        function: prims.splitHorizontallyAtGlobalPosition,
+        function: prims.splitCellHorizontallyAtGlobalCol,
         args: ["point"],
-        retty: "grid",
+        retty: "boolean",
         async: false,
-        const: true,
-        description: "Split grid horizontally at a global position"
+        const: false,
+        description: "Split a cell horizontally at a global column"
     },
 ];

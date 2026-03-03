@@ -1,25 +1,23 @@
 import * as grid from "../../src/grid.js";
 import * as point from "../../src/point.js";
-import * as serialize from "../../src/editor/serialize.js";
-import * as state from "../../src/editor/state.js";
+import * as serialize from "../../src/editor/serialize-common-state.js";
 import * as edgePrims from "../../src/editor/edge-prims/edge-prims.js";
 import { expect } from "chai";
 
 /**
- * Create an EditingCells state from a cell-grid string.
+ * Create an EdgePrimsState from a cell-grid string.
  *
  * @param {string} src
- * @returns {state.EditingCells}
+ * @returns {import("../../src/editor/edge-prims/state.d.ts").EdgePrimsState}
  */
-function mkCellState(src) {
-    const g = serialize.parseCellGrid(src);
-    return state.editCells(state.mk(g));
+function mkEdgeState(src) {
+    return edgePrims.editEdge(serialize.commonStateFromString(src));
 }
 
 describe("edge-prims", () => {
     describe("modifyHorizontalEdge", () => {
         it("Moves a horizontal edge down by 1", () => {
-            const st = mkCellState(
+            const st = mkEdgeState(
                 "top\n" +
                     "bot\n" +
                     "+---+---+\n" +
@@ -40,7 +38,7 @@ describe("edge-prims", () => {
         });
 
         it("Moves a horizontal edge up by 1", () => {
-            const st = mkCellState(
+            const st = mkEdgeState(
                 "top\n" +
                     "\n" +
                     "bot\n" +
@@ -62,7 +60,7 @@ describe("edge-prims", () => {
         });
 
         it("Does not shrink a leaf below height 1", () => {
-            const st = mkCellState(
+            const st = mkEdgeState(
                 "top\n" +
                     "bot\n" +
                     "+---+\n" +

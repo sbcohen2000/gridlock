@@ -6,13 +6,14 @@
 
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
-import * as state from "../state.js";
 import * as util from "../../util.js";
+
+/** @import { TextPrimsState, CommonState, Cell } from "./state.d.ts"; */
 
 /**
  * Update the last global column to the currently selected column.
  *
- * @param {state.EditingText} st The current editor state.
+ * @param {TextPrimsState} st The current editor state.
  */
 function _updateLastGlobalCol(st) {
     const globalCol = _findGlobalPoint(st).x;
@@ -23,9 +24,9 @@ function _updateLastGlobalCol(st) {
  * Mutate the editor state so that it has a single selection
  * into the given `leaf` at position `pt`.
  *
- * @param {state.EditingText}     st             The current editor state.
- * @param {grid.Leaf<state.Cell>} leaf           The leaf to select.
- * @param {point.P2}              pt             The point within the `leaf` to select.
+ * @param {TextPrimsState}  st             The current editor state.
+ * @param {grid.Leaf<Cell>} leaf           The leaf to select.
+ * @param {point.P2}        pt             The point within the `leaf` to select.
  * @param {number} [newGlobalCol] The new global column position. If
  *    omitted, it is unchanged.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
@@ -57,21 +58,6 @@ function _putPointOnLocalPosition(st, leaf, pt, newGlobalCol) {
 }
 
 /**
- * Try to put the point near to the `lastGlobalCol`, but do not leave
- * the current leaf while trying to do so.
- *
- * @param {state.EditingText} st The current editor state.
- */
-function _putPointOnLastGlobalColumnInLeaf(st) {
-    // Find the location of the global column, relative to the
-    // currently selected leaf.
-    const leaf = st.selection.leaf;
-    const leafPos = grid.posOfLeaf(st.grid, leaf);
-    const lastLocalCol = st.selection.lastGlobalCol - leafPos.x;
-    _putPointOnLocalPosition(st, leaf, point.mkP2(lastLocalCol, st.selection.pt.y));
-}
-
-/**
  * Mutate the editor state, setting the selection to the given global
  * point. If there isn't a leaf under the global point, this function
  * does nothing.
@@ -80,8 +66,8 @@ function _putPointOnLastGlobalColumnInLeaf(st) {
  * column, since it is possible to select the character after the last
  * letter on a column.
  *
- * @param {state.EditingText} st The current editor state.
- * @param {point.P2}          pt The global point to select.
+ * @param {TextPrimsState} st The current editor state.
+ * @param {point.P2}       pt The global point to select.
  * @param {boolean} [updateGlobalCol] If `true`, it updates the
  *     `lastGlobalCol` property of the selection to the new point. If
  *     it is omitted, it defaults to `true`.
@@ -100,7 +86,7 @@ export function putPointOnGlobalPosition(st, pt, updateGlobalCol) {
     // Note that it is guaranteed that the leaves are returned in
     // ascending order of `x` position.
     let x = 0;
-    /** @type{grid.Leaf<state.Cell> | undefined} */
+    /** @type{grid.Leaf<Cell> | undefined} */
     let theLeaf;
     for(let i = 0; i < leaves.length; ++i) {
         const leaf = leaves[i];
@@ -124,7 +110,7 @@ export function putPointOnGlobalPosition(st, pt, updateGlobalCol) {
 /**
  * Find the maximum length of any line in a leaf.
  *
- * @param {grid.Leaf<state.Cell>} leaf
+ * @param {grid.Leaf<Cell>} leaf
  * @returns {number}
  */
 function _maximumLineLength(leaf) {
@@ -135,8 +121,8 @@ function _maximumLineLength(leaf) {
  * Expand the `leaf` horizontally to fit its textual content, but only
  * if necessary.
  *
- * @param {grid.Grid<state.Cell>} g    The root of the grid.
- * @param {grid.Leaf<state.Cell>} leaf The leaf to expand.
+ * @param {grid.Grid<Cell>} g    The root of the grid.
+ * @param {grid.Leaf<Cell>} leaf The leaf to expand.
  * @param {any}                   glpk The glpk instance.
  */
 async function _expandLeafWidthIfNecessary(g, leaf, glpk) {
@@ -150,7 +136,7 @@ async function _expandLeafWidthIfNecessary(g, leaf, glpk) {
  * Find the row and column of the current selection in global
  * coordinate space.
  *
- * @param {state.EditingText} st The editor state.
+ * @param {TextPrimsState} st The editor state.
  * @returns {point.P2} The location of the single selection, in global
  *                     coordinates.
  */
@@ -168,7 +154,7 @@ function _findGlobalPoint(st) {
  * Put the point at the first character of the current line, even if
  * that line belongs to a different cell.
  *
- * @param {state.EditingText} st The editor state.
+ * @param {TextPrimsState} st The editor state.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
 export function putPointAtStartOfGlobalLine(st) {
@@ -180,7 +166,7 @@ export function putPointAtStartOfGlobalLine(st) {
  * Put the point after the last character of the current line, even if
  * that line belongs to a different cell.
  *
- * @param {state.EditingText} st The editor state.
+ * @param {TextPrimsState} st The editor state.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
 export function putPointAtEndOfGlobalLine(st) {
@@ -214,7 +200,7 @@ export function putPointAtEndOfGlobalLine(st) {
  * Put the point directly below the current point, if possible, even
  * if the next row is not part of the current leaf.
  *
- * @param {state.EditingText} st The editor state.
+ * @param {TextPrimsState} st The editor state.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
 export function putPointOnNextGlobalLine(st) {
@@ -241,7 +227,7 @@ export function putPointOnNextGlobalLine(st) {
  * Put the point directly above the current point, if possible, even
  * if the next row is not part of the current leaf.
  *
- * @param {state.EditingText} st The editor state.
+ * @param {TextPrimsState} st The editor state.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
 export function putPointOnPrevGlobalLine(st) {
@@ -268,7 +254,7 @@ export function putPointOnPrevGlobalLine(st) {
  * Put the point directly to the right of the current point, if
  * possible, even if the next column is not part of the current leaf.
  *
- * @param {state.EditingText} st The editor state.
+ * @param {TextPrimsState} st The editor state.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
 export function putPointOnNextGlobalCol(st) {
@@ -301,7 +287,7 @@ export function putPointOnNextGlobalCol(st) {
  * Put the point directly to the right of the current point, but not
  * leaving the current leaf.
  *
- * @param {state.EditingText} st
+ * @param {TextPrimsState} st
  * @returns {boolean} `true` if the point moved, and `false` otherwise.
  */
 function _putPointOnNextCol(st) {
@@ -324,7 +310,7 @@ function _putPointOnNextCol(st) {
  * possible, even if the previous column is not part of the current
  * leaf.
  *
- * @param {state.EditingText} st The editor state.
+ * @param {TextPrimsState} st The editor state.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
 export function putPointOnPrevGlobalCol(st) {
@@ -343,7 +329,7 @@ export function putPointOnPrevGlobalCol(st) {
  * Test if the point of the current single selection is at the end of
  * the global line.
  *
- * @param {state.EditingText} st
+ * @param {TextPrimsState} st
  * @returns {boolean}
  */
 export function pointAtEndOfGlobalLine(st) {
@@ -367,7 +353,7 @@ export function pointAtEndOfGlobalLine(st) {
  * Test if the point of the current single selection is at the
  * beginning of the global line.
  *
- * @param {state.EditingText} st
+ * @param {TextPrimsState} st
  * @returns {boolean}
  */
 export function pointAtBeginningOfGlobalLine(st) {
@@ -378,7 +364,7 @@ export function pointAtBeginningOfGlobalLine(st) {
  * Test if the point of the current single selection is on the first
  * global row.
  *
- * @param {state.EditingText} st
+ * @param {TextPrimsState} st
  * @returns {boolean}
  */
 export function pointOnFirstGlobalLine(st) {
@@ -389,7 +375,7 @@ export function pointOnFirstGlobalLine(st) {
  * Test if the point of the current single selection is on the last
  * global line.
  *
- * @param {state.EditingText} st
+ * @param {TextPrimsState} st
  * @returns {boolean}
  */
 export function pointOnLastGlobalLine(st) {
@@ -412,7 +398,7 @@ export function pointOnLastGlobalLine(st) {
 /**
  * Test if the current global line is empty.
  *
- * @param {state.EditingText} st
+ * @param {TextPrimsState} st
  * @returns {boolean}
  */
 export function globalLineIsEmpty(st) {
@@ -430,7 +416,7 @@ export function globalLineIsEmpty(st) {
  * local lines from each leaf on the row, and inserting spaces to make
  * up the space between leaves.
  *
- * @param {state.EditingText} st
+ * @param {TextPrimsState} st
  * @param {number} row
  * @returns {string}
  */
@@ -459,7 +445,7 @@ export function textOnGlobalLine(st, row) {
  * Remove the line referred to by the current point, across all
  * leaves, removing newly empty leaves.
  *
- * @param {state.EditingText} st The editor state.
+ * @param {TextPrimsState} st The editor state.
  * @returns {string} The contents of the line.
  */
 export function removeGlobalLine(st) {
@@ -499,7 +485,7 @@ export function removeGlobalLine(st) {
  * will not leave the context of its leaf, even if `n` exceeds the
  * length of the current line.
  *
- * @param {state.EditingText} st The editor state.
+ * @param {TextPrimsState} st The editor state.
  * @param {number} n The number of characters to remove.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
@@ -533,7 +519,7 @@ export function removeString(st, n) {
  * document, then this function also creates a new line in the current
  * leaf and sets the point to it.
  *
- * @param {state.EditingText} st   The editor state.
+ * @param {TextPrimsState} st   The editor state.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
 export function insertGlobalNewline(st) {
@@ -570,9 +556,9 @@ export function insertGlobalNewline(st) {
  * selection is a multi-selection, then it is converted to a single
  * selection prior to insertion.
  *
- * @param {state.EditingText} st   The editor state.
- * @param {string}            s    The string to insert.
- * @param {any}               glpk The GLPK instance.
+ * @param {TextPrimsState} st   The editor state.
+ * @param {string}         s    The string to insert.
+ * @param {any}            glpk The GLPK instance.
  * @param {boolean} [advancePoint] Should the point advance as a
  *     result of inserting the string? If omitted, the default is
  *     `true`.
@@ -604,3 +590,19 @@ export async function insertString(st, s, glpk, advancePoint) {
     return true;
 }
 
+/**
+ * @param { CommonState } st
+ * @returns { TextPrimsState }
+ */
+export function editText(st) {
+    const firstLeaf = grid.allLeaves(st.grid).next().value;
+    return {
+        type: "TextPrimsState",
+        grid: st.grid,
+        selection: {
+            pt: point.mkP2(0, 0),
+            leaf: firstLeaf,
+            lastGlobalCol: 0
+        }
+    };
+}

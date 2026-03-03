@@ -6,19 +6,20 @@
 
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
-import * as state from "../state.js";
+
+/** @import { EdgePrimsState, EdgeLocation, Cell, CommonState } from "./state.d.ts" */
 
 /**
  * Select an edge of the leaf under the given global point. Edge is one
  * of the four relative edges of the leaf.
  *
- * @param {state.EditingCells} st
+ * @param {EdgePrimsState} st
  * @param {point.P2} pt
- * @param {state.EdgeLocation} edge
+ * @param {EdgeLocation} edge
  * @returns {boolean} `true` if the selection was changed, `false` otherwise.
  */
 export function selectEdgeUnderPoint(st, pt, edge) {
-    /** @type {grid.Leaf<state.Cell>} */
+    /** @type {grid.Leaf<Cell>} */
     let leaf = grid.leafUnderPoint(st.grid, pt);
     if(!leaf) {
         return false;
@@ -32,28 +33,21 @@ export function selectEdgeUnderPoint(st, pt, edge) {
     }
 
     // Check that this isn't already the current selection.
-    if(st.selection.type === "Edge"
-       && st.selection.edge === edge
-       && st.selection.leaf === leaf) {
+    if(st.selection.edge === edge && st.selection.leaf === leaf) {
         return false;
     }
 
-    st.selection = {
-        type: "Edge",
-        edge,
-        leaf
-    };
-
+    st.selection = { edge, leaf };
     return true;
 }
 
 /**
  * Count the number of trailing blank lines in a leaf.
  *
- * @param {grid.Leaf<state.Cell>} leaf
+ * @param {grid.Leaf<Cell>} leaf
  * @returns {number}
  */
-function countTrailingBlankLines(leaf) {
+function _countTrailingBlankLines(leaf) {
     let count = 0;
     for(let i = leaf.data.lines.length - 1; i >= 0; --i) {
         if(leaf.data.lines[i].trim() !== "") {
@@ -69,15 +63,15 @@ function countTrailingBlankLines(leaf) {
  * the selected edge is not vertical, or there is no selected edge,
  * then this function does nothing.
  *
- * @param {state.EditingCells} st
+ * @param {EdgePrimsState} st
  * @param {number} n
  * @param {any} glpk
- * @param {grid.SolveSettings<state.Cell>} [settings]
+ * @param {grid.SolveSettings<Cell>} [settings]
  * @returns {Promise<boolean>} `true` if the edge position was
  *     changed, and false otherwise.
  */
 export async function modifyVerticalEdge(st, n, glpk, settings) {
-    if(st.selection.type === "Leaves" || st.selection.edge === "Below") {
+    if(st.selection.edge === "Below") {
         return false;
     }
 
@@ -98,13 +92,13 @@ export async function modifyVerticalEdge(st, n, glpk, settings) {
  * the selected edge is not horizontal, or there is no selected edge,
  * then this function does nothing.
  *
- * @param {state.EditingCells} st
+ * @param {EdgePrimsState} st
  * @param {number} n
  * @returns {boolean} `true` if the edge position was changed, and
  *     false otherwise.
  */
 export function modifyHorizontalEdge(st, n) {
-    if(st.selection.type === "Leaves" || st.selection.edge === "Right") {
+    if(st.selection.edge === "Right") {
         return false;
     }
 
@@ -117,7 +111,7 @@ export function modifyHorizontalEdge(st, n) {
 
     // Find the minimum height of all of the leaves.
     const spaceAbove = leaves.reduce((lowest, leaf) => {
-        const trailingBlanks = Math.min(countTrailingBlankLines(leaf), leaf.data.lines.length - 1);
+        const trailingBlanks = Math.min(_countTrailingBlankLines(leaf), leaf.data.lines.length - 1);
         return Math.min(lowest, trailingBlanks);
     }, Infinity);
     n = Math.max(-spaceAbove, n);
@@ -142,4 +136,17 @@ export function modifyHorizontalEdge(st, n) {
     }
 
     return true;
+}
+
+/**
+ * @param { CommonState } st
+ * @returns { EdgePrimsState }
+ */
+export function editEdge(st) {
+    const firstLeaf = grid.allLeaves(st.grid).next().value;
+    return {
+        type: "EdgePrimsState",
+        grid: st.grid,
+        selection: { edge: "Right", leaf: firstLeaf }
+    };
 }

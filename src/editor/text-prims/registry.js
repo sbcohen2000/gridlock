@@ -1,18 +1,6 @@
 import * as prims from "./text-prims.js";
 
-/**
- * @typedef {"string" | "number" | "glpk" | "boolean"} Type
- */
-
-/**
- * @typedef  {Object} PrimitiveSignature
- * @property {any}     function    The function.
- * @property {Type[]}  args        The type of the function's arguments.
- * @property {Type}    retty       The type of the function's result.
- * @property {boolean} async       Is the function async?
- * @property {boolean} const       Does the function ever mutate the editor state?
- * @property {string}  description A short description of the primitive.
- */
+/** @import {PrimitiveSignature} from "../common-state.js" */
 
 /**
  * The editor primitive operations.

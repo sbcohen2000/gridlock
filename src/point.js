@@ -43,6 +43,28 @@ export function mkP2(x, y) {
 }
 
 /**
+ * Return a new `P2` whose coordinates have been rounded to the
+ * nearest integer.
+ *
+ * @param {P2} p
+ * @returns {P2}
+ */
+export function roundP2(p) {
+    return { x: Math.round(p.x), y: Math.round(p.y) };
+}
+
+/**
+ * Return a new `P2` whose coordinates have been floored to the next
+ * smallest integer.
+ *
+ * @param {P2} p
+ * @returns {P2}
+ */
+export function floorP2(p) {
+    return { x: Math.floor(p.x), y: Math.floor(p.y) };
+}
+
+/**
  * Construct a new vector from its components.
  *
  * @param {number} dx

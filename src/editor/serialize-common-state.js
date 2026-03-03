@@ -1,14 +1,28 @@
 import * as grid from "../grid.js";
-import * as state from "../editor.js"
+
+/** @import { CommonState, Cell } from "./common-state.d.ts" */
+
+/**
+ * Create a default CommonState with a single leaf containing one empty line.
+ *
+ * @returns {CommonState}
+ */
+export function mkCommonState() {
+    /** @type {grid.Grid<Cell>} */
+    const g = grid.mk(1, 1, { lines: [""] });
+    return { grid: g };
+}
 
 /**
  * Print a grid of cells, by printing its ASCII representation
  * immediately followed by the cell text of each grid.
  *
- * @param {grid.Grid<state.Cell>} g The cell grid to encode.
+ * @param {CommonState} st The common state to encode.
  * @returns {string} The encoded cell grid.
  */
-export function printCellGrid(g) {
+export function printCommonState(st) {
+    const g = st.grid;
+
     // Build a 2d array of characters with the same size as the grid.
     const chars = [];
     for(let i = 0; i < g.dims.height; ++i) {
@@ -38,7 +52,7 @@ export function printCellGrid(g) {
  * Parse a grid of cells, using the same format as `printCellGrid`.
  *
  * @param {string} src The source to parse.
- * @returns {grid.Grid<state.Cell>} The parsed cell grid.
+ * @returns {grid.Grid<Cell>} The parsed cell grid.
  */
 export function parseCellGrid(src) {
     const srcLines = src.split("\n");
@@ -47,7 +61,7 @@ export function parseCellGrid(src) {
     // portion always has one additional line.
     const gridPart = srcLines.slice((srcLines.length - 1) / 2);
 
-    const g = /** @type {grid.Grid<state.Cell>} */ (grid.parseASCII(gridPart.join("\n")));
+    const g = /** @type {grid.Grid<Cell>} */ (grid.parseASCII(gridPart.join("\n")));
 
     const leaves = grid.allLeavesWithPosition(g);
     for(const [leaf, p] of leaves) {
@@ -65,9 +79,9 @@ export function parseCellGrid(src) {
  * editor state.
  *
  * @param {string} src The source to parse as a cell grid.
- * @returns {state.EditingText}
+ * @returns {CommonState}
  */
-export function editorStateFromString(src) {
+export function commonStateFromString(src) {
     const g = parseCellGrid(src);
-    return state.mk(g);
+    return { grid: g };
 }

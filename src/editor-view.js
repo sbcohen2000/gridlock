@@ -1,10 +1,15 @@
 import * as grid from "./grid.js";
 import * as point from "./point.js";
-import * as serialize from "./editor/serialize.js";
-import * as state from "./editor.js";
+import * as serialize from "./editor/serialize-common-state.js";
+import * as textPrims from "./editor/text-prims/text-prims.js";
+import * as cellPrims from "./editor/cell-prims/cell-prims.js";
+import * as slicePrims from "./editor/slice-prims/slice-prims.js";
 import * as toolbar from "./editor-view/toolbar.js";
 import * as util from "./util.js";
 import { View } from "./view.js";
+
+/** @import { AnyState } from "./editor/any-state.d.ts" */
+/** @import { CommonState, Cell } from "./editor/common-state.d.ts" */
 
 /**
  * Group a string into a list of strings, those strings which contain
@@ -33,7 +38,7 @@ export class EditorView extends View {
 
     /**
      * @abstract
-     * @returns {state.EditorState}
+     * @returns {CommonState}
      */
     get state() {
         throw new Error("Method not implemented");
@@ -79,7 +84,7 @@ export class EditorView extends View {
      * View a particular line of the given leaf.
      *
      * @param {number} rowNo The index of the line to view.
-     * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
+     * @param {grid.Leaf<Cell>} leaf The line's parent leaf.
      * @param {point.P2} p The position of the upper-left corner of the leaf.
      * @param {HTMLElement} [prev] An existing line element to update in place.
      * @returns {HTMLElement} The HTML element generated to represent
@@ -100,7 +105,7 @@ export class EditorView extends View {
      * representing the leaf.
      *
      * @virtual
-     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {grid.Leaf<Cell>} leaf
      * @param {HTMLElement} leafElem
      */
     viewLeafSelection(leaf, leafElem) {
@@ -111,7 +116,7 @@ export class EditorView extends View {
     /**
      * View a particular leaf of the grid.
      *
-     * @param {grid.Leaf<state.Cell>} leaf The leaf to view.
+     * @param {grid.Leaf<Cell>} leaf The leaf to view.
      * @param {point.P2} p The position of the upper-left corner of the leaf.
      * @param {HTMLElement} [prev] An existing leaf element to update in place.
      * @returns {HTMLElement} The HTML element generated to represent
@@ -148,37 +153,37 @@ export class EditorView extends View {
             type: "button",
             label: "edit text",
             onclick: () => {
-                this.requestReplaceEditorView(state.editText(this.state));
+                this.requestReplaceEditorView(textPrims.editText(this.state));
             }
         }, {
             type: "button",
             label: "select cells/edges",
             onclick: () => {
-                this.requestReplaceEditorView(state.editCells(this.state));
+                this.requestReplaceEditorView(cellPrims.editCells(this.state));
             }
         }, {
             type: "button",
             label: "split vertically",
             onclick: () => {
-                this.requestReplaceEditorView(state.sliceCellsVertically(this.state));
+                this.requestReplaceEditorView(slicePrims.editSlice(this.state, "Vertical"));
             }
         }, {
             type: "button",
             label: "split horizontally",
             onclick: () => {
-                this.requestReplaceEditorView(state.sliceCellsHorizontally(this.state));
+                this.requestReplaceEditorView(slicePrims.editSlice(this.state, "Horizontal"));
             }
         }, {
             type: "button",
             label: "clear",
             onclick: () => {
-                this.requestReplaceEditorView(state.mk());
+                this.requestReplaceEditorView(textPrims.editText(serialize.mkCommonState()));
             },
         }, {
             type: "button",
             label: "save",
             onclick: () => {
-                const serialized = serialize.printCellGrid(this.state.grid);
+                const serialized = serialize.printCommonState(this.state);
                 console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
                 localStorage.setItem("editorState", serialized);
             },
@@ -227,7 +232,7 @@ export class EditorView extends View {
     }
 
     /**
-     * @param {state.EditorState} newState
+     * @param {AnyState} newState
      */
     requestReplaceEditorView(newState) {
         this.notify({

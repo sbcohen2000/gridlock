@@ -79,8 +79,8 @@ export function arbitraryPrimitiveCommand(glpk, settings) {
 async function main() {
     const GLPK = (await import("glpk.js/node")).default;
     const glpk = await GLPK();
-    const state = await import("../src/editor.js");
-    const serialize = await import("../src/editor/serialize.js");
+    const textPrims = await import("../src/editor/text-prims/text-prims.js");
+    const serialize = await import("../src/editor/serialize-common-state.js");
 
     // Parse command line arguments
     const args = process.argv.slice(2);
@@ -94,10 +94,10 @@ async function main() {
     );
 
     // Create empty editor state
-    const st = state.mk();
+    const st = textPrims.editText(serialize.mkCommonState());
 
     console.log("Initial state:");
-    console.log(serialize.printCellGrid(st.grid));
+    console.log(serialize.printCommonState(st));
     console.log("\nApplying commands:");
 
     // Apply each command
@@ -108,7 +108,7 @@ async function main() {
     }
 
     console.log("\nFinal state:");
-    console.log(serialize.printCellGrid(st.grid));
+    console.log(serialize.printCommonState(st));
 }
 
 if(import.meta.main) {

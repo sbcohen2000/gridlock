@@ -1,26 +1,28 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
-import * as state from "../editor.js";
+import * as textPrims from "../editor/text-prims/text-prims.js";
 import * as toolbar from "./toolbar.js";
 import * as view from "../view.js";
 import { EditorView } from "../editor-view.js";
 import { View } from "../view.js";
 import { theGLPKInstance } from "../glpk.js";
 
+/** @import { TextPrimsState, Cell } from "../editor/text-prims/state.d.ts" */
+
 export class TextEditingView extends EditorView {
-    /** @type {state.EditingText} */
+    /** @type {TextPrimsState} */
     #teState
 
     /**
      * @param {View} parent
-     * @param {state.EditingText} [st] The initial editor state.
+     * @param {TextPrimsState} [st] The initial editor state.
      */
     constructor(parent, st) {
         super(parent);
-        this.#teState = st ?? state.mk();
+        this.#teState = st;
     }
 
-    /** @returns {state.EditingText} */
+    /** @returns {TextPrimsState} */
     get state() {
         return this.#teState;
     }
@@ -29,7 +31,7 @@ export class TextEditingView extends EditorView {
      * View a particular line of the given leaf.
      *
      * @param {number} rowNo The index of the line to view.
-     * @param {grid.Leaf<state.Cell>} leaf The line's parent leaf.
+     * @param {grid.Leaf<Cell>} leaf The line's parent leaf.
      * @param {point.P2} p The position of the upper-left corner of the leaf.
      * @param {HTMLElement} [prev] An existing line element to update in place.
      * @returns {HTMLElement} The HTML element generated to represent
@@ -54,7 +56,7 @@ export class TextEditingView extends EditorView {
                 rect.left + rect.width * pctFilled
             ));
 
-            state.textPrims.putPointOnGlobalPosition(this.state, point.offset(p, point.mkV2(i, rowNo)));
+            textPrims.putPointOnGlobalPosition(this.state, point.offset(p, point.mkV2(i, rowNo)));
             this.requestFocus();
             this.requestRedraw();
         };
@@ -77,7 +79,7 @@ export class TextEditingView extends EditorView {
      * Draw the selection of a leaf, if any, given an element
      * representing the leaf.
      *
-     * @param {grid.Leaf<state.Cell>} leaf
+     * @param {grid.Leaf<Cell>} leaf
      * @param {HTMLElement} leafElem
      */
     viewLeafSelection(leaf, leafElem) {
@@ -119,15 +121,15 @@ export class TextEditingView extends EditorView {
         if(e.key.length === 1) {
             if(e.ctrlKey) {
                 switch(e.key) {
-                case "a": state.textPrims.putPointAtStartOfGlobalLine(this.#teState); this.requestRedraw(); break;
-                case "e": state.textPrims.putPointAtEndOfGlobalLine(this.#teState); this.requestRedraw(); break;
-                case "n": state.textPrims.putPointOnNextGlobalLine(this.#teState); this.requestRedraw(); break;
-                case "p": state.textPrims.putPointOnPrevGlobalLine(this.#teState); this.requestRedraw(); break;
-                case "b": state.textPrims.putPointOnPrevGlobalCol(this.#teState); this.requestRedraw(); break;
-                case "f": state.textPrims.putPointOnNextGlobalCol(this.#teState); this.requestRedraw(); break;
+                case "a": textPrims.putPointAtStartOfGlobalLine(this.#teState); this.requestRedraw(); break;
+                case "e": textPrims.putPointAtEndOfGlobalLine(this.#teState); this.requestRedraw(); break;
+                case "n": textPrims.putPointOnNextGlobalLine(this.#teState); this.requestRedraw(); break;
+                case "p": textPrims.putPointOnPrevGlobalLine(this.#teState); this.requestRedraw(); break;
+                case "b": textPrims.putPointOnPrevGlobalCol(this.#teState); this.requestRedraw(); break;
+                case "f": textPrims.putPointOnNextGlobalCol(this.#teState); this.requestRedraw(); break;
                 }
             } else {
-                state.textPrims.insertString(this.#teState, e.key, theGLPKInstance.glpk).then(() => {
+                textPrims.insertString(this.#teState, e.key, theGLPKInstance.glpk).then(() => {
                     this.requestRedraw();
                 });
             }
@@ -137,15 +139,15 @@ export class TextEditingView extends EditorView {
 
             switch(e.key) {
             case "Backspace": {
-                if(state.textPrims.pointAtBeginningOfGlobalLine(this.#teState)) {
-                    state.textPrims.removeGlobalLine(this.#teState);
+                if(textPrims.pointAtBeginningOfGlobalLine(this.#teState)) {
+                    textPrims.removeGlobalLine(this.#teState);
                 } else {
-                    state.textPrims.removeString(this.#teState, 1);
+                    textPrims.removeString(this.#teState, 1);
                 }
                 this.requestRedraw();
             } break;
             case "Enter": {
-                state.textPrims.insertGlobalNewline(this.#teState);
+                textPrims.insertGlobalNewline(this.#teState);
                 this.requestRedraw();
             } break;
             default: break;

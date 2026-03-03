@@ -1,5 +1,5 @@
-import * as serialize from "./editor/serialize.js";
-import * as state from "./editor.js";
+import * as serialize from "./editor/serialize-common-state.js";
+import * as textPrims from "./editor/text-prims/text-prims.js";
 import * as util from "./util.js";
 import * as view from "./view.js";
 import GLPK from "glpk.js";
@@ -10,6 +10,8 @@ import { TextEditingView } from "./editor-view/text-editing-view.js";
 import { View } from "./view.js";
 import { theGLPKInstance } from "./glpk.js";
 import { mkToolbarItem } from "./editor-view/toolbar.js";
+
+/** @import { AnyState } from "./editor/any-state.d.ts" */
 
 // Reload the page when esbuild issues a change event.
 //
@@ -43,7 +45,7 @@ class AppView extends View {
 
     /**
      * @param {View} parent
-     * @param {state.EditorState} st
+     * @param {AnyState} st
      */
     constructor(parent, st) {
         super(parent);
@@ -88,16 +90,16 @@ class AppView extends View {
      * Replace the app's editor view based on the kind of state passed
      * to this function.
      *
-     * @param {state.EditorState} st
+     * @param {AnyState} st
      */
     #replaceViewFromState(st) {
         const old = this.#editorView;
         switch(st.type) {
-        case "EditingText":
+        case "TextPrimsState":
             this.#editorView = new TextEditingView(this, st); break;
-        case "EditingCells":
+        case "CellPrimsState":
             this.#editorView = new CellEditingView(this, st); break;
-        case "SlicingCells":
+        case "SlicePrimsState":
             if(st.direction === "Vertical") {
                 this.#editorView = new VerticalCellSlicingView(this, st);
             } else {
@@ -134,12 +136,12 @@ async function main() {
     }
 
     let initialStateStr = localStorage.getItem("editorState");
-    /** @type {state.EditorState} */
+    /** @type {AnyState} */
     let initialState;
     if(initialStateStr) {
-        initialState = serialize.editorStateFromString(initialStateStr);
+        initialState = textPrims.editText(serialize.commonStateFromString(initialStateStr));
     } else {
-        initialState = state.mk();
+        initialState = textPrims.editText(serialize.mkCommonState());
     }
 
     const topLevelView = new (class extends View {
@@ -154,7 +156,7 @@ async function main() {
 
         /**
          * @param {View} parent
-         * @param {state.EditorState} st The initial state
+         * @param {AnyState} st The initial state
          */
         constructor(parent, st) {
             super(parent);

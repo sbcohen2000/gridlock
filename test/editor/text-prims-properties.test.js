@@ -1,7 +1,7 @@
 import * as fc from "fast-check";
 import * as grid from "../../src/grid.js";
-import * as state from "../../src/editor.js";
-import * as serialize from "../../src/editor/serialize.js";
+import * as serialize from "../../src/editor/serialize-common-state.js";
+import * as textPrims from "../../src/editor/text-prims/text-prims.js";
 import { arbitraryPrimitiveCommand } from "../arbitrary-text-primitive-command.js";
 import GLPK from "glpk.js/node";
 import { expect } from "chai";
@@ -15,7 +15,7 @@ const glpk = await GLPK();
  * @param {object} [options]
  * @param {number} [options.minCommands=0] Minimum number of commands to apply
  * @param {number} [options.maxCommands=50] Maximum number of commands to apply
- * @returns {fc.Arbitrary<Promise<state.EditingText>>} An arbitrary editor state
+ * @returns {fc.Arbitrary<Promise<import("../../src/editor/text-prims/state.d.ts").TextPrimsState>>} An arbitrary editor state
  */
 function arbitraryStartingState(options = {}) {
     const minCommands = options.minCommands ?? 0;
@@ -25,7 +25,7 @@ function arbitraryStartingState(options = {}) {
         arbitraryPrimitiveCommand(glpk, { includeConstPrims: false }),
         { minLength: minCommands, maxLength: maxCommands }
     ).map(async (commands) => {
-        const st = state.mk();
+        const st = textPrims.editText(serialize.mkCommonState());
         for(const [fn, args] of commands) {
             await fn(st, ...args);
         }
@@ -40,7 +40,7 @@ describe("Primitive command properties", () => {
                 fc.array(arbitraryPrimitiveCommand(glpk, { includeConstPrims: false }), { minLength: 0, maxLength: 1000 }),
                 async (commands) => {
                     // Start with a fresh editor state
-                    const st = state.mk();
+                    const st = textPrims.editText(serialize.mkCommonState());
 
                     // Apply each command
                     for(const [fn, args] of commands) {
@@ -60,7 +60,7 @@ describe("Primitive command properties", () => {
                     const genericErrorMessage = fc.defaultReportMessage(out);
 
                     // Recreate the state to show the final result
-                    const st = state.mk();
+                    const st = textPrims.editText(serialize.mkCommonState());
                     const commandSummary = [];
 
                     for(const [fn, args] of commands) {
@@ -79,11 +79,11 @@ describe("Primitive command properties", () => {
                         genericErrorMessage,
                         `\nNumber of commands: ${commands.length}`,
                         "\nInitial state:",
-                        serialize.printCellGrid(state.mk().grid),
+                        serialize.printCommonState(textPrims.editText(serialize.mkCommonState())),
                         "\nCommands applied:",
                         commandSummary.join("\n"),
                         "\nFinal state:",
-                        serialize.printCellGrid(st.grid)
+                        serialize.printCommonState(st)
                     ].join("\n");
 
                     throw new Error(errorMessage);
@@ -99,9 +99,9 @@ describe("Primitive command properties", () => {
                 arbitraryPrimitiveCommand(glpk, { includeConstPrims: true, includeNonConstPrims: false }),
                 async (stPromise, [fn, args]) => {
                     const st = await stPromise;
-                    const beforeSerialization = serialize.printCellGrid(st.grid);
+                    const beforeSerialization = serialize.printCommonState(st);
                     await fn(st, ...args);
-                    const afterSerialization = serialize.printCellGrid(st.grid);
+                    const afterSerialization = serialize.printCommonState(st);
                     expect(afterSerialization).to.equal(beforeSerialization);
                 }
             ),

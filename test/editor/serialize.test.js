@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import * as serialize from "../../src/editor/serialize.js";
+import * as serialize from "../../src/editor/serialize-common-state.js";
 import * as grid from "../../src/grid.js";
 import * as arbg from "../arbitrary-grid.js";
 import * as fc from "fast-check";
@@ -13,7 +13,7 @@ const printableChar = fc.constantFrom(
  *
  * @param {number} width
  * @param {number} height
- * @returns {fc.Arbitrary<import('../../src/editor.js').Cell>}
+ * @returns {fc.Arbitrary<import('../../src/editor/common-state.d.ts').Cell>}
  */
 function arbCell(width, height) {
     const lineArb = fc.array(printableChar, { minLength: 0, maxLength: width })
@@ -28,7 +28,7 @@ function arbCell(width, height) {
  * the leaf's dimensions.
  *
  * @param {grid.Grid<void>} voidGrid
- * @returns {fc.Arbitrary<grid.Grid<import('../../src/editor.js').Cell>>}
+ * @returns {fc.Arbitrary<grid.Grid<import('../../src/editor/common-state.d.ts').Cell>>}
  */
 function arbCellGrid(voidGrid) {
     const leaves = [...grid.allLeaves(voidGrid)];
@@ -50,9 +50,9 @@ describe("serialize", () => {
             fc.property(
                 arbg.grid.tree.chain(g => arbCellGrid(g)),
                 (g) => {
-                    const src0 = serialize.printCellGrid(g);
+                    const src0 = serialize.printCommonState({ grid: g });
                     const g1 = serialize.parseCellGrid(src0);
-                    const src1 = serialize.printCellGrid(g1);
+                    const src1 = serialize.printCommonState({ grid: g1 });
                     expect(src0).to.equal(src1);
                 }
             )

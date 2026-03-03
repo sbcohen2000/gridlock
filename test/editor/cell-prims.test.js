@@ -1,18 +1,16 @@
 import * as point from "../../src/point.js";
-import * as serialize from "../../src/editor/serialize.js";
-import * as state from "../../src/editor/state.js";
+import * as serialize from "../../src/editor/serialize-common-state.js";
 import * as cellPrims from "../../src/editor/cell-prims/cell-prims.js";
 import { expect } from "chai";
 
 /**
- * Create an EditingCells state from a cell-grid string.
+ * Create a CellPrimsState from a cell-grid string.
  *
  * @param {string} src
- * @returns {state.EditingCells}
+ * @returns {import("../../src/editor/cell-prims/state.d.ts").CellPrimsState}
  */
 function mkCellState(src) {
-    const g = serialize.parseCellGrid(src);
-    return state.editCells(state.mk(g));
+    return cellPrims.editCells(serialize.commonStateFromString(src));
 }
 
 describe("cell-prims", () => {
@@ -27,8 +25,7 @@ describe("cell-prims", () => {
             const result = cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
 
             expect(result).to.be.true;
-            expect(st.selection.type).to.equal("Leaves");
-            expect(/** @type{state.LeafSelection} */(st.selection).leaves.size).to.equal(1);
+            expect(st.selection.leaves.size).to.equal(1);
         });
 
         it("Accumulates leaves when clear is false", () => {
@@ -41,8 +38,7 @@ describe("cell-prims", () => {
             cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
             cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), false);
 
-            expect(st.selection.type).to.equal("Leaves");
-            expect(/** @type{state.LeafSelection} */(st.selection).leaves.size).to.equal(2);
+            expect(st.selection.leaves.size).to.equal(2);
         });
 
         it("Replaces selection when clear is true", () => {
@@ -55,8 +51,7 @@ describe("cell-prims", () => {
             cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
             cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), true);
 
-            expect(st.selection.type).to.equal("Leaves");
-            expect(/** @type{state.LeafSelection} */(st.selection).leaves.size).to.equal(1);
+            expect(st.selection.leaves.size).to.equal(1);
         });
     });
 });
