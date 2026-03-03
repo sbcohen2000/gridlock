@@ -1,7 +1,7 @@
 {
-    "name": "gooey-code",
+    "name": "gridlock",
     "version": "1.0.0",
-    "description": "A gooey editor for JavaScript",
+    "description": "A grid-based editor for plain text",
     "main": "index.js",
     "type": "module",
     "scripts": {

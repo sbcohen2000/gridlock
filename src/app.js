@@ -228,7 +228,9 @@ async function main() {
 
         /** @returns {HTMLElement} */
         view() {
+            util.RecycleStatistics.reset();
             this.#appView.view(editorRoot);
+            console.log(util.RecycleStatistics.report());
             return editorRoot;
         }
     })(null, initialState);

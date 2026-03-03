@@ -60,6 +60,52 @@ export function padRightToLength(str, len) {
 }
 
 /**
+ * Global singleton tracking how many DOM elements are recycled vs
+ * created during a draw cycle.
+ */
+export const RecycleStatistics = new class {
+    /** @type {number} Number of elements reused from a previous render. */
+    recycled = 0;
+    /** @type {number} Number of elements freshly created. */
+    created = 0;
+    /** @type {number} Number of leftover elements removed. */
+    removed = 0;
+
+    /** Reset all counters. Call this before each draw. */
+    reset() {
+        this.recycled = 0;
+        this.created  = 0;
+        this.removed  = 0;
+    }
+
+    /**
+     * Total elements processed (recycled + created + removed).
+     * @returns {number}
+     */
+    get total() {
+        return this.recycled + this.created + this.removed;
+    }
+
+    /**
+     * Percentage of processed elements that were recycled,
+     * or 0 if no elements were processed.
+     * @returns {number}
+     */
+    get recycledPct() {
+        return this.total === 0 ? 0 : this.recycled / this.total;
+    }
+
+    /**
+     * Return a summary string suitable for logging.
+     * @returns {string}
+     */
+    report() {
+        return `recycled: ${this.recycled}, created: ${this.created}, removed: ${this.removed}, ` +
+               `total: ${this.total}, reuse: ${(this.recycledPct * 100).toFixed(1)}%`;
+    }
+};
+
+/**
  * Reconcile the children of `parent` against a list of items.
  *
  * For each item, call `render(item, prev)` where `prev` is the
@@ -86,14 +132,19 @@ export function recycleChildren(parent, items, render) {
             if(updated !== oldChild) {
                 // Updated doesn't use the same node as `oldChild`.
                 oldChildren[i].replaceWith(updated);
+                RecycleStatistics.created++;
+            } else {
+                RecycleStatistics.recycled++;
             }
         } else {
             parent.appendChild(render(items[i]));
+            RecycleStatistics.created++;
         }
     }
     // Remove leftover old children
     for(let i = items.length; i < oldChildren.length; ++i) {
         oldChildren[i].remove();
+        RecycleStatistics.removed++;
     }
 }
 
