@@ -16,18 +16,6 @@ function mkCellState(src) {
     return state.editCells(state.mk(g));
 }
 
-/**
- * Select an edge relative to the leaf at the given point.
- *
- * @param {state.EditingCells} st
- * @param {point.P2} pt
- * @param {state.RelEdgeLocation} edge
- */
-function selectEdge(st, pt, edge) {
-    const leaf = grid.leafUnderPoint(st.grid, pt);
-    st.selection = { type: "Edge", edge, leaf };
-}
-
 describe("selectLeafUnderPoint", () => {
     it("Selects a leaf in a single-leaf grid", () => {
         const st = mkCellState(
@@ -72,50 +60,6 @@ describe("selectLeafUnderPoint", () => {
     });
 });
 
-describe("splitCellVerticallyAtRow", () => {
-    it("Splits a selected cell at the given row", () => {
-        const st = mkCellState(
-            "hello\n" +
-            "world\n" +
-            "+-----+\n" +
-            "|     |\n" +
-            "+-----+"
-        );
-
-        cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
-        const result = cellPrims.splitCellVerticallyAtRow(st, 1);
-
-        expect(result).to.be.true;
-        expect(serialize.printCellGrid(st.grid)).to.equal(
-            "hello\n" +
-            "world\n" +
-            "+-----+\n" +
-            "+-----+\n" +
-            "+-----+"
-        );
-    });
-});
-
-describe("splitCellHorizontallyAtColumn", () => {
-    it("Splits a selected cell at the given column", () => {
-        const st = mkCellState(
-            "hello world\n" +
-            "+-----------+\n" +
-            "+-----------+"
-        );
-
-        cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
-        const result = cellPrims.splitCellHorizontallyAtColumn(st, 6);
-
-        expect(result).to.be.true;
-        expect(serialize.printCellGrid(st.grid)).to.equal(
-            "hello world\n" +
-            "+-----+-----+\n" +
-            "+-----+-----+"
-        );
-    });
-});
-
 describe("modifyHorizontalEdge", () => {
     it("Moves a horizontal edge down by 1", () => {
         const st = mkCellState(
@@ -126,7 +70,7 @@ describe("modifyHorizontalEdge", () => {
             "+---+---+"
         );
 
-        selectEdge(st, point.mkP2(0, 0), "Below");
+        cellPrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
         const result = cellPrims.modifyHorizontalEdge(st, 1);
 
         expect(result).to.be.true;
@@ -149,7 +93,7 @@ describe("modifyHorizontalEdge", () => {
             "+---+---+"
         );
 
-        selectEdge(st, point.mkP2(0, 0), "Below");
+        cellPrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
         const result = cellPrims.modifyHorizontalEdge(st, -1);
 
         expect(result).to.be.true;
@@ -169,7 +113,7 @@ describe("modifyHorizontalEdge", () => {
             "+---+"
         );
 
-        selectEdge(st, point.mkP2(0, 0), "Below");
+        cellPrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
         const result = cellPrims.modifyHorizontalEdge(st, -1);
 
         // Top leaf is already height 1, can't shrink further

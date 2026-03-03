@@ -12,22 +12,6 @@ import * as prims from "./cell-prims.js";
  */
 export const PRIMITIVES = [
     {
-        function: prims.splitCellVerticallyAtRow,
-        args: ["number"],
-        retty: "boolean",
-        async: false,
-        const: false,
-        description: "Split selected cell vertically at given row"
-    },
-    {
-        function: prims.splitCellHorizontallyAtColumn,
-        args: ["number"],
-        retty: "boolean",
-        async: false,
-        const: false,
-        description: "Split selected cell horizontally at given column"
-    },
-    {
         function: prims.selectLeafUnderPoint,
         args: ["point", "boolean"],
         retty: "boolean",
@@ -45,7 +29,7 @@ export const PRIMITIVES = [
     },
     {
         function: prims.modifyVerticalEdge,
-        args: ["number", "glpk", "solveSettings"],
+        args: ["number", "glpk"],
         retty: "boolean",
         async: true,
         const: false,
