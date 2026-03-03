@@ -1,10 +1,10 @@
-import * as grid from "../grid.js";
-import * as point from "../point.js";
+import * as grid from "../../grid.js";
+import * as point from "../../point.js";
 
 /**
- * @param {grid.Grid<import("./state.js").Cell>} g
+ * @param {grid.Grid<import("../state.js").Cell>} g
  * @param {point.P2} globalPos — a global grid position; the row within the leaf is derived from this
- * @returns {grid.Grid<import("./state.js").Cell>}
+ * @returns {grid.Grid<import("../state.js").Cell>}
  */
 export function splitVerticallyAtGlobalPosition(g, globalPos) {
     const leaf = grid.leafUnderPoint(g, globalPos);
@@ -19,9 +19,9 @@ export function splitVerticallyAtGlobalPosition(g, globalPos) {
 }
 
 /**
- * @param {grid.Grid<import("./state.js").Cell>} g
+ * @param {grid.Grid<import("../state.js").Cell>} g
  * @param {point.P2} globalPos
- * @returns {grid.Grid<import("./state.js").Cell>}
+ * @returns {grid.Grid<import("../state.js").Cell>}
  */
 export function splitHorizontallyAtGlobalPosition(g, globalPos) {
     const leaf = grid.leafUnderPoint(g, globalPos);

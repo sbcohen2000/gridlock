@@ -14,7 +14,7 @@ import * as util from "../../util.js";
  *
  * @param {state.EditingText} st The current editor state.
  */
-export function _updateLastGlobalCol(st) {
+function _updateLastGlobalCol(st) {
     const globalCol = _findGlobalPoint(st).x;
     st.selection.lastGlobalCol = globalCol;
 }
@@ -30,7 +30,7 @@ export function _updateLastGlobalCol(st) {
  *    omitted, it is unchanged.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
-export function _putPointOnLocalPosition(st, leaf, pt, newGlobalCol) {
+function _putPointOnLocalPosition(st, leaf, pt, newGlobalCol) {
     // Ensure that the row and column are within bounds of the line.
     pt.y = util.clamp(0, pt.y, leaf.data.lines.length - 1);
     pt.x = util.clamp(0, pt.x, leaf.data.lines[pt.y].length);
@@ -62,7 +62,7 @@ export function _putPointOnLocalPosition(st, leaf, pt, newGlobalCol) {
  *
  * @param {state.EditingText} st The current editor state.
  */
-export function _putPointOnLastGlobalColumnInLeaf(st) {
+function _putPointOnLastGlobalColumnInLeaf(st) {
     // Find the location of the global column, relative to the
     // currently selected leaf.
     const leaf = st.selection.leaf;

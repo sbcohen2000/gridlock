@@ -140,4 +140,20 @@ export const PRIMITIVES = [
         const: false,
         description: "Insert string at current point"
     },
+    {
+        function: prims.putPointOnGlobalPosition,
+        args: ["point", "boolean"],
+        retty: "boolean",
+        async: false,
+        const: false,
+        description: "Move point to a global position"
+    },
+    {
+        function: prims.textOnGlobalLine,
+        args: ["number"],
+        retty: "string",
+        async: false,
+        const: true,
+        description: "Get text content of a global line"
+    },
 ];

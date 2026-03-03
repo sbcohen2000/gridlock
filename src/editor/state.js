@@ -133,17 +133,24 @@ export function testFlag(flags, flag) {
  */
 
 /**
- * @typedef {"Left" | "Right" | "Above" | "Below"} RelEdgeLocation
+ * @typedef {"Right" | "Below"} CanonicalEdgeLocation
+ */
+
+/**
+ * @typedef {CanonicalEdgeLocation | "Left" | "Above"} EdgeLocation
  */
 
 /**
  * Describe the selection of a single edge in the document. We
- * describe the selection of an edge by recording the grid cell whose
- * partition is the same as the selected edge.
+ * represent this kind of selection by storing the leaf to the left or
+ * above the selected edge.
  *
  * @typedef {Object} EdgeSelection
  * @property {"Edge"} type A tag indicating the kind of selection.
- * @property {RelEdgeLocation} edge
+ * @property {CanonicalEdgeLocation} edge The edge which this selection
+ *     refers to, relative to `leaf`. Note that we do not represent
+ *     edges to the left and above `leaf`. These edges are resolved
+ *     when the selection is created.
  * @property {grid.Leaf<Cell>} leaf
  */
 

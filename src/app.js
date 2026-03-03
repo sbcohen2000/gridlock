@@ -230,7 +230,7 @@ async function main() {
         view() {
             util.RecycleStatistics.reset();
             this.#appView.view(editorRoot);
-            console.log(util.RecycleStatistics.report());
+            // console.log(util.RecycleStatistics.report());
             return editorRoot;
         }
     })(null, initialState);

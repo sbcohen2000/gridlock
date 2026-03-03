@@ -4,6 +4,7 @@ import * as state from "../editor.js";
 import { EditorView } from "../editor-view.js";
 import { View } from "../view.js";
 import { theGLPKInstance } from "../glpk.js";
+import { assert } from "../util.js";
 
 export class CellEditingView extends EditorView {
     /** @type {state.EditingCells} */
@@ -49,7 +50,7 @@ export class CellEditingView extends EditorView {
      *
      * @type {{
      *   leaf: grid.Leaf<state.Cell>,
-     *   edge: state.RelEdgeLocation
+     *   edge: state.EdgeLocation
      * } | null}
      */
     #mouseNearEdge = null;
@@ -59,7 +60,7 @@ export class CellEditingView extends EditorView {
      * necessary.
      *
      * @param {grid.Leaf<state.Cell>} leaf
-     * @param {state.RelEdgeLocation} edge
+     * @param {state.EdgeLocation} edge
      */
     #setMouseNearEdgeAndRedrawIfNecessary(leaf, edge) {
         if(this.#mouseNearEdge === null
@@ -129,31 +130,13 @@ export class CellEditingView extends EditorView {
      * View a particular leaf of the grid.
      *
      * @param {grid.Leaf<state.Cell>} leaf The leaf to view.
-     * @param {point.P2} pt The position of the upper-left corner of the leaf.
+     * @param {point.P2} leafUl The position of the upper-left corner of the leaf.
      * @param {HTMLElement} [prev] An existing leaf element to update in place.
      * @returns {HTMLElement} The HTML element generated to represent
      *     this leaf.
      */
-    viewLeaf(leaf, pt, prev) {
-        const leafElem = super.viewLeaf(leaf, pt, prev);
-
-        /**
-         * Convert a point in screen space to a point in the local
-         * coordinate space of the leaf.
-         *
-         * @param {point.P2} pt
-         * @returns {point.P2}
-         */
-        const screenPosToLocalPos = (pt) => {
-            const rect = leafElem.getBoundingClientRect();
-            const relX = pt.x - rect.left;
-            const relY = pt.y - rect.top;
-
-            const relCol = Math.floor(point.lerp(0, leaf.dims.width,  0, relX, rect.width));
-            const relRow = Math.floor(point.lerp(0, leaf.dims.height, 0, relY, rect.height));
-
-            return point.mkP2(relCol, relRow);
-        };
+    viewLeaf(leaf, leafUl, prev) {
+        const leafElem = super.viewLeaf(leaf, leafUl, prev);
 
         leafElem.onmousemove = (e) => {
             const rect = leafElem.getBoundingClientRect();
@@ -164,13 +147,13 @@ export class CellEditingView extends EditorView {
             // we're closest to one of the edges, we should preview
             // that edge, while if we're closest to the center, we
             // should clear the preview.
-            /** @type {[number, state.RelEdgeLocation]} */
+            /** @type {[number, state.EdgeLocation]} */
             const distanceToLeftEdge   = [relX,               "Left"];
-            /** @type {[number, state.RelEdgeLocation]} */
+            /** @type {[number, state.EdgeLocation]} */
             const distanceToRightEdge  = [rect.width - relX,  "Right"];
-            /** @type {[number, state.RelEdgeLocation]} */
+            /** @type {[number, state.EdgeLocation]} */
             const distanceToTopEdge    = [relY,               "Above"];
-            /** @type {[number, state.RelEdgeLocation]} */
+            /** @type {[number, state.EdgeLocation]} */
             const distanceToBottomEdge = [rect.height - relY, "Below"];
 
             const [minD, edge] = [
@@ -192,20 +175,27 @@ export class CellEditingView extends EditorView {
             const relX = e.clientX - rect.left;
             const relY = e.clientY - rect.top;
 
+            const rootRect = this._root.getBoundingClientRect();
+            const gridW    = this.#ceState.grid.dims.width;
+            const gridH    = this.#ceState.grid.dims.height;
+            // Yes, it is intentional that the column is rounded while
+            // the row is floored. This seems to produce the most
+            // intuitive behavior (perhaps it's because cell
+            // boundaries are centered _between_ columns, while lines
+            // are centered _on_ the line).
+            const gridCol  = Math.round(point.lerp(0, gridW, rootRect.left, e.clientX, rootRect.right));
+            const gridRow  = Math.floor(point.lerp(0, gridH, rootRect.top, e.clientY, rootRect.bottom));
+            const globalPt = point.mkP2(gridCol, gridRow);
+
             const isDoubleClick = this.#classifyDoubleClick(leaf);
             if(isDoubleClick) {
                 // If the user double-clicked on the leaf, we want to
                 // change to text-editing mode, setting the selection
                 // to the point under the cursor.
 
-                const localPt = screenPosToLocalPos(point.mkP2(e.clientX, e.clientY));
-
                 const st = state.mk(this.#ceState.grid);
-                state.textPrims.putPointOnGlobalPosition(
-                    st,
-                    point.offset(pt, point.mkV2(localPt.x, localPt.y)),
-                    true
-                );
+                console.log(globalPt);
+                state.textPrims.putPointOnGlobalPosition(st, globalPt, true);
 
                 this.requestReplaceEditorView(st);
                 return;
@@ -215,13 +205,13 @@ export class CellEditingView extends EditorView {
             // we're closest to one of the edges, we should select an
             // edge, while if we're closest to the center, we should
             // select the cell itself.
-            /** @type {[number, state.RelEdgeLocation]} */
+            /** @type {[number, state.EdgeLocation]} */
             const distanceToLeftEdge   = [relX,               "Left"];
-            /** @type {[number, state.RelEdgeLocation]} */
+            /** @type {[number, state.EdgeLocation]} */
             const distanceToRightEdge  = [rect.width - relX,  "Right"];
-            /** @type {[number, state.RelEdgeLocation]} */
+            /** @type {[number, state.EdgeLocation]} */
             const distanceToTopEdge    = [relY,               "Above"];
-            /** @type {[number, state.RelEdgeLocation]} */
+            /** @type {[number, state.EdgeLocation]} */
             const distanceToBottomEdge = [rect.height - relY, "Below"];
 
             const [minD, edge] = [
@@ -235,25 +225,27 @@ export class CellEditingView extends EditorView {
             // then we want to select the cell itself rather than one
             // of its edges.
             if(minD <= 2) {
-                this.#ceState.selection = { type: "Edge", edge, leaf };
+                if(!state.cellPrims.selectEdgeUnderPoint(this.#ceState, leafUl, edge)) {
+                    return;
+                }
+                assert(this.#ceState.selection.type === "Edge");
+                const leftLeaf = this.#ceState.selection.leaf;
+
+                // Capture the pointer of the root element so that the
+                // user can drag outside of the current bounds of the
+                // element if necessary.
                 this._root.setPointerCapture(e.pointerId);
-                const rootRect = this._root.getBoundingClientRect();
-                const gridW    = this.#ceState.grid.dims.width;
-                const gridH    = this.#ceState.grid.dims.height;
-                const gridCol  = Math.round(point.lerp(0, gridW, rootRect.left, e.clientX, rootRect.right));
-                const gridRow  = Math.round(point.lerp(0, gridH, rootRect.top, e.clientY, rootRect.bottom));
-                const leftLeaf = state.cellPrims.leafAssociatedWithEdgeSelection(this.#ceState);
 
                 this.#dragState = {
                     dragOriginPx: point.mkP2(e.clientX, e.clientY),
-                    dragOriginGrid: point.mkP2(gridCol, gridRow),
+                    dragOriginGrid: globalPt,
                     gridScale: point.mkV2(rootRect.width / gridW, rootRect.height / gridH),
                     dir: edge === "Above" || edge === "Below" ? "UpDown" : "LeftRight",
                     leftLeaf,
                     lastArg: 0
                 };
             } else {
-                state.cellPrims.selectLeafUnderPoint(this.#ceState, pt, !e.shiftKey);
+                state.cellPrims.selectLeafUnderPoint(this.#ceState, leafUl, !e.shiftKey);
             }
             this.requestRedraw();
         };
@@ -265,7 +257,7 @@ export class CellEditingView extends EditorView {
      * Position an edge halo element based on the edge direction.
      *
      * @param {HTMLElement} elem
-     * @param {state.RelEdgeLocation} edge
+     * @param {state.EdgeLocation} edge
      */
     #positionEdgeHalo(elem, edge) {
         switch(edge) {

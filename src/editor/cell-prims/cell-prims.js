@@ -4,7 +4,6 @@
  * @module cell-prims
  */
 
-import * as util from "../../util.js";
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as state from "../state.js";
@@ -36,25 +35,42 @@ export function selectLeafUnderPoint(st, pt, clear) {
 }
 
 /**
- * Find the leaf to the left, or above, the selected edge. If the
- * selection isn't on edges, this function returns `undefined`.
- *
- * We care about the leaf to the left (or above) the selected edge
- * since it's the leaf that will be expanded/contracted when the edge
- * is moved.
+ * Select an edge of the leaf under the given global point. Edge is one
+ * of the four relative edges of the leaf.
  *
  * @param {state.EditingCells} st
- * @returns {grid.Leaf<state.Cell> | undefined}
+ * @param {point.P2} pt
+ * @param {state.EdgeLocation} edge
+ * @returns {boolean} `true` if the selection was changed, `false` otherwise.
  */
-export function leafAssociatedWithEdgeSelection(st) {
-    if(st.selection.type === "Leaves") return undefined;
-
-    switch(st.selection.edge) {
-    case "Left":  return grid.leafToLeftOf(st.grid, st.selection.leaf);
-    case "Right": return st.selection.leaf;
-    case "Above": return grid.leafAbove(st.grid, st.selection.leaf);
-    case "Below": return st.selection.leaf;
+export function selectEdgeUnderPoint(st, pt, edge) {
+    /** @type {grid.Leaf<state.Cell>} */
+    let leaf = grid.leafUnderPoint(st.grid, pt);
+    if(!leaf) {
+        return false;
     }
+
+    switch(edge) {
+    case "Left":  leaf = grid.leafToLeftOf(st.grid, leaf); edge = "Right"; break;
+    case "Right": break;
+    case "Above": leaf = grid.leafAbove(st.grid, leaf); edge = "Below"; break;
+    case "Below": break;
+    }
+
+    // Check that this isn't already the current selection.
+    if(st.selection.type === "Edge"
+       && st.selection.edge === edge
+       && st.selection.leaf === leaf) {
+        return false;
+    }
+
+    st.selection = {
+        type: "Edge",
+        edge,
+        leaf
+    };
+
+    return true;
 }
 
 /**
@@ -159,17 +175,14 @@ function countTrailingBlankLines(leaf) {
  *     changed, and false otherwise.
  */
 export async function modifyVerticalEdge(st, n, glpk, settings) {
-    if(st.selection.type === "Leaves"
-       || st.selection.edge === "Above"
-       || st.selection.edge === "Below") {
+    if(st.selection.type === "Leaves" || st.selection.edge === "Below") {
         return false;
     }
 
     settings.measure = (leaf) => leaf.data.lines.reduce((maxLen, line) =>
         Math.max(maxLen, line.length), 0);
 
-    const leftLeaf = leafAssociatedWithEdgeSelection(st);
-    const g = await grid.modifyWidth(st.grid, n, leftLeaf, glpk, settings);
+    const g = await grid.modifyWidth(st.grid, n, st.selection.leaf, glpk, settings);
     if(g !== null) {
         st.grid = g;
         return true;
@@ -189,17 +202,14 @@ export async function modifyVerticalEdge(st, n, glpk, settings) {
  *     false otherwise.
  */
 export function modifyHorizontalEdge(st, n) {
-    if(st.selection.type === "Leaves"
-       || st.selection.edge === "Left"
-       || st.selection.edge === "Right") {
+    if(st.selection.type === "Leaves" || st.selection.edge === "Right") {
         return false;
     }
-
-    const leftLeaf = leafAssociatedWithEdgeSelection(st);
 
     // TODO: how to shift text between cells?
 
     // Find the row just above the horizontal edge.
+    const leftLeaf = st.selection.leaf;
     const globalRow = grid.posOfLeaf(st.grid, leftLeaf).y + leftLeaf.dims.height - 1;
     const leaves = [...grid.leavesUnderRow(st.grid, globalRow)];
 

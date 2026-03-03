@@ -18,6 +18,11 @@ function arbitraryForType(type, glpk) {
             return fc.constant(glpk);
         case "boolean":
             return fc.boolean();
+        case "point":
+            return fc.record({
+                x: fc.integer({ min: 0, max: 20 }),
+                y: fc.integer({ min: 0, max: 20 })
+            });
         default:
             throw new Error(`Unknown type: ${type}`);
     }
