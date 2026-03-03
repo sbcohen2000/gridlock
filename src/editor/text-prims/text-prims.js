@@ -177,23 +177,6 @@ export function putPointAtStartOfGlobalLine(st) {
 }
 
 /**
- * Put the point at the first character of the line in the current leaf.
- *
- * @param {state.EditingText} st The editor state.
- * @returns {boolean} `true` if the point moved, and `false` otherwise.
- */
-export function putPointAtStartOfLine(st) {
-    if(st.selection.pt.x === 0) {
-        st.selection.lastGlobalCol = 0;
-        return false;
-    }
-
-    st.selection.pt.x = 0;
-    _updateLastGlobalCol(st);
-    return true;
-}
-
-/**
  * Put the point after the last character of the current line, even if
  * that line belongs to a different cell.
  *
@@ -228,25 +211,6 @@ export function putPointAtEndOfGlobalLine(st) {
 }
 
 /**
- * Put the point at the end of the currently selected line of the leaf.
- *
- * @param {state.EditingText} st The editor state.
- * @returns {boolean} `true` if the point was moved, and `false` otherwise.
- */
-export function putPointAtEndOfLine(st) {
-    const row    = st.selection.pt.y;
-    const line   = st.selection.leaf.data.lines[row];
-    const endCol = line.length;
-    if(st.selection.pt.x === endCol) {
-        return false;
-    }
-    st.selection.pt.x = endCol;
-
-    _updateLastGlobalCol(st);
-    return true;
-}
-
-/**
  * Put the point directly below the current point, if possible, even
  * if the next row is not part of the current leaf.
  *
@@ -271,24 +235,6 @@ export function putPointOnNextGlobalLine(st) {
         ),
         false
     );
-}
-
-/**
- * Put the point on the next line of the current leaf.
- *
- * @param {state.EditingText} st The editor state.
- * @returns {boolean} `true` if the point was moved, and `false` otherwise.
- */
-export function putPointOnNextLine(st) {
-    const localRow = st.selection.pt.y;
-    if(localRow >= st.selection.leaf.data.lines.length - 1) {
-        return false;
-    }
-
-    st.selection.pt.y += 1;
-
-    _putPointOnLastGlobalColumnInLeaf(st);
-    return true;
 }
 
 /**
@@ -319,23 +265,6 @@ export function putPointOnPrevGlobalLine(st) {
 }
 
 /**
- * Put the point on the previous line of the current leaf.
- *
- * @param {state.EditingText} st The editor state.
- * @returns {boolean} `true` if the point was moved, and `false` otherwise.
- */
-export function putPointOnPrevLine(st) {
-    if(st.selection.pt.y === 0) {
-        return false;
-    }
-
-    st.selection.pt.y -= 1;
-
-    _putPointOnLastGlobalColumnInLeaf(st);
-    return true;
-}
-
-/**
  * Put the point directly to the right of the current point, if
  * possible, even if the next column is not part of the current leaf.
  *
@@ -363,7 +292,7 @@ export function putPointOnNextGlobalCol(st) {
         return putPointOnGlobalPosition(st, globalPt);
     } else {
         // Advance the point locally.
-        return putPointOnNextCol(st);
+        return _putPointOnNextCol(st);
     }
 
 }
@@ -375,7 +304,7 @@ export function putPointOnNextGlobalCol(st) {
  * @param {state.EditingText} st
  * @returns {boolean} `true` if the point moved, and `false` otherwise.
  */
-export function putPointOnNextCol(st) {
+function _putPointOnNextCol(st) {
     const localRow = st.selection.pt.y;
     const localCol = st.selection.pt.x;
     const line     = st.selection.leaf.data.lines[localRow];
@@ -405,24 +334,6 @@ export function putPointOnPrevGlobalCol(st) {
 
     const globalPt = _findGlobalPoint(st);
     return putPointOnGlobalPosition(st, point.offset(globalPt, point.mkV2(-1, 0)));
-}
-
-/**
- * Put the point directly to the left of the current point, but not
- * leaving the current leaf.
- *
- * @param {state.EditingText} st
- * @returns {boolean} `true` if the point moved, and `false` otherwise.
- */
-export function putPointOnPrevCol(st) {
-    if(st.selection.pt.x === 0) {
-        return false;
-    }
-
-    st.selection.pt.x -= 1;
-
-    _updateLastGlobalCol(st);
-    return true;
 }
 
 /*****************************************************************************/

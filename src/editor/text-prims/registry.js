@@ -29,28 +29,12 @@ export const PRIMITIVES = [
         description: "Move point to start of global line"
     },
     {
-        function: prims.putPointAtStartOfLine,
-        args: [],
-        retty: "boolean",
-        async: false,
-        const: false,
-        description: "Move point to start of current line"
-    },
-    {
         function: prims.putPointAtEndOfGlobalLine,
         args: [],
         retty: "boolean",
         async: false,
         const: false,
         description: "Move point to end of global line"
-    },
-    {
-        function: prims.putPointAtEndOfLine,
-        args: [],
-        retty: "boolean",
-        async: false,
-        const: false,
-        description: "Move point to end of current line"
     },
     {
         function: prims.putPointOnNextGlobalLine,
@@ -61,28 +45,12 @@ export const PRIMITIVES = [
         description: "Move point to next global line"
     },
     {
-        function: prims.putPointOnNextLine,
-        args: [],
-        retty: "boolean",
-        async: false,
-        const: false,
-        description: "Move point to next line in current leaf"
-    },
-    {
         function: prims.putPointOnPrevGlobalLine,
         args: [],
         retty: "boolean",
         async: false,
         const: false,
         description: "Move point to previous global line"
-    },
-    {
-        function: prims.putPointOnPrevLine,
-        args: [],
-        retty: "boolean",
-        async: false,
-        const: false,
-        description: "Move point to previous line in current leaf"
     },
     {
         function: prims.putPointOnNextGlobalCol,
@@ -93,28 +61,12 @@ export const PRIMITIVES = [
         description: "Move point to next global column"
     },
     {
-        function: prims.putPointOnNextCol,
-        args: [],
-        retty: "boolean",
-        async: false,
-        const: false,
-        description: "Move point to next column in current leaf"
-    },
-    {
         function: prims.putPointOnPrevGlobalCol,
         args: [],
         retty: "boolean",
         async: false,
         const: false,
         description: "Move point to previous global column"
-    },
-    {
-        function: prims.putPointOnPrevCol,
-        args: [],
-        retty: "boolean",
-        async: false,
-        const: false,
-        description: "Move point to previous column in current leaf"
     },
     {
         function: prims.pointAtEndOfGlobalLine,
