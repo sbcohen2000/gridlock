@@ -225,7 +225,7 @@ export class CellEditingView extends EditorView {
             // then we want to select the cell itself rather than one
             // of its edges.
             if(minD <= 2) {
-                if(!state.cellPrims.selectEdgeUnderPoint(this.#ceState, leafUl, edge)) {
+                if(!state.edgePrims.selectEdgeUnderPoint(this.#ceState, leafUl, edge)) {
                     return;
                 }
                 assert(this.#ceState.selection.type === "Edge");
@@ -357,7 +357,7 @@ export class CellEditingView extends EditorView {
                 };
 
                 if(this.#dragState.lastArg !== dw && dw !== 0) {
-                    state.cellPrims.modifyVerticalEdge(this.#ceState, dw, theGLPKInstance.glpk, settings).then(didUpdate => {
+                    state.edgePrims.modifyVerticalEdge(this.#ceState, dw, theGLPKInstance.glpk, settings).then(didUpdate => {
                         if(didUpdate) {
                             this.requestRedraw();
                         }
@@ -373,7 +373,7 @@ export class CellEditingView extends EditorView {
                 const dh = targetEdgeY - currentEdgeY;
 
                 if(this.#dragState.lastArg !== dh && dh !== 0) {
-                    if(state.cellPrims.modifyHorizontalEdge(this.#ceState, dh)) {
+                    if(state.edgePrims.modifyHorizontalEdge(this.#ceState, dh)) {
                         this.requestRedraw();
                     }
                 }

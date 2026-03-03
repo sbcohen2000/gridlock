@@ -1,4 +1,3 @@
-import * as grid from "../../src/grid.js";
 import * as point from "../../src/point.js";
 import * as serialize from "../../src/editor/serialize.js";
 import * as state from "../../src/editor/state.js";
@@ -16,107 +15,48 @@ function mkCellState(src) {
     return state.editCells(state.mk(g));
 }
 
-describe("selectLeafUnderPoint", () => {
-    it("Selects a leaf in a single-leaf grid", () => {
-        const st = mkCellState(
-            "hello\n" +
-            "+-----+\n" +
-            "+-----+"
-        );
+describe("cell-prims", () => {
+    describe("selectLeafUnderPoint", () => {
+        it("Selects a leaf in a single-leaf grid", () => {
+            const st = mkCellState(
+                "hello\n" +
+                    "+-----+\n" +
+                    "+-----+"
+            );
 
-        const result = cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
+            const result = cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
 
-        expect(result).to.be.true;
-        expect(st.selection.type).to.equal("Leaves");
-        expect(/** @type{state.LeafSelection} */(st.selection).leaves.size).to.equal(1);
-    });
+            expect(result).to.be.true;
+            expect(st.selection.type).to.equal("Leaves");
+            expect(/** @type{state.LeafSelection} */(st.selection).leaves.size).to.equal(1);
+        });
 
-    it("Accumulates leaves when clear is false", () => {
-        const st = mkCellState(
-            "hello there\n" +
-            "+-----+-----+\n" +
-            "+-----+-----+"
-        );
+        it("Accumulates leaves when clear is false", () => {
+            const st = mkCellState(
+                "hello there\n" +
+                    "+-----+-----+\n" +
+                    "+-----+-----+"
+            );
 
-        cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
-        cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), false);
+            cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
+            cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), false);
 
-        expect(st.selection.type).to.equal("Leaves");
-        expect(/** @type{state.LeafSelection} */(st.selection).leaves.size).to.equal(2);
-    });
+            expect(st.selection.type).to.equal("Leaves");
+            expect(/** @type{state.LeafSelection} */(st.selection).leaves.size).to.equal(2);
+        });
 
-    it("Replaces selection when clear is true", () => {
-        const st = mkCellState(
-            "hello there\n" +
-            "+-----+-----+\n" +
-            "+-----+-----+"
-        );
+        it("Replaces selection when clear is true", () => {
+            const st = mkCellState(
+                "hello there\n" +
+                    "+-----+-----+\n" +
+                    "+-----+-----+"
+            );
 
-        cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
-        cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), true);
+            cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
+            cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), true);
 
-        expect(st.selection.type).to.equal("Leaves");
-        expect(/** @type{state.LeafSelection} */(st.selection).leaves.size).to.equal(1);
-    });
-});
-
-describe("modifyHorizontalEdge", () => {
-    it("Moves a horizontal edge down by 1", () => {
-        const st = mkCellState(
-            "top\n" +
-            "bot\n" +
-            "+---+---+\n" +
-            "+---+---+\n" +
-            "+---+---+"
-        );
-
-        cellPrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-        const result = cellPrims.modifyHorizontalEdge(st, 1);
-
-        expect(result).to.be.true;
-        expect(grid.printASCII(st.grid)).to.equal(
-            "+---+---+\n" +
-            "|   |   |\n" +
-            "+---+---+\n" +
-            "+---+---+"
-        );
-    });
-
-    it("Moves a horizontal edge up by 1", () => {
-        const st = mkCellState(
-            "top\n" +
-            "\n" +
-            "bot\n" +
-            "+---+---+\n" +
-            "|   |   |\n" +
-            "+---+   |\n" +
-            "+---+---+"
-        );
-
-        cellPrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-        const result = cellPrims.modifyHorizontalEdge(st, -1);
-
-        expect(result).to.be.true;
-        expect(grid.printASCII(st.grid)).to.equal(
-            "+---+---+\n" +
-            "+---+   |\n" +
-            "+---+---+"
-        );
-    });
-
-    it("Does not shrink a leaf below height 1", () => {
-        const st = mkCellState(
-            "top\n" +
-            "bot\n" +
-            "+---+\n" +
-            "+---+\n" +
-            "+---+"
-        );
-
-        cellPrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-        const result = cellPrims.modifyHorizontalEdge(st, -1);
-
-        // Top leaf is already height 1, can't shrink further
-        expect(result).to.be.false;
+            expect(st.selection.type).to.equal("Leaves");
+            expect(/** @type{state.LeafSelection} */(st.selection).leaves.size).to.equal(1);
+        });
     });
 });

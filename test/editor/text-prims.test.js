@@ -7,390 +7,392 @@ import { expect } from "chai";
 
 const glpk = await GLPK();
 
-describe("insertString", () => {
-    it("Can insert a string into a state with a single leaf", async () => {
-        const src =
-              "world\n" +
-              "+-----+\n" +
-              "+-----+";
+describe("text-prims", () => {
+    describe("insertString", () => {
+        it("Can insert a string into a state with a single leaf", async () => {
+            const src =
+                  "world\n" +
+                  "+-----+\n" +
+                  "+-----+";
 
-        const st = serialize.editorStateFromString(src);
-        await state.textPrims.insertString(st, "hello ", glpk);
+            const st = serialize.editorStateFromString(src);
+            await state.textPrims.insertString(st, "hello ", glpk);
 
-        const exp =
-              "hello world\n"  +
-              "+----------+\n" +
-              "+----------+"
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-    });
-
-    it("Can insert individual spaces before a leaf", async () => {
-        const src =
-              "world\n" +
-              "+-----+\n" +
-              "+-----+";
-
-        const st = serialize.editorStateFromString(src);
-        await state.textPrims.insertString(st, " ", glpk);
-        await state.textPrims.insertString(st, " ", glpk);
-        await state.textPrims.insertString(st, " ", glpk);
-        await state.textPrims.insertString(st, " ", glpk);
-
-        const exp =
-              "    world\n" +
-              "+--------+\n" +
-              "+--------+";
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-    });
-
-    it("Can insert a string at the end of a single-line leaf", async () => {
-        const src =
-              "hello\n" +
-              "+-----+\n" +
-              "+-----+";
-
-        const st = serialize.editorStateFromString(src);
-        // Update the selection to point past the last letter in
-        // `hello`.
-        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-        await state.textPrims.insertString(st, " world", glpk);
-
-        const exp =
-              "hello world\n"  +
-              "+----------+\n" +
-              "+----------+"
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-    });
-
-    it("Can insert a string at the beginning of a new line in a two-line leaf", async () => {
-        const src =
-              "hello\n"   +
-              "\n"        +
-              "+-----+\n" +
-              "|     |\n" +
-              "+-----+";
-
-        const st = serialize.editorStateFromString(src);
-        // Update the selection to point underneath the `h`.
-        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
-        await state.textPrims.insertString(st, "world", glpk);
-
-        {
             const exp =
+                  "hello world\n"  +
+                  "+----------+\n" +
+                  "+----------+"
+
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+        });
+
+        it("Can insert individual spaces before a leaf", async () => {
+            const src =
+                  "world\n" +
+                  "+-----+\n" +
+                  "+-----+";
+
+            const st = serialize.editorStateFromString(src);
+            await state.textPrims.insertString(st, " ", glpk);
+            await state.textPrims.insertString(st, " ", glpk);
+            await state.textPrims.insertString(st, " ", glpk);
+            await state.textPrims.insertString(st, " ", glpk);
+
+            const exp =
+                  "    world\n" +
+                  "+--------+\n" +
+                  "+--------+";
+
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+        });
+
+        it("Can insert a string at the end of a single-line leaf", async () => {
+            const src =
+                  "hello\n" +
+                  "+-----+\n" +
+                  "+-----+";
+
+            const st = serialize.editorStateFromString(src);
+            // Update the selection to point past the last letter in
+            // `hello`.
+            state.textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
+            await state.textPrims.insertString(st, " world", glpk);
+
+            const exp =
+                  "hello world\n"  +
+                  "+----------+\n" +
+                  "+----------+"
+
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+        });
+
+        it("Can insert a string at the beginning of a new line in a two-line leaf", async () => {
+            const src =
                   "hello\n"   +
-                  "world\n"   +
+                  "\n"        +
                   "+-----+\n" +
                   "|     |\n" +
                   "+-----+";
 
-            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-        }
+            const st = serialize.editorStateFromString(src);
+            // Update the selection to point underneath the `h`.
+            state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
+            await state.textPrims.insertString(st, "world", glpk);
 
-        // Insert an additional letter to ensure that the cursor is where
-        // we expect (at the end of the new line).
+            {
+                const exp =
+                      "hello\n"   +
+                      "world\n"   +
+                      "+-----+\n" +
+                      "|     |\n" +
+                      "+-----+";
 
-        {
-            state.textPrims.insertString(st, "x", glpk);
+                expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+            }
+
+            // Insert an additional letter to ensure that the cursor is where
+            // we expect (at the end of the new line).
+
+            {
+                state.textPrims.insertString(st, "x", glpk);
+
+                const exp =
+                      "hello\n"   +
+                      "worldx\n"  +
+                      "+-----+\n" +
+                      "|     |\n" +
+                      "+-----+";
+
+                expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+            }
+        });
+
+        it("Can insert a string in a multi-leaf document", async () => {
+            const src =
+                  "hello other\n"   +
+                  "      lines\n"   +
+                  "+-----+-----+\n" +
+                  "|     |     |\n" +
+                  "+-----+-----+";
+
+            const st = serialize.editorStateFromString(src);
+            // Update the selection to point underneath the `h`.
+            state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
+            await state.textPrims.insertString(st, "A long second line", glpk);
 
             const exp =
-                  "hello\n"   +
-                  "worldx\n"  +
-                  "+-----+\n" +
-                  "|     |\n" +
-                  "+-----+";
+                  "hello             other\n"   +
+                  "A long second linelines\n"   +
+                  "+-----------------+-----+\n" +
+                  "|                 |     |\n" +
+                  "+-----------------+-----+";
 
             expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-        }
+        });
     });
 
-    it("Can insert a string in a multi-leaf document", async () => {
-        const src =
-              "hello other\n"   +
-              "      lines\n"   +
-              "+-----+-----+\n" +
-              "|     |     |\n" +
-              "+-----+-----+";
+    describe("putPointAtEndOfGlobalLine", () => {
+        it("Moves to end of line in a single-leaf document", () => {
+            const src =
+                  "hello\n" +
+                  "+-----+\n" +
+                  "+-----+";
 
-        const st = serialize.editorStateFromString(src);
-        // Update the selection to point underneath the `h`.
-        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
-        await state.textPrims.insertString(st, "A long second line", glpk);
+            const st = serialize.editorStateFromString(src);
+            // Point starts at (0, 0).
+            state.textPrims.putPointAtEndOfGlobalLine(st);
 
-        const exp =
-              "hello             other\n"   +
-              "A long second linelines\n"   +
-              "+-----------------+-----+\n" +
-              "|                 |     |\n" +
-              "+-----------------+-----+";
+            expect(st.selection.type).to.equal("Single");
+            expect(st.selection.pt.x).to.equal(5);
+            expect(st.selection.pt.y).to.equal(0);
+        });
 
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-    });
-});
+        it("Moves to end of rightmost leaf on the same row", () => {
+            const src =
+                  "hellothere\n" +
+                  "+----+----+\n" +
+                  "+----+----+";
 
-describe("putPointAtEndOfGlobalLine", () => {
-    it("Moves to end of line in a single-leaf document", () => {
-        const src =
-              "hello\n" +
-              "+-----+\n" +
-              "+-----+";
+            const st = serialize.editorStateFromString(src);
+            // Point starts at (0, 0) in the left leaf.
+            state.textPrims.putPointAtEndOfGlobalLine(st);
 
-        const st = serialize.editorStateFromString(src);
-        // Point starts at (0, 0).
-        state.textPrims.putPointAtEndOfGlobalLine(st);
+            // Should land at end of "there" (col 5) in the right leaf.
+            const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(5, 0));
+            expect(st.selection.leaf).to.equal(rightLeaf);
+            expect(st.selection.pt.x).to.equal(5);
+            expect(st.selection.pt.y).to.equal(0);
+        });
 
-        expect(st.selection.type).to.equal("Single");
-        expect(st.selection.pt.x).to.equal(5);
-        expect(st.selection.pt.y).to.equal(0);
-    });
+        it("Stays on the correct row in a multi-row document", () => {
+            const src =
+                  "top   top\n"    +
+                  "bot   bot\n"    +
+                  "+-----+---+\n"  +
+                  "|     |   |\n"  +
+                  "+-----+---+";
 
-    it("Moves to end of rightmost leaf on the same row", () => {
-        const src =
-              "hellothere\n" +
-              "+----+----+\n" +
-              "+----+----+";
+            const st = serialize.editorStateFromString(src);
+            // Move to second row in the left leaf.
+            state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
 
-        const st = serialize.editorStateFromString(src);
-        // Point starts at (0, 0) in the left leaf.
-        state.textPrims.putPointAtEndOfGlobalLine(st);
+            state.textPrims.putPointAtEndOfGlobalLine(st);
 
-        // Should land at end of "there" (col 5) in the right leaf.
-        const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(5, 0));
-        expect(st.selection.leaf).to.equal(rightLeaf);
-        expect(st.selection.pt.x).to.equal(5);
-        expect(st.selection.pt.y).to.equal(0);
+            const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(6, 0));
+            expect(st.selection.leaf).to.equal(rightLeaf);
+            expect(st.selection.pt.x).to.equal(3);
+            expect(st.selection.pt.y).to.equal(1);
+        });
+
     });
 
-    it("Stays on the correct row in a multi-row document", () => {
-        const src =
-              "top   top\n"    +
-              "bot   bot\n"    +
-              "+-----+---+\n"  +
-              "|     |   |\n"  +
-              "+-----+---+";
+    describe("insertGlobalNewline", () => {
+        it("Can insert a newline at the end of a single-line leaf", async () => {
+            const src =
+                  "hello\n" +
+                  "+-----+\n" +
+                  "+-----+";
 
-        const st = serialize.editorStateFromString(src);
-        // Move to second row in the left leaf.
-        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
+            const st = serialize.editorStateFromString(src);
+            // Update the selection to point past the last letter in
+            // `hello`.
+            state.textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
+            state.textPrims.insertGlobalNewline(st);
 
-        state.textPrims.putPointAtEndOfGlobalLine(st);
+            const exp =
+                  "hello\n"      +
+                  "\n"           +
+                  "+-----+\n" +
+                  "|     |\n" +
+                  "+-----+"
 
-        const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(6, 0));
-        expect(st.selection.leaf).to.equal(rightLeaf);
-        expect(st.selection.pt.x).to.equal(3);
-        expect(st.selection.pt.y).to.equal(1);
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+        });
+
+        it("Can insert a newline between leaves", async () => {
+            const src =
+                  "hellothere\n"  +
+                  "+----+----+\n" +
+                  "+----+----+";
+
+            const st = serialize.editorStateFromString(src);
+            // Update the selection to point past the last letter in
+            // `hello`.
+            state.textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
+            state.textPrims.insertGlobalNewline(st);
+
+            const exp =
+                  "hello\n"  +
+                  "     there\n"  +
+                  "+----+----+\n" +
+                  "|    |    |\n" +
+                  "+----+----+";
+
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+        });
+
+        it("Can insert a newline within leaves", async () => {
+            const src =
+                  "hellothere\n"  +
+                  "+----+----+\n" +
+                  "+----+----+";
+
+            const st = serialize.editorStateFromString(src);
+            state.textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
+            state.textPrims.insertGlobalNewline(st);
+
+            const exp =
+                  "hel\n"         +
+                  "lo   there\n"  +
+                  "+----+----+\n" +
+                  "|    |    |\n" +
+                  "+----+----+";
+
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+        });
+
+        it("Can split a row of leaves.", async () => {
+            const src =
+                  "one  two  three\n"  +
+                  "one  two  three\n"  +
+                  "+----+----+----+\n" +
+                  "|    |    |    |\n" +
+                  "+----+----+----+";
+
+            const st = serialize.editorStateFromString(src);
+            // Update the selection to point past the last letter in the
+            // top `one`.
+            state.textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
+            state.textPrims.insertGlobalNewline(st);
+
+            const exp0 =
+                  "one\n"  +
+                  "     two  three\n"  +
+                  "one  two  three\n"  +
+                  "+----+----+----+\n" +
+                  "|    |    |    |\n" +
+                  "|    |    |    |\n" +
+                  "+----+----+----+";
+
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp0);
+
+            // Ensure that the point is in the correct place by inserting
+            // some text.
+            await state.textPrims.insertString(st, "some text", glpk);
+
+            const exp1 =
+                  "one\n"  +
+                  "some texttwo  three\n"  +
+                  "one      two  three\n"  +
+                  "+--------+----+----+\n" +
+                  "|        |    |    |\n" +
+                  "|        |    |    |\n" +
+                  "+--------+----+----+";
+
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp1);
+        });
     });
 
-});
+    describe("removeGlobalLine", () => {
+        it("Can remove the last line from a tiny two-line document", () => {
+            const src =
+                  "ab\n"  +
+                  "\n"    +
+                  "+++\n" +
+                  "|||\n" +
+                  "+++"
 
-describe("insertGlobalNewline", () => {
-    it("Can insert a newline at the end of a single-line leaf", async () => {
-        const src =
-              "hello\n" +
-              "+-----+\n" +
-              "+-----+";
+            const st = serialize.editorStateFromString(src);
+            // Put the cursor at the bottom left.
+            state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
+            // Remove the line.
+            state.textPrims.removeGlobalLine(st);
 
-        const st = serialize.editorStateFromString(src);
-        // Update the selection to point past the last letter in
-        // `hello`.
-        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-        state.textPrims.insertGlobalNewline(st);
+            const exp =
+                  "ab\n"  +
+                  "+++\n" +
+                  "+++"
 
-        const exp =
-              "hello\n"      +
-              "\n"           +
-              "+-----+\n" +
-              "|     |\n" +
-              "+-----+"
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+        });
     });
 
-    it("Can insert a newline between leaves", async () => {
-        const src =
-              "hellothere\n"  +
-              "+----+----+\n" +
-              "+----+----+";
+    describe("putPointOnNextGlobalLine", () => {
+        it("Does the `right` thing on a large document", async () => {
+            const src =
+                  "function x() {             // Note 3\n"              +
+                  "  return 2;                // Note 1\n"              +
+                  "}\n"                                                 +
+                  "                           // Note 2\n"              +
+                  "\n"                                                  +
+                  "// blah blah hello.\n"                               +
+                  "\n"                                                  +
+                  "\n"                                                  +
+                  "function y(modify     y, z) {\n"                     +
+                  "           // p1\n"                                  +
+                  "              //      p2\n"                          +
+                  "                      // p3   // Note 2\n"           +
+                  "}\n"                                                 +
+                  "+--------------------------+---------------------+\n"+
+                  "|                          |                     |\n"+
+                  "|                          |                     |\n"+
+                  "|                          |                     |\n"+
+                  "+--------------------------+--+------------------+\n"+
+                  "|                             |                  |\n"+
+                  "|                             |                  |\n"+
+                  "+---------------------+-------+--------+-+-------+\n"+
+                  "|                     |       |        | |       |\n"+
+                  "|                     |       |        | |       |\n"+
+                  "|                     |       |        | |       |\n"+
+                  "|                     |       |        +-+       |\n"+
+                  "|                     |       |        +-+       |\n"+
+                  "+---------------------+-------+--------+-+-------+";
 
-        const st = serialize.editorStateFromString(src);
-        // Update the selection to point past the last letter in
-        // `hello`.
-        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-        state.textPrims.insertGlobalNewline(st);
+            const st = serialize.editorStateFromString(src);
 
-        const exp =
-              "hello\n"  +
-              "     there\n"  +
-              "+----+----+\n" +
-              "|    |    |\n" +
-              "+----+----+";
+            // Put point on the end of the first line.
+            state.textPrims.putPointOnGlobalPosition(st, point.mkOrigin(), true);
+            state.textPrims.putPointAtEndOfGlobalLine(st);
 
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-    });
+            // Put an `X` and go down a line.
+            let fuel = 1000;
+            do {
+                await state.textPrims.insertString(st, "X", glpk, false);
+                ++fuel;
+            } while(state.textPrims.putPointOnNextGlobalLine(st) && fuel > 0);
 
-    it("Can insert a newline within leaves", async () => {
-        const src =
-              "hellothere\n"  +
-              "+----+----+\n" +
-              "+----+----+";
+            expect(fuel).to.be.greaterThan(0);
 
-        const st = serialize.editorStateFromString(src);
-        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
-        state.textPrims.insertGlobalNewline(st);
+            const exp =
+                  "function x() {             // Note 3X\n"              +
+                  "  return 2;                // Note 1X\n"              +
+                  "}X\n"                                                 +
+                  "                           // Note 2X\n"              +
+                  "X\n"                                                  +
+                  "// blah blah hello.X\n"                               +
+                  "X\n"                                                  +
+                  "X\n"                                                  +
+                  "function y(modify     y, z) {X\n"                     +
+                  "           // p1X\n"                                  +
+                  "              //      p2X\n"                          +
+                  "                      // p3   // NotXe 2\n"           +
+                  "}X\n"                                                 +
+                  "+--------------------------+----------------------+\n"+
+                  "|                          |                      |\n"+
+                  "|                          |                      |\n"+
+                  "|                          |                      |\n"+
+                  "+--------------------------+--+-------------------+\n"+
+                  "|                             |                   |\n"+
+                  "|                             |                   |\n"+
+                  "+---------------------+-------+---------+-+-------+\n"+
+                  "|                     |       |         | |       |\n"+
+                  "|                     |       |         | |       |\n"+
+                  "|                     |       |         | |       |\n"+
+                  "|                     |       |         +-+       |\n"+
+                  "|                     |       |         +-+       |\n"+
+                  "+---------------------+-------+---------+-+-------+";
 
-        const exp =
-              "hel\n"         +
-              "lo   there\n"  +
-              "+----+----+\n" +
-              "|    |    |\n" +
-              "+----+----+";
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-    });
-
-    it("Can split a row of leaves.", async () => {
-        const src =
-              "one  two  three\n"  +
-              "one  two  three\n"  +
-              "+----+----+----+\n" +
-              "|    |    |    |\n" +
-              "+----+----+----+";
-
-        const st = serialize.editorStateFromString(src);
-        // Update the selection to point past the last letter in the
-        // top `one`.
-        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
-        state.textPrims.insertGlobalNewline(st);
-
-        const exp0 =
-              "one\n"  +
-              "     two  three\n"  +
-              "one  two  three\n"  +
-              "+----+----+----+\n" +
-              "|    |    |    |\n" +
-              "|    |    |    |\n" +
-              "+----+----+----+";
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp0);
-
-        // Ensure that the point is in the correct place by inserting
-        // some text.
-        await state.textPrims.insertString(st, "some text", glpk);
-
-        const exp1 =
-              "one\n"  +
-              "some texttwo  three\n"  +
-              "one      two  three\n"  +
-              "+--------+----+----+\n" +
-              "|        |    |    |\n" +
-              "|        |    |    |\n" +
-              "+--------+----+----+";
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp1);
-    });
-});
-
-describe("removeGlobalLine", () => {
-    it("Can remove the last line from a tiny two-line document", () => {
-        const src =
-              "ab\n"  +
-              "\n"    +
-              "+++\n" +
-              "|||\n" +
-              "+++"
-
-        const st = serialize.editorStateFromString(src);
-        // Put the cursor at the bottom left.
-        state.textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
-        // Remove the line.
-        state.textPrims.removeGlobalLine(st);
-
-        const exp =
-              "ab\n"  +
-              "+++\n" +
-              "+++"
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
-    });
-});
-
-describe("putPointOnNextGlobalLine", () => {
-    it("Does the `right` thing on a large document", async () => {
-        const src =
-              "function x() {             // Note 3\n"              +
-              "  return 2;                // Note 1\n"              +
-              "}\n"                                                 +
-              "                           // Note 2\n"              +
-              "\n"                                                  +
-              "// blah blah hello.\n"                               +
-              "\n"                                                  +
-              "\n"                                                  +
-              "function y(modify     y, z) {\n"                     +
-              "           // p1\n"                                  +
-              "              //      p2\n"                          +
-              "                      // p3   // Note 2\n"           +
-              "}\n"                                                 +
-              "+--------------------------+---------------------+\n"+
-              "|                          |                     |\n"+
-              "|                          |                     |\n"+
-              "|                          |                     |\n"+
-              "+--------------------------+--+------------------+\n"+
-              "|                             |                  |\n"+
-              "|                             |                  |\n"+
-              "+---------------------+-------+--------+-+-------+\n"+
-              "|                     |       |        | |       |\n"+
-              "|                     |       |        | |       |\n"+
-              "|                     |       |        | |       |\n"+
-              "|                     |       |        +-+       |\n"+
-              "|                     |       |        +-+       |\n"+
-              "+---------------------+-------+--------+-+-------+";
-
-        const st = serialize.editorStateFromString(src);
-
-        // Put point on the end of the first line.
-        state.textPrims.putPointOnGlobalPosition(st, point.mkOrigin(), true);
-        state.textPrims.putPointAtEndOfGlobalLine(st);
-
-        // Put an `X` and go down a line.
-        let fuel = 1000;
-        do {
-            await state.textPrims.insertString(st, "X", glpk, false);
-            ++fuel;
-        } while(state.textPrims.putPointOnNextGlobalLine(st) && fuel > 0);
-
-        expect(fuel).to.be.greaterThan(0);
-
-        const exp =
-              "function x() {             // Note 3X\n"              +
-              "  return 2;                // Note 1X\n"              +
-              "}X\n"                                                 +
-              "                           // Note 2X\n"              +
-              "X\n"                                                  +
-              "// blah blah hello.X\n"                               +
-              "X\n"                                                  +
-              "X\n"                                                  +
-              "function y(modify     y, z) {X\n"                     +
-              "           // p1X\n"                                  +
-              "              //      p2X\n"                          +
-              "                      // p3   // NotXe 2\n"           +
-              "}X\n"                                                 +
-              "+--------------------------+----------------------+\n"+
-              "|                          |                      |\n"+
-              "|                          |                      |\n"+
-              "|                          |                      |\n"+
-              "+--------------------------+--+-------------------+\n"+
-              "|                             |                   |\n"+
-              "|                             |                   |\n"+
-              "+---------------------+-------+---------+-+-------+\n"+
-              "|                     |       |         | |       |\n"+
-              "|                     |       |         | |       |\n"+
-              "|                     |       |         | |       |\n"+
-              "|                     |       |         +-+       |\n"+
-              "|                     |       |         +-+       |\n"+
-              "+---------------------+-------+---------+-+-------+";
-
-        expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+            expect(serialize.printCellGrid(st.grid)).to.equal(exp);
+        });
     });
 });
