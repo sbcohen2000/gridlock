@@ -560,6 +560,33 @@ export class EditorView extends View {
     }
 
     /**
+     * View a strip of line numbers to the left of the editor.
+     *
+     * @param {HTMLElement} prev
+     * @returns {HTMLElement}
+     */
+    #viewLineNumbers(prev) {
+        const lineNumsElem = prev ?? document.createElement("div");
+        lineNumsElem.className = "editor-line-nums-margin";
+
+        const nLines = this.state.grid.dims.height
+        const lineNos = Array.from({ length: nLines }, (_, i) => i + 1);
+
+        util.recycleChildren(
+            lineNumsElem,
+            lineNos,
+            (lineNo, prev) => {
+                const label = (prev && prev instanceof HTMLSpanElement) ? prev : document.createElement("span");
+                label.className = "editor-line-num";
+                label.innerText = lineNo.toString();
+                return label;
+            }
+        );
+
+        return lineNumsElem;
+    }
+
+    /**
      * View the editor state as an HTML object rooted at `root`.
      *
      * @param {HTMLElement} [prev] An existing element to update in place.
@@ -573,6 +600,7 @@ export class EditorView extends View {
         util.recycleConstChildren(
             root,
             (prev) => this.#viewBinding(prev),
+            (prev) => this.#viewLineNumbers(prev),
             (prev) => {
                 const gridRoot = prev ?? document.createElement("div");
                 gridRoot.style.display = "inline-grid";

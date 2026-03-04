@@ -14,14 +14,27 @@
     position: relative;
 }
 
+.editor-line-nums-margin {
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-line-num {
+    text-align: right;
+    color: gray;
+    height: 1em;
+    margin-right: 1px;
+}
+
 .editor-leaf {
-    outline: 1px solid darkgray;
+    outline: 1px solid gray;
     outline-offset: -0.5px;
 }
 
 .editor-line {
     height: 1em;
-    outline: 0.2px solid rgba(0, 0, 0, 0.2);
+    outline: 1px solid rgba(0, 0, 0, 0.03);
+    outline-offset: -0.5px;
     white-space: preserve;
 }
 
