@@ -5,7 +5,7 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-        "watch": "esbuild 'src/**/*.js' 'src/**/*.css' --bundle --outdir=www --watch --servedir=www",
+        "watch": "esbuild 'src/**/*.js' 'src/**/*.css' --loader:.png=file --bundle --outdir=www --watch --servedir=www",
         "test": "mocha --recursive",
         "typecheck": "tsc -p jsconfig.typecheck.json"
     },

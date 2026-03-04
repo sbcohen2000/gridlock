@@ -91,7 +91,6 @@ export class View {
     }
 
     /**
-     * @virtual
      * @param {HTMLElement} [prev] An existing element to update in place.
      * @returns {HTMLElement}
      */

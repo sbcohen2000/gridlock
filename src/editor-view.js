@@ -5,6 +5,9 @@ import * as textPrims from "./editor/text-prims/text-prims.js";
 import * as util from "./util.js";
 import { View } from "./view.js";
 
+import binder_ring_center_url from "../assets/binder-ring-center.png";
+import binder_ring_end_url from "../assets/binder-ring-end.png";
+
 /** @import { CommonState, Cell } from "./editor/common-state.d.ts" */
 /** @import { EdgeLocation } from "./editor/edge-prims/state.d.ts" */
 /** @import { ToolbarDescription } from "./editor-view/toolbar.js" */
@@ -27,6 +30,11 @@ function groupBySpaces(str) {
  * @type {number}
  */
 const EDGE_HALO_THICK = 6;
+
+/**
+ * The width of the spiral binding.
+ */
+const BINDING_WIDTH = 24; //px;
 
 /**
  * An editor view is an instance of an editor state, which can show
@@ -469,6 +477,88 @@ export class EditorView extends View {
         throw new Error("Method not implemented");
     }
 
+
+    /**
+     * The HTML element used to represent the spiral-ring binding.
+     * @type {HTMLElement | undefined}
+     */
+    #bindingElem;
+
+    /**
+     * Update the spiral-ring binding visualization given the height
+     * of the editor view in pixels.
+     *
+     * @param {number} height The height of the editor view in pixels.
+     */
+    #updateBinding(height) {
+        if(!this.#bindingElem) {
+            console.warn("Tried to update the spiral binding, but it's element is undefined");
+            return;
+        }
+
+        const TOTAL_IMG_WIDTH = 41.6; // px, image coords.
+        const PAGE_IMG_WIDTH  = 29;   // px, image coords.
+        const CENTER_HEIGHT   = 13;   // px, image coords.
+        const END_HEIGHT      = 24;   // px, image coords.
+
+        // The number of screen pixels for one image pixel.
+        const imagePxToScreenPx = BINDING_WIDTH / PAGE_IMG_WIDTH;
+
+        // Height of an image in screen pixels.
+        const centerScreenHeight = CENTER_HEIGHT * imagePxToScreenPx;
+        const endScreenHeight    = END_HEIGHT    * imagePxToScreenPx;
+
+        const roomForCenters = Math.max(0, height - endScreenHeight);
+        const nCenters = Math.floor(roomForCenters / centerScreenHeight);
+
+        const indices = Array.from({ length: nCenters + 1 }, (_, i) => i);
+        util.recycleChildren(
+            this.#bindingElem,
+            indices,
+            (idx, prev) => {
+                /** @type {HTMLImageElement} */
+                const image = (prev && prev instanceof HTMLImageElement) ? prev : new Image;
+                image.width = TOTAL_IMG_WIDTH * imagePxToScreenPx;
+                image.style.position = "absolute";
+                image.style.top = `${idx * centerScreenHeight}px`;
+                image.style.right = `0`;
+                if(idx < nCenters) {
+                    // Draw a center.
+                    image.src = binder_ring_center_url;
+                } else {
+                    // Draw the end cap.
+                    image.src = binder_ring_end_url;
+                }
+                return image;
+            }
+        );
+    }
+
+    /** @type {ResizeObserver} */
+    #rootElemResizeObserver = new ResizeObserver((entries) => {
+        for(const entry of entries) {
+            if(entry.target === this._root) {
+                // The grid root has resized. We need to update the
+                // spiral binding.
+                this.#updateBinding(entry.borderBoxSize[0].blockSize);
+            }
+        }
+    });
+
+    /**
+     * View the spiral-ring binding to the left of the editor.
+     *
+     * @param {HTMLElement} prev
+     * @returns {HTMLElement} The HTML element generated to represent
+     *     the binding.
+     */
+    #viewBinding(prev) {
+        this.#bindingElem = prev ?? document.createElement("div");
+        this.#bindingElem.className = "editor-binding";
+        this.#bindingElem.style.width = `${BINDING_WIDTH}px`;
+        return this.#bindingElem;
+    }
+
     /**
      * View the editor state as an HTML object rooted at `root`.
      *
@@ -477,15 +567,27 @@ export class EditorView extends View {
      */
     view(prev) {
         const root = prev ?? document.createElement("div");
-        root.style.display = "inline-grid";
-        root.style.gridTemplateColumns = "1ch";
-        root.style.gridTemplateRows = "1em";
-        this._root = root;
+        root.className = "editor-root";
+        this.#rootElemResizeObserver.disconnect();
 
-        const leaves = [...grid.allLeavesWithPosition(this.state.grid)];
-        util.recycleChildren(
-            root, leaves,
-            ([leaf, p], prev) => this.viewLeaf(leaf, p, prev)
+        util.recycleConstChildren(
+            root,
+            (prev) => this.#viewBinding(prev),
+            (prev) => {
+                const gridRoot = prev ?? document.createElement("div");
+                gridRoot.style.display = "inline-grid";
+                gridRoot.style.gridTemplateColumns = "1ch";
+                gridRoot.style.gridTemplateRows = "1em";
+                this._root = gridRoot;
+                this.#rootElemResizeObserver.observe(this._root);
+
+                const leaves = [...grid.allLeavesWithPosition(this.state.grid)];
+                util.recycleChildren(
+                    gridRoot, leaves,
+                    ([leaf, p], prev) => this.viewLeaf(leaf, p, prev)
+                );
+                return gridRoot;
+            }
         );
 
         return root;
