@@ -34,6 +34,10 @@ export class CellEditingView extends EditorView {
      * @param {PointerEventContext} ctx
      */
     onPointerDownInLeaf(ctx) {
+        if(this.startDraggingEdgeWhenCloseToOne(ctx)) {
+            return;
+        }
+
         if(this.editTextOnDoubleClick(ctx)) {
             return;
         }
