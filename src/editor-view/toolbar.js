@@ -1,8 +1,11 @@
+import * as util from "../util.js";
+
 /**
  * @typedef {Object} ToolbarButtonDescription
  * @property {"button"}   type       The type of description.
+ * @property {string}     [iconSrc]  The button's icon URL.
  * @property {string}     [label]    The button's label.
- * @property {boolean}    [disabled] Whether or not the button is disabled.
+ * @property {boolean}    [enabled]  Whether or not the button is enabled.
  * @property {() => void} [onclick]  What should happen when the button is clicked.
  */
 
@@ -22,10 +25,27 @@ function mkToolbarButton(descr, prev) {
 
     const buttonElem = prev ?? document.createElement("span");
     buttonElem.className = "editor-button";
-    if(descr.disabled ?? false) {
-        buttonElem.classList.add("editor-button-disabled");
+    if(descr.enabled ?? false) {
+        buttonElem.classList.add("editor-button-enabled");
     }
-    buttonElem.innerText = descr.label ?? "button";
+
+    if(descr.iconSrc) {
+        util.recycleConstChildren(
+            buttonElem,
+            (prev) => {
+                /** @type {HTMLImageElement} */
+                const iconImg = (prev && prev instanceof HTMLImageElement) ? prev : document.createElement("img");
+                iconImg.className = "editor-button-icon";
+                iconImg.src = descr.iconSrc;
+                iconImg.width  = 18;
+                iconImg.height = 18;
+                return iconImg;
+            }
+        );
+    } else {
+        buttonElem.innerText = descr.label ?? "button";
+    }
+
     buttonElem.onclick = descr.onclick ?? (() => {});
 
     return buttonElem;

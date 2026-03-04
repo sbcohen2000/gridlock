@@ -141,11 +141,11 @@ export class VerticalCellSlicingView extends CellSlicingView {
         const preview = document.createElement("div");
         preview.className = "editor-slice-preview";
         preview.style.position = "absolute";
-        preview.style.top = `${localRow}em`;
+        preview.style.top = `calc(${localRow}em - 1px)`;
         preview.style.left = "0";
         preview.style.width = "100%";
         preview.style.height = "0";
-        preview.style.borderTop = "1px dashed";
+        preview.style.borderTop = "2px solid red";
         preview.style.pointerEvents = "none";
         return preview;
     }
@@ -183,11 +183,11 @@ export class HorizontalCellSlicingView extends CellSlicingView {
         const preview = document.createElement("div");
         preview.className = "editor-slice-preview";
         preview.style.position = "absolute";
-        preview.style.left = `${localCol}ch`;
+        preview.style.left = `calc(${localCol}ch - 1px)`;
         preview.style.top = "0";
         preview.style.height = "100%";
         preview.style.width = "0";
-        preview.style.borderLeft = "1px dashed";
+        preview.style.borderLeft = "2px solid red";
         preview.style.pointerEvents = "none";
         return preview;
     }

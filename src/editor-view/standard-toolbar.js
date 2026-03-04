@@ -10,46 +10,73 @@ import { TextEditingView } from "./text-editing-view.js";
 /** @import { EditorView } from "../editor-view.js" */
 /** @import { ToolbarDescription } from "./toolbar.js" */
 
+import edit_text_icon_url from "../../assets/edit-text-icon.png"
+import merge_cells_icon_url from "../../assets/merge-cells-icon.png"
+import select_cells_icon_url from "../../assets/select-cells-icon.png";
+import split_horizontally_icon_url from "../../assets/split-horizontally-icon.png";
+import split_vertically_icon_url from "../../assets/split-vertically-icon.png";
+import trim_edge_icon_url from "../../assets/trim-edge-icon.png";
+
 /**
  * Build the standard set of toolbar items for an editor view.
  *
  * @param {EditorView} editorView The editor view to build toolbar items for.
- * @param {string} [disabledLabel] If provided, the button with this label
- *     will be disabled.
+ * @param {string} [enabledLabel] If provided, the button with this label
+ *     will be enabled.
  * @returns {ToolbarDescription[]}
  */
-export function standardToolbarItems(editorView, disabledLabel) {
+export function standardToolbarItems(editorView, enabledLabel) {
     /** @param {string} label */
-    const maybeDisabled = (label) => label === disabledLabel ? { disabled: true } : {};
+    const maybeEnabled = (label) => label === enabledLabel ? { enabled: true } : {};
 
     return [{
         type: "button",
+        iconSrc: edit_text_icon_url,
         label: "edit text",
-        ...maybeDisabled("edit text"),
+        ...maybeEnabled("edit text"),
         onclick: () => {
             editorView.requestReplaceEditorView(
                 new TextEditingView(editorView.parent, textPrims.editText(editorView.state)));
         }
     }, {
         type: "button",
+        iconSrc: select_cells_icon_url,
         label: "select cells",
-        ...maybeDisabled("select cells"),
+        ...maybeEnabled("select cells"),
         onclick: () => {
             editorView.requestReplaceEditorView(
                 new CellEditingView(editorView.parent, cellPrims.editCells(editorView.state)));
         }
     }, {
         type: "button",
+        iconSrc: merge_cells_icon_url,
+        label: "merge cells",
+        ...maybeEnabled("merge cells"),
+        onclick: () => {
+            console.log("TODO");
+        }
+    }, {
+        type: "button",
+        iconSrc: trim_edge_icon_url,
+        label: "trim edge",
+        ...maybeEnabled("trim edge"),
+        onclick: () => {
+            console.log("TODO");
+        }
+    }, {
+        type: "button",
+        iconSrc: split_vertically_icon_url,
         label: "split vertically",
-        ...maybeDisabled("split vertically"),
+        ...maybeEnabled("split vertically"),
         onclick: () => {
             editorView.requestReplaceEditorView(
                 new VerticalCellSlicingView(editorView.parent, slicePrims.editSlice(editorView.state, "Vertical")));
         }
     }, {
         type: "button",
+        iconSrc: split_horizontally_icon_url,
         label: "split horizontally",
-        ...maybeDisabled("split horizontally"),
+        ...maybeEnabled("split horizontally"),
         onclick: () => {
             editorView.requestReplaceEditorView(
                 new HorizontalCellSlicingView(editorView.parent, slicePrims.editSlice(editorView.state, "Horizontal")));
@@ -57,7 +84,7 @@ export function standardToolbarItems(editorView, disabledLabel) {
     }, {
         type: "button",
         label: "clear",
-        ...maybeDisabled("clear"),
+        ...maybeEnabled("clear"),
         onclick: () => {
             editorView.requestReplaceEditorView(
                 new TextEditingView(editorView.parent, textPrims.editText(serialize.mkCommonState())));
@@ -65,7 +92,7 @@ export function standardToolbarItems(editorView, disabledLabel) {
     }, {
         type: "button",
         label: "save",
-        ...maybeDisabled("save"),
+        ...maybeEnabled("save"),
         onclick: () => {
             const serialized = serialize.printCommonState(editorView.state);
             console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
