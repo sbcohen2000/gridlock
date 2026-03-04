@@ -6,7 +6,7 @@ import * as util from "../util.js";
  * @property {string}     [iconSrc]  The button's icon URL.
  * @property {string}     [label]    The button's label.
  * @property {boolean}    [enabled]  Whether or not the button is enabled.
- * @property {() => void} [onclick]  What should happen when the button is clicked.
+ * @property {(e: MouseEvent) => void} [onclick]  What should happen when the button is clicked.
  */
 
 /**

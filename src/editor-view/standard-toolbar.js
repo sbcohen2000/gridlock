@@ -1,4 +1,6 @@
 import * as cellPrims from "../editor/cell-prims/cell-prims.js";
+import * as cmenu from "../context-menu.js";
+import * as point from "../point.js";
 import * as serialize from "../editor/serialize-common-state.js";
 import * as slicePrims from "../editor/slice-prims/slice-prims.js";
 import * as textPrims from "../editor/text-prims/text-prims.js";
@@ -100,8 +102,18 @@ export function standardToolbarItems(editorView, enabledLabel) {
         label: "load",
         iconSrc: load_icon_url,
         ...maybeEnabled("load"),
-        onclick: () => {
-            console.log("TODO (load)");
+        onclick: (e) => {
+            /** @type {cmenu.ContextMenuDescription} */
+            const menuDescr = {
+                origin: point.mkP2(e.clientX, e.clientY),
+                menu: [
+                    cmenu.label("examples"),
+                    cmenu.button("example 1"),
+                    cmenu.button("example 2"),
+                    cmenu.button("example 3")
+                ]
+            };
+            editorView.notify(new cmenu.OpenContextMenu(editorView, menuDescr));
         },
     }];
 }

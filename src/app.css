@@ -121,3 +121,46 @@
     z-index: -1;
     box-shadow: inset 0 0 8px deepskyblue;
 }
+
+.editor-context-menu {
+    display: flex;
+    flex-direction: column;
+    row-gap: 2px;
+    position: fixed;
+    font-family: sans-serif;
+    background-color: white;
+    border: 1px solid gray;
+    border-radius: 2px;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+.editor-context-menu-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.editor-context-menu-button:hover {
+    background-color: skyblue;
+}
+
+.editor-context-menu-button {
+    cursor: pointer;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.editor-context-menu-label {
+    color: gray;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.editor-context-menu-divider {
+    width: 100px;
+    height: 1px;
+    background-color: gray;
+}

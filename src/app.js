@@ -1,3 +1,4 @@
+import * as cmenu from "./context-menu.js";
 import * as serialize from "./editor/serialize-common-state.js";
 import * as textPrims from "./editor/text-prims/text-prims.js";
 import * as util from "./util.js";
@@ -5,10 +6,8 @@ import GLPK from "glpk.js";
 import { EditorView, ReplaceEditorViewEvent } from "./editor-view.js";
 import { TextEditingView } from "./editor-view/text-editing-view.js";
 import { View, RedrawViewEvent, RequestFocusViewEvent, KeyViewEvent, ViewDeletedViewEvent } from "./view.js";
-import { theGLPKInstance } from "./glpk.js";
 import { mkToolbarItem } from "./editor-view/toolbar.js";
-
-/** @import { CommonState } from "./editor/common-state.d.ts" */
+import { theGLPKInstance } from "./glpk.js";
 
 // Reload the page when esbuild issues a change event.
 //
@@ -136,6 +135,9 @@ async function main() {
         /** @type {ReturnType<requestAnimationFrame> | null} */
         #animFrame;
 
+        /** @type {cmenu.ContextMenu | undefined} */
+        #currentContextMenu;
+
         /**
          * @param {View} parent
          * @param {EditorView} initialView The initial editor view
@@ -188,6 +190,17 @@ async function main() {
                 return true;
             } else if (e instanceof KeyViewEvent) {
                 return true;
+            } else if (e instanceof cmenu.OpenContextMenu) {
+                const menu = new cmenu.ContextMenuView(this, e.menuDescr);
+                this.#currentContextMenu = menu;
+                this.requestRedraw();
+                return true;
+            } else if (e instanceof cmenu.DismissContextMenu) {
+                const menu = this.#currentContextMenu;
+                this.#currentContextMenu = undefined;
+                this.notifyViewDeleted(menu);
+                this.requestRedraw();
+                return true;
             }
             return false;
         }
@@ -196,7 +209,11 @@ async function main() {
          * @param {KeyboardEvent} e
          */
         handleKeyEvent(e) {
-            if(this.#focusedView !== this) {
+            if(this.#currentContextMenu) {
+                this.#currentContextMenu.notify(
+                    new KeyViewEvent(this.#currentContextMenu, e), true
+                );
+            } else if(this.#focusedView !== this) {
                 this.#focusedView.notify(
                     new KeyViewEvent(this.#focusedView, e), true
                 );
@@ -206,7 +223,15 @@ async function main() {
         /** @returns {HTMLElement} */
         view() {
             util.RecycleStatistics.reset();
-            this.#appView.view(editorRoot);
+
+            util.recycleConstChildren(
+                editorRoot,
+                (prev) => this.#appView.view(prev),
+                (prev) => this.#currentContextMenu
+                    ? this.#currentContextMenu.view(prev)
+                    : document.createElement("div")
+            );
+
             // console.log(util.RecycleStatistics.report());
             return editorRoot;
         }
