@@ -498,18 +498,15 @@ export class EditorView extends View {
 
         const TOTAL_IMG_WIDTH = 41.6; // px, image coords.
         const PAGE_IMG_WIDTH  = 29;   // px, image coords.
-        const CENTER_HEIGHT   = 13;   // px, image coords.
-        const END_HEIGHT      = 24;   // px, image coords.
+        const IMG_HEIGHT      = 13;   // px, image coords.
 
         // The number of screen pixels for one image pixel.
         const imagePxToScreenPx = BINDING_WIDTH / PAGE_IMG_WIDTH;
 
         // Height of an image in screen pixels.
-        const centerScreenHeight = CENTER_HEIGHT * imagePxToScreenPx;
-        const endScreenHeight    = END_HEIGHT    * imagePxToScreenPx;
+        const imgScreenHeight = IMG_HEIGHT * imagePxToScreenPx;
 
-        const roomForCenters = Math.max(0, height - endScreenHeight);
-        const nCenters = Math.floor(roomForCenters / centerScreenHeight);
+        const nCenters = Math.round(height / imgScreenHeight) - 1;
 
         const indices = Array.from({ length: nCenters + 1 }, (_, i) => i);
         util.recycleChildren(
@@ -520,7 +517,7 @@ export class EditorView extends View {
                 const image = (prev && prev instanceof HTMLImageElement) ? prev : new Image;
                 image.width = TOTAL_IMG_WIDTH * imagePxToScreenPx;
                 image.style.position = "absolute";
-                image.style.top = `${idx * centerScreenHeight}px`;
+                image.style.top = `${idx * imgScreenHeight}px`;
                 image.style.right = `0`;
                 if(idx < nCenters) {
                     // Draw a center.
