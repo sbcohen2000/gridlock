@@ -3,7 +3,7 @@ import * as grid from "./grid.js";
 import * as point from "./point.js";
 import * as textPrims from "./editor/text-prims/text-prims.js";
 import * as util from "./util.js";
-import { View } from "./view.js";
+import { View, ViewEvent } from "./view.js";
 
 import binder_ring_center_url from "../assets/binder-ring-center.png";
 import binder_ring_end_url from "../assets/binder-ring-end.png";
@@ -627,15 +627,31 @@ export class EditorView extends View {
     }
 
     /**
-     * @param {View} newView
+     * @param {EditorView} newView
      */
     requestReplaceEditorView(newView) {
-        this.notify({
-            type: "ReplaceEditorViewEvent",
-            newView,
-            bubbles: true
-        });
+        this.notify(new ReplaceEditorViewEvent(this, newView));
     }
+}
+
+/**
+ * Notify that an editor view should be replaced.
+ */
+export class ReplaceEditorViewEvent extends ViewEvent {
+    /** @type {EditorView} */
+    #newView;
+
+    /**
+     * @param {View} initiator
+     * @param {EditorView} newView
+     */
+    constructor(initiator, newView) {
+        super(initiator, true);
+        this.#newView = newView;
+    }
+
+    /** @returns {EditorView} */
+    get newView() { return this.#newView; }
 }
 
 /**

@@ -1,11 +1,10 @@
 import * as serialize from "./editor/serialize-common-state.js";
 import * as textPrims from "./editor/text-prims/text-prims.js";
 import * as util from "./util.js";
-import * as view from "./view.js";
 import GLPK from "glpk.js";
-import { EditorView } from "./editor-view.js";
+import { EditorView, ReplaceEditorViewEvent } from "./editor-view.js";
 import { TextEditingView } from "./editor-view/text-editing-view.js";
-import { View } from "./view.js";
+import { View, RedrawViewEvent, RequestFocusViewEvent, KeyViewEvent, ViewDeletedViewEvent } from "./view.js";
 import { theGLPKInstance } from "./glpk.js";
 import { mkToolbarItem } from "./editor-view/toolbar.js";
 
@@ -98,26 +97,15 @@ class AppView extends View {
     }
 
     /**
-     * @param {view.Event & view.EventInitiator} e
+     * @param {import("./view.js").ViewEvent} e
      * @returns {boolean}
      */
     handleEvent(e) {
-        switch(e.type) {
-        case "ReplaceEditorViewEvent": {
-            if (e.newView instanceof EditorView) {
-                this.#replaceViewFromState(e.newView);
-                return true;
-            } else {
-                console.warn(
-                    "Tried to replace the editor view with " +
-                        "a class which doesn't inherit from EditorView"
-                );
-                return false;
-            }
+        if (e instanceof ReplaceEditorViewEvent) {
+            this.#replaceViewFromState(e.newView);
+            return true;
         }
-        default:
-            return false;
-        }
+        return false;
     }
 }
 
@@ -177,36 +165,31 @@ async function main() {
         }
 
         /**
-         * @param {view.Event & view.EventInitiator} e
+         * @param {import("./view.js").ViewEvent} e
          * @returns {boolean}
          */
         handleEvent(e) {
-            switch(e.type) {
-            case "ViewDeletedEvent": {
+            if (e instanceof ViewDeletedViewEvent) {
                 if(this.#focusedView === e.view) {
                     console.log("The focused view was deleted.");
                     this.#focusedView = this;
                     this.requestRedraw();
                 }
                 return true;
-            }
-            case "RedrawEvent": {
+            } else if (e instanceof RedrawViewEvent) {
                 this.requestRedraw();
                 return true;
-            }
-            case "RequestFocusEvent": {
+            } else if (e instanceof RequestFocusViewEvent) {
                 if(this.#focusedView !== e.initiator) {
                     console.log("Focus updated");
                     this.#focusedView = e.initiator;
                     this.requestRedraw();
                 }
                 return true;
-            }
-            case "KeyEvent": {
+            } else if (e instanceof KeyViewEvent) {
                 return true;
             }
-            default: return false;
-            }
+            return false;
         }
 
         /**
@@ -214,11 +197,9 @@ async function main() {
          */
         handleKeyEvent(e) {
             if(this.#focusedView !== this) {
-                this.#focusedView.notify({
-                    type: "KeyEvent",
-                    bubbles: true,
-                    e
-                }, true);
+                this.#focusedView.notify(
+                    new KeyViewEvent(this.#focusedView, e), true
+                );
             }
         }
 

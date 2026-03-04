@@ -1,79 +1,98 @@
-/**
- * @typedef {{
- *  initiator: View
- * }} EventInitiator
- */
+export class ViewEvent {
+    /**
+     * The view which initiated the event
+     * @type {View}
+     */
+    #initiator;
 
-/**
- * @typedef {{
- *  bubbles: boolean
- * }} EventBase
- */
+    /**
+     * Should the view bubble to its parent?
+     */
+    #bubbles;
+
+    /**
+     * @param {View} initiator
+     * @param {boolean} bubbles
+     */
+    constructor(initiator, bubbles) {
+        this.#initiator = initiator;
+        this.#bubbles = bubbles;
+    }
+
+    /** @returns {View} */
+    get initiator() {
+        return this.#initiator;
+    }
+
+    /** @returns {boolean} */
+    get bubbles() {
+        return this.#bubbles
+    }
+}
 
 /**
  * Notify the parent that a child view would like to redraw.
- *
- * @typedef {{
- *   type: "RedrawEvent"
- *   bubbles: true
- * } & EventBase} RedrawEvent
  */
+export class RedrawViewEvent extends ViewEvent {
+    /** @param {View} initiator */
+    constructor(initiator) { super(initiator, true); }
+}
 
 /**
  * Notify that a view wants to receive focus.
- *
- * @typedef {{
- *   type: "RequestFocusEvent",
- *   bubbles: true
- * } & EventBase} RequestFocusEvent
  */
+export class RequestFocusViewEvent extends ViewEvent {
+    /** @param {View} initiator */
+    constructor(initiator) { super(initiator, true); }
+}
 
 /**
  * Notify that a keyboard key was pressed.
- *
- * @typedef {{
- *   type: "KeyEvent",
- *   e: KeyboardEvent
- *   bubbles: true
- * } & EventBase} KeyEvent
  */
+export class KeyViewEvent extends ViewEvent {
+    /** @type {KeyboardEvent} */
+    #e;
+
+    /**
+     * @param {View} initiator
+     * @param {KeyboardEvent} e
+     */
+    constructor(initiator, e) {
+        super(initiator, true);
+        this.#e = e;
+    }
+
+    /** @returns {KeyboardEvent} */
+    get e() { return this.#e; }
+}
 
 /**
  * Notify that a view was deleted.
- *
- * @typedef {{
- *   type: "ViewDeletedEvent",
- *   view: View
- *   bubbles: true
- * } & EventBase} ViewDeletedEvent
  */
+export class ViewDeletedViewEvent extends ViewEvent {
+    /** @type {View} */
+    #view;
+
+    /**
+     * @param {View} initiator
+     * @param {View} view
+     */
+    constructor(initiator, view) {
+        super(initiator, true);
+        this.#view = view;
+    }
+
+    /** @returns {View} */
+    get view() { return this.#view; }
+}
 
 /**
- * Notify a view that it recieved focus.
- *
- * @typedef {{
- *   type: "ReceivedFocusEvent",
- *   bubbles: false
- * } & EventBase} RecievedFocusEvent
+ * Notify a view that it received focus.
  */
-
-/**
- * @typedef {{
- *  type: "ReplaceEditorViewEvent",
- *  newView: View
- *  bubbles: true
- * } & EventBase} ReplaceEditorViewEvent
- */
-
-/**
- * @typedef {RedrawEvent
- *  | ReplaceEditorViewEvent
- *  | KeyEvent
- *  | ViewDeletedEvent
- *  | RecievedFocusEvent
- *  | RequestFocusEvent
- *  } Event
- */
+export class ReceivedFocusViewEvent extends ViewEvent {
+    /** @param {View} initiator */
+    constructor(initiator) { super(initiator, false); }
+}
 
 export class View {
     /** @type {View | null}
@@ -100,22 +119,20 @@ export class View {
 
     /**
      * Notify the parent view of an event.
-     * @param {Event} e The event.
+     * @param {ViewEvent} e The event.
      * @param {boolean} [dispatchToThis] Allow `this` view to handle
      *    the event. By default, `this` is not given a chance to
      *    handle the event.
      */
     notify(e, dispatchToThis) {
-        const withInitiator = { ...e, initiator: this };
-
         if(dispatchToThis) {
-            this.handleEvent(withInitiator);
+            this.handleEvent(e);
         }
 
         let parent = this.parent;
 
         while(parent && e.bubbles) {
-            if(parent.handleEvent(withInitiator)) break;
+            if(parent.handleEvent(e)) break;
             parent = parent.parent;
         }
     }
@@ -123,7 +140,7 @@ export class View {
     /**
      * Handle an event.
      *
-     * @param {Event & EventInitiator} e
+     * @param {ViewEvent} e
      * @returns {boolean} `true` if the event should stop propagating
      *     (i.e. it was handled by this view), or `false` if the event
      *     should continue to bubble up the view tree.
@@ -137,14 +154,14 @@ export class View {
      * Request that the view re-draw itself.
      */
     requestRedraw () {
-        this.notify({ type: "RedrawEvent", bubbles: true });
+        this.notify(new RedrawViewEvent(this));
     }
 
     /**
      * Request that this view receive focus.
      */
     requestFocus() {
-        this.notify({ type: "RequestFocusEvent", bubbles: true });
+        this.notify(new RequestFocusViewEvent(this));
     }
 
     /**
@@ -154,6 +171,6 @@ export class View {
      * @param {View} view The view which was deleted.
      */
     notifyViewDeleted(view) {
-        this.notify({ type: "ViewDeletedEvent", view, bubbles: true });
+        this.notify(new ViewDeletedViewEvent(this, view));
     }
 }

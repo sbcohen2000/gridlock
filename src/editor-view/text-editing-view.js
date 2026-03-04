@@ -1,11 +1,10 @@
 import * as grid from "../grid.js";
 import * as textPrims from "../editor/text-prims/text-prims.js";
 import * as cellPrims from "../editor/cell-prims/cell-prims.js";
-import * as view from "../view.js";
 import { CellEditingView } from "./cell-editing-view.js";
 import { EdgeEditingView } from "./edge-editing-view.js";
 import { EditorView, PointerEventContext } from "../editor-view.js";
-import { View } from "../view.js";
+import { View, KeyViewEvent } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 import { theGLPKInstance } from "../glpk.js";
 
@@ -165,18 +164,15 @@ export class TextEditingView extends EditorView {
     /**
      * Handle an event.
      *
-     * @param {view.Event & view.EventInitiator} e
+     * @param {import("../view.js").ViewEvent} e
      * @returns {boolean}
      */
     handleEvent(e) {
-        switch(e.type) {
-        case "KeyEvent":
+        if (e instanceof KeyViewEvent) {
             e.e.preventDefault();
             e.e.stopPropagation();
             return this.#handleKeyEvent(e.e);
-        default:
-            return false;
         }
-
+        return false;
     }
 }
