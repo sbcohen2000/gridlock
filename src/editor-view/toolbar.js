@@ -10,7 +10,12 @@ import * as util from "../util.js";
  */
 
 /**
- * @typedef {ToolbarButtonDescription} ToolbarDescription
+ * @typedef {Object} ToolbarSpacerDescription
+ * @property {"spacer"} type The type of description.
+ */
+
+/**
+ * @typedef {ToolbarButtonDescription | ToolbarSpacerDescription} ToolbarDescription
  */
 
 /**
@@ -52,6 +57,21 @@ function mkToolbarButton(descr, prev) {
 }
 
 /**
+ * Construct or update an HTML elenet suitable for putting in the view toolbar.
+ *
+ * @param {ToolbarSpacerDescription} [descr]
+ * @param {HTMLElement} [prev] An existing spacer element to update in place.
+ * @returns {HTMLElement}
+ */
+function mkToolbarSpacer(descr, prev) {
+    descr = descr ?? { type: "spacer" };
+
+    const spacerElem = prev ?? document.createElement("span");
+    spacerElem.className = "editor-toolbar-spacer";
+    return spacerElem;
+}
+
+/**
  * Construct or update an HTML element representing the given description.
  *
  * @param {ToolbarDescription} descr
@@ -61,5 +81,6 @@ function mkToolbarButton(descr, prev) {
 export function mkToolbarItem(descr, prev) {
     switch(descr.type) {
     case "button": return mkToolbarButton(descr, prev);
+    case "spacer": return mkToolbarSpacer(descr, prev);
     }
 }

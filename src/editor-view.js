@@ -341,7 +341,6 @@ export class EditorView extends View {
         if(minD <= EDGE_HALO_THICK / 2) {
             // Move to edge selection mode and select the edge.
             const st = edgePrims.editEdge(this.state);
-            console.log(ctx.leafPosition, edge);
             if(!edgePrims.selectEdgeUnderPoint(st, ctx.leafPosition, edge)) {
                 return false;
             }

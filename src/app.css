@@ -93,6 +93,10 @@
     border-radius: 2px;
 }
 
+.editor-toolbar-spacer {
+    flex-grow: 1;
+}
+
 .editor-edge-halo,
 .editor-edge-preview-halo {
     position: absolute;

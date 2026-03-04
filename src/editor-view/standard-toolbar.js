@@ -11,7 +11,9 @@ import { TextEditingView } from "./text-editing-view.js";
 /** @import { ToolbarDescription } from "./toolbar.js" */
 
 import edit_text_icon_url from "../../assets/edit-text-icon.png"
+import load_icon_url from "../../assets/load-icon.png";
 import merge_cells_icon_url from "../../assets/merge-cells-icon.png"
+import save_icon_url from "../../assets/save-icon.png";
 import select_cells_icon_url from "../../assets/select-cells-icon.png";
 import split_horizontally_icon_url from "../../assets/split-horizontally-icon.png";
 import split_vertically_icon_url from "../../assets/split-vertically-icon.png";
@@ -53,7 +55,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         label: "merge cells",
         ...maybeEnabled("merge cells"),
         onclick: () => {
-            console.log("TODO");
+            console.log("TODO (merge cells)");
         }
     }, {
         type: "button",
@@ -61,7 +63,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         label: "trim edge",
         ...maybeEnabled("trim edge"),
         onclick: () => {
-            console.log("TODO");
+            console.log("TODO (trim edge)");
         }
     }, {
         type: "button",
@@ -82,21 +84,24 @@ export function standardToolbarItems(editorView, enabledLabel) {
                 new HorizontalCellSlicingView(editorView.parent, slicePrims.editSlice(editorView.state, "Horizontal")));
         }
     }, {
-        type: "button",
-        label: "clear",
-        ...maybeEnabled("clear"),
-        onclick: () => {
-            editorView.requestReplaceEditorView(
-                new TextEditingView(editorView.parent, textPrims.editText(serialize.mkCommonState())));
-        },
+        type: "spacer",
     }, {
         type: "button",
+        iconSrc: save_icon_url,
         label: "save",
         ...maybeEnabled("save"),
         onclick: () => {
             const serialized = serialize.printCommonState(editorView.state);
             console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
             localStorage.setItem("editorState", serialized);
+        },
+    }, {
+        type: "button",
+        label: "load",
+        iconSrc: load_icon_url,
+        ...maybeEnabled("load"),
+        onclick: () => {
+            console.log("TODO (load)");
         },
     }];
 }
