@@ -160,22 +160,20 @@ export class EdgeEditingView extends EditorView {
     }
 
     /**
-     * Draw the selection of a leaf, if any, given an element
-     * representing the leaf.
+     * Draw the selection of a leaf, if any, by adding items to the
+     * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {HTMLElement} leafElem
+     * @param {import("../util.js").Recycler} recycler
      */
-    viewLeafSelection(leaf, leafElem) {
-        // Remove old halo/overlay elements
-        leafElem.querySelectorAll(".editor-edge-halo")
-            .forEach(el => el.remove());
-
+    viewLeafSelection(leaf, recycler) {
         if(leaf === this.#eeState.selection.leaf) {
-            const edgeHaloElem = document.createElement("div");
-            edgeHaloElem.className = "editor-edge-halo";
-            this.#positionEdgeHalo(edgeHaloElem);
-            leafElem.appendChild(edgeHaloElem);
+            recycler.item((create) => {
+                const elem = create("div");
+                elem.className = "editor-edge-halo";
+                this.#positionEdgeHalo(elem);
+                return elem;
+            });
         }
     }
 

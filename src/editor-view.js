@@ -223,22 +223,20 @@ export class EditorView extends View {
     }
 
     /**
-     * Draw the selection of a leaf, if any, given an element
-     * representing the leaf.
+     * Draw the selection of a leaf, if any, by adding items to the
+     * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {HTMLElement} leafElem
+     * @param {util.Recycler} recycler
      */
-    viewLeafSelection(leaf, leafElem) {
-        // Remove old halo/overlay elements
-        leafElem.querySelectorAll(".editor-edge-preview-halo")
-            .forEach(el => el.remove());
-
+    viewLeafSelection(leaf, recycler) {
         if(this.#mouseNearEdge !== null && this.#mouseNearEdge.leaf === leaf) {
-            const edgePreviewHaloElem = document.createElement("div");
-            edgePreviewHaloElem.className = "editor-edge-preview-halo";
-            this.#positionEdgeHalo(edgePreviewHaloElem, this.#mouseNearEdge.edge);
-            leafElem.appendChild(edgePreviewHaloElem);
+            recycler.item((create) => {
+                const elem = create("div");
+                elem.className = "editor-edge-preview-halo";
+                this.#positionEdgeHalo(elem, this.#mouseNearEdge.edge);
+                return elem;
+            });
         }
     }
 
@@ -417,11 +415,10 @@ export class EditorView extends View {
         }
 
         const lineIndices = leaf.data.lines.map((_, i) => i);
-        new util.Recycler(leafElem)
-            .items(lineIndices, (rowNo, create) => this.viewLine(rowNo, leaf, leafUl, create))
-            .commit();
-
-        this.viewLeafSelection(leaf, leafElem);
+        const recycler = new util.Recycler(leafElem)
+            .items(lineIndices, (rowNo, create) => this.viewLine(rowNo, leaf, leafUl, create));
+        this.viewLeafSelection(leaf, recycler);
+        recycler.commit();
         return leafElem;
     }
 

@@ -47,22 +47,21 @@ export class CellEditingView extends EditorView {
     }
 
     /**
-     * Draw the selection of a leaf, if any, given an element
-     * representing the leaf.
+     * Draw the selection of a leaf, if any, by adding items to the
+     * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {HTMLElement} leafElem
+     * @param {import("../util.js").Recycler} recycler
      */
-    viewLeafSelection(leaf, leafElem) {
-        super.viewLeafSelection(leaf, leafElem);
+    viewLeafSelection(leaf, recycler) {
+        super.viewLeafSelection(leaf, recycler);
 
-        // Remove old halo elements
-        leafElem.querySelectorAll(".editor-cell-halo").forEach(el => el.remove());
-
-        const haloElem = document.createElement("div");
         if(this.#ceState.selection.leaves.has(leaf)) {
-            haloElem.className = "editor-cell-halo";
-            leafElem.appendChild(haloElem);
+            recycler.item((create) => {
+                const haloElem = create("div");
+                haloElem.className = "editor-cell-halo";
+                return haloElem;
+            });
         }
     }
 

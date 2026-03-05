@@ -230,7 +230,7 @@ async function main() {
                     : create("div", "empty-context-menu"))
                 .commit();
 
-            console.log(util.RecycleStatistics.report());
+            // console.log(util.RecycleStatistics.report());
             return editorRoot;
         }
     })(null, initialView);

@@ -101,7 +101,6 @@
 .editor-edge-preview-halo {
     position: absolute;
     z-index: 1;
-    cursor: pointer;
 }
 
 .editor-edge-halo {
@@ -110,6 +109,7 @@
 
 .editor-edge-preview-halo {
     background-color: rgba(200, 200, 200, 0.5);
+    cursor: pointer;
 }
 
 .editor-cell-halo {

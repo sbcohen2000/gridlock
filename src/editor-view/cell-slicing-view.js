@@ -82,30 +82,24 @@ class CellSlicingView extends EditorView {
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
-     * @returns {HTMLElement | null}
+     * @param {import("../util.js").Recycler} recycler
      */
-    makePreviewElement(leaf, leafPos, hoverGlobalPos) {
-        void leaf; void leafPos; void hoverGlobalPos;
+    makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
+        void leaf; void leafPos; void hoverGlobalPos; void recycler;
         throw new Error("Method not implemented");
     }
 
     /**
      * @param {grid.Leaf<Cell>} leaf
-     * @param {HTMLElement} leafElem
+     * @param {import("../util.js").Recycler} recycler
      */
-    viewLeafSelection(leaf, leafElem) {
-        super.viewLeafSelection(leaf, leafElem);
-
-        // Remove old preview elements
-        leafElem.querySelectorAll(".editor-slice-preview").forEach(el => el.remove());
+    viewLeafSelection(leaf, recycler) {
+        super.viewLeafSelection(leaf, recycler);
 
         if(this.#hoveredPos === null) return;
 
         const leafPos = grid.posOfLeaf(this.#scState.grid, leaf);
-        const preview = this.makePreviewElement(leaf, leafPos, this.#hoveredPos);
-        if(preview) {
-            leafElem.appendChild(preview);
-        }
+        this.makePreviewElement(leaf, leafPos, this.#hoveredPos, recycler);
     }
 
     createTextEditingView(parent, st) { return new TextEditingView(parent, st); }
@@ -129,25 +123,27 @@ export class VerticalCellSlicingView extends CellSlicingView {
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
-     * @returns {HTMLElement | null}
+     * @param {import("../util.js").Recycler} recycler
      */
-    makePreviewElement(leaf, leafPos, hoverGlobalPos) {
+    makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
         // Check if hover is within this leaf's column range
-        if(hoverGlobalPos.x < leafPos.x || hoverGlobalPos.x >= leafPos.x + leaf.dims.width) return null;
-        if(hoverGlobalPos.y < leafPos.y || hoverGlobalPos.y >= leafPos.y + leaf.dims.height) return null;
+        if(hoverGlobalPos.x < leafPos.x || hoverGlobalPos.x >= leafPos.x + leaf.dims.width) return;
+        if(hoverGlobalPos.y < leafPos.y || hoverGlobalPos.y >= leafPos.y + leaf.dims.height) return;
 
         const localRow = hoverGlobalPos.y - leafPos.y;
 
-        const preview = document.createElement("div");
-        preview.className = "editor-slice-preview";
-        preview.style.position = "absolute";
-        preview.style.top = `calc(${localRow}em - 1px)`;
-        preview.style.left = "0";
-        preview.style.width = "100%";
-        preview.style.height = "0";
-        preview.style.borderTop = "2px solid red";
-        preview.style.pointerEvents = "none";
-        return preview;
+        recycler.item((create) => {
+            const preview = create("div");
+            preview.className = "editor-slice-preview";
+            preview.style.position = "absolute";
+            preview.style.top = `calc(${localRow}em - 1px)`;
+            preview.style.left = "0";
+            preview.style.width = "100%";
+            preview.style.height = "0";
+            preview.style.borderTop = "2px solid red";
+            preview.style.pointerEvents = "none";
+            return preview;
+        });
     }
 
     describeToolbarItems() {
@@ -171,25 +167,27 @@ export class HorizontalCellSlicingView extends CellSlicingView {
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
-     * @returns {HTMLElement | null}
+     * @param {import("../util.js").Recycler} recycler
      */
-    makePreviewElement(leaf, leafPos, hoverGlobalPos) {
+    makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
         // Check if hover is within this leaf's range
-        if(hoverGlobalPos.x < leafPos.x || hoverGlobalPos.x >= leafPos.x + leaf.dims.width) return null;
-        if(hoverGlobalPos.y < leafPos.y || hoverGlobalPos.y >= leafPos.y + leaf.dims.height) return null;
+        if(hoverGlobalPos.x < leafPos.x || hoverGlobalPos.x >= leafPos.x + leaf.dims.width) return;
+        if(hoverGlobalPos.y < leafPos.y || hoverGlobalPos.y >= leafPos.y + leaf.dims.height) return;
 
         const localCol = hoverGlobalPos.x - leafPos.x;
 
-        const preview = document.createElement("div");
-        preview.className = "editor-slice-preview";
-        preview.style.position = "absolute";
-        preview.style.left = `calc(${localCol}ch - 1px)`;
-        preview.style.top = "0";
-        preview.style.height = "100%";
-        preview.style.width = "0";
-        preview.style.borderLeft = "2px solid red";
-        preview.style.pointerEvents = "none";
-        return preview;
+        recycler.item((create) => {
+            const preview = create("div");
+            preview.className = "editor-slice-preview";
+            preview.style.position = "absolute";
+            preview.style.left = `calc(${localCol}ch - 1px)`;
+            preview.style.top = "0";
+            preview.style.height = "100%";
+            preview.style.width = "0";
+            preview.style.borderLeft = "2px solid red";
+            preview.style.pointerEvents = "none";
+            return preview;
+        });
     }
 
     describeToolbarItems() {

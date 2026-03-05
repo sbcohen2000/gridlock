@@ -58,53 +58,29 @@ export class TextEditingView extends EditorView {
     }
 
     /**
-     * Make an element to represent the cusor.
-     *
-     * @returns {HTMLElement}
-     */
-    #mkCursorElem() {
-        const e = document.createElement("div");
-        e.className = "editor-cursor";
-        e.style.position = "absolute";
-        return e;
-    }
-
-    /**
-     * Draw the selection of a leaf, if any, given an element
-     * representing the leaf.
+     * Draw the selection of a leaf, if any, by adding items to the
+     * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {HTMLElement} leafElem
+     * @param {import("../util.js").Recycler} recycler
      */
-    viewLeafSelection(leaf, leafElem) {
-        super.viewLeafSelection(leaf, leafElem);
+    viewLeafSelection(leaf, recycler) {
+        super.viewLeafSelection(leaf, recycler);
 
-        // Reuse existing cursor element or create a new one.
-        let cursorElem = /** @type {HTMLElement | null} */ (leafElem.querySelector(".editor-cursor"));
-        if(!cursorElem) {
-            cursorElem = this.#mkCursorElem();
-            leafElem.appendChild(cursorElem);
-        }
-        cursorElem.style.display = "none";
-
-        // If the leaf is selected, we need to draw the cursor.
-        if(this.state.selection.leaf === leaf) {
-            const ptDoc    = this.state.selection.pt;
-            const xScreen  = `${ptDoc.x}ch`;
-            const yScreen  = `${ptDoc.y}em`;
-
-            cursorElem.style.display = "block";
-            cursorElem.style.left = xScreen;
-            cursorElem.style.top  = yScreen;
-        }
-
-        // Remove old halo elements
-        leafElem.querySelectorAll(".editor-cell-halo").forEach(el => el.remove());
-
-        const haloElem = document.createElement("div");
         if(this.#teState.selection.leaf === leaf) {
-            haloElem.className = "editor-cell-halo";
-            leafElem.appendChild(haloElem);
+            recycler.item((create) => {
+                const cursorElem = create("div");
+                cursorElem.className = "editor-cursor";
+                cursorElem.style.position = "absolute";
+                cursorElem.style.left = `${this.state.selection.pt.x}ch`;
+                cursorElem.style.top  = `${this.state.selection.pt.y}em`;
+                return cursorElem;
+            });
+            recycler.item((create) => {
+                const haloElem = create("div");
+                haloElem.className = "editor-cell-halo";
+                return haloElem;
+            });
         }
     }
 
