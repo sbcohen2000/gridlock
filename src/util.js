@@ -117,11 +117,13 @@ export const RecycleStatistics = new class {
  */
 
 /**
- * A builder-pattern reconciler that lets you declare both single
- * items and arrays of items in one flat chain, then commit them in a
- * single reconciliation pass against the parent's existing children.
+ * A class which permits its client to construct new DOM nodes which
+ * are possibly shared with DOM nodes from a previous render.
  *
- * Usage:
+ * The way to use this class is to, at the point where you want to
+ * construct a possibly-reused DOM node, construct a new `Recycler`,
+ * then call `item` or `items` to specify how to construct the node's
+ * children.
  * ```
  * new Recycler(parent)
  *   .item(renderer)
@@ -129,6 +131,20 @@ export const RecycleStatistics = new class {
  *   .item(renderer)
  *   .commit()
  * ```
+ *
+ * `item` and `items` return a `CreateElement` callback, which should
+ * be used to create a DOM node of your choice. `CreateElement` will
+ * try to re-use the old children of `parent` if it can, and if it
+ * can't it will return a brand new node with the tag you specify.
+ *
+ * The `Recycler`'s matching process proceeds into two phases:
+ *   1. If an `id` is specified, then the recycler will only match a
+ *      node with the same `tag` and `id`. If there is no node among
+ *      the `parent`'s children with `id`, a new node will be
+ *      returned.
+ *   2. If no `id` is specified, then the node with the same index
+ *      as the entry will be attempted. If it has the same tag name
+ *      it will be re-used. Otherwise, a new node will be constructed.
  */
 export class Recycler {
     /** @type {HTMLElement} */
@@ -196,6 +212,8 @@ export class Recycler {
             const positionalChild = i < oldChildren.length
                   ? /** @type {HTMLElement} */ (oldChildren[i])
                   : null;
+
+            /** @type {HTMLElement | null} */
             let created = null;
             /** @type {HTMLElement | null} */
             let recycled = null;

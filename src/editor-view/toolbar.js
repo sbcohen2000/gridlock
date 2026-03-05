@@ -21,12 +21,11 @@ import * as util from "../util.js";
 /**
  * Construct or update an HTML element suitable for putting in the view toolbar.
  *
- * @param {ToolbarButtonDescription} [descr]
+ * @param {ToolbarButtonDescription} descr
  * @param {import("../util.js").CreateElement} create Factory to obtain the button element.
  * @returns {HTMLElement}
  */
 function mkToolbarButton(descr, create) {
-    descr = descr ?? { type: "button" };
 
     const buttonElem = create("span");
     buttonElem.className = "editor-button";
@@ -57,12 +56,11 @@ function mkToolbarButton(descr, create) {
 /**
  * Construct or update an HTML element suitable for putting in the view toolbar.
  *
- * @param {ToolbarSpacerDescription} [descr]
+ * @param {ToolbarSpacerDescription} descr
  * @param {import("../util.js").CreateElement} create Factory to obtain the spacer element.
  * @returns {HTMLElement}
  */
 function mkToolbarSpacer(descr, create) {
-    descr = descr ?? { type: "spacer" };
 
     const spacerElem = create("span");
     spacerElem.className = "editor-toolbar-spacer";
