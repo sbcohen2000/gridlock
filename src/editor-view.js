@@ -417,10 +417,9 @@ export class EditorView extends View {
         }
 
         const lineIndices = leaf.data.lines.map((_, i) => i);
-        util.recycleChildren(
-            leafElem, lineIndices,
-            (rowNo, create) => this.viewLine(rowNo, leaf, leafUl, create)
-        );
+        new util.Recycler(leafElem)
+            .items(lineIndices, (rowNo, create) => this.viewLine(rowNo, leaf, leafUl, create))
+            .commit();
 
         this.viewLeafSelection(leaf, leafElem);
         return leafElem;
@@ -508,10 +507,8 @@ export class EditorView extends View {
         const nCenters = Math.round(height / imgScreenHeight) - 1;
 
         const indices = Array.from({ length: nCenters + 1 }, (_, i) => i);
-        util.recycleChildren(
-            this.#bindingElem,
-            indices,
-            (idx, create) => {
+        new util.Recycler(this.#bindingElem)
+            .items(indices, (idx, create) => {
                 const image = /** @type {HTMLImageElement} */ (create("img"));
                 image.width = TOTAL_IMG_WIDTH * imagePxToScreenPx;
                 image.style.position = "absolute";
@@ -525,8 +522,8 @@ export class EditorView extends View {
                     image.src = binder_ring_end_url;
                 }
                 return image;
-            }
-        );
+            })
+            .commit();
     }
 
     /** @type {ResizeObserver} */
@@ -567,16 +564,14 @@ export class EditorView extends View {
         const nLines = this.state.grid.dims.height
         const lineNos = Array.from({ length: nLines }, (_, i) => i + 1);
 
-        util.recycleChildren(
-            lineNumsElem,
-            lineNos,
-            (lineNo, create) => {
+        new util.Recycler(lineNumsElem)
+            .items(lineNos, (lineNo, create) => {
                 const label = create("span");
                 label.className = "editor-line-num";
                 label.innerText = lineNo.toString();
                 return label;
-            }
-        );
+            })
+            .commit();
 
         return lineNumsElem;
     }
@@ -592,11 +587,10 @@ export class EditorView extends View {
         root.className = "editor-root";
         this.#rootElemResizeObserver.disconnect();
 
-        util.recycleConstChildren(
-            root,
-            (create) => this.#viewBinding(create),
-            (create) => this.#viewLineNumbers(create),
-            (create) => {
+        new util.Recycler(root)
+            .item((create) => this.#viewBinding(create))
+            .item((create) => this.#viewLineNumbers(create))
+            .item((create) => {
                 const gridRoot = create("div");
                 gridRoot.style.display = "inline-grid";
                 gridRoot.style.gridTemplateColumns = "1ch";
@@ -605,13 +599,12 @@ export class EditorView extends View {
                 this.#rootElemResizeObserver.observe(this._root);
 
                 const leaves = [...grid.allLeavesWithPosition(this.state.grid)];
-                util.recycleChildren(
-                    gridRoot, leaves,
-                    ([leaf, p], create) => this.viewLeaf(leaf, p, create)
-                );
+                new util.Recycler(gridRoot)
+                    .items(leaves, ([leaf, p], create) => this.viewLeaf(leaf, p, create))
+                    .commit();
                 return gridRoot;
-            }
-        );
+            })
+            .commit();
 
         return root;
     }

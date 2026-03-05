@@ -35,17 +35,16 @@ function mkToolbarButton(descr, create) {
     }
 
     if(descr.iconSrc) {
-        util.recycleConstChildren(
-            buttonElem,
-            (create) => {
+        new util.Recycler(buttonElem)
+            .item((create) => {
                 const iconImg = /** @type {HTMLImageElement} */ (create("img"));
                 iconImg.className = "editor-button-icon";
                 iconImg.src = descr.iconSrc;
                 iconImg.width  = 18;
                 iconImg.height = 18;
                 return iconImg;
-            }
-        );
+            })
+            .commit();
     } else {
         buttonElem.innerText = descr.label ?? "button";
     }

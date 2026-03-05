@@ -173,9 +173,8 @@ export class ContextMenuView extends View {
     view(create) {
         const ctxMenuRoot = create("div");
 
-        util.recycleConstChildren(
-            ctxMenuRoot,
-            (create) => {
+        new util.Recycler(ctxMenuRoot)
+            .item((create) => {
                 // Construct an element to sit behind the context
                 // menu, filling the entire screen, whose purpose is
                 // to detect mouse down events outside of the context
@@ -188,8 +187,8 @@ export class ContextMenuView extends View {
                 };
 
                 return screenElem;
-            },
-            (create) => {
+            })
+            .item((create) => {
                 this.#menuElem = create("div");
                 this.#menuElemResizeObserver.disconnect();
                 this.#menuElemResizeObserver.observe(this.#menuElem);
@@ -211,10 +210,8 @@ export class ContextMenuView extends View {
                     this.notify(new DismissContextMenu(this));
                 };
 
-                util.recycleChildren(
-                    this.#menuElem,
-                    this.#menuDescr.menu,
-                    (item, create) => {
+                new util.Recycler(this.#menuElem)
+                    .items(this.#menuDescr.menu, (item, create) => {
                         switch(item.type) {
                         case "button": {
                             const buttonElem = create("div");
@@ -235,12 +232,12 @@ export class ContextMenuView extends View {
                             return dividerElem;
                         }
                         }
-                    }
-                );
+                    })
+                    .commit();
 
                 return this.#menuElem;
-            }
-        );
+            })
+            .commit();
 
         return ctxMenuRoot;
     }

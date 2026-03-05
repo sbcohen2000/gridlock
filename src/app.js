@@ -60,10 +60,9 @@ class AppView extends View {
         toolbarElem.className = "editor-toolbar";
 
         const descriptions = this.#editorView.describeToolbarItems();
-        util.recycleChildren(
-            toolbarElem, descriptions,
-            (descr, create) => mkToolbarItem(descr, create)
-        );
+        new util.Recycler(toolbarElem)
+            .items(descriptions, (descr, create) => mkToolbarItem(descr, create))
+            .commit();
         return toolbarElem;
     }
 
@@ -75,10 +74,10 @@ class AppView extends View {
      */
     view(create) {
         const root = create("div");
-        util.recycleConstChildren(root,
-            (create) => this.#viewToolbar(create),
-            (create) => this.#editorView.view(create)
-        );
+        new util.Recycler(root)
+            .item((create) => this.#viewToolbar(create))
+            .item((create) => this.#editorView.view(create))
+            .commit();
         return root;
     }
 
@@ -224,13 +223,12 @@ async function main() {
         view() {
             util.RecycleStatistics.reset();
 
-            util.recycleConstChildren(
-                editorRoot,
-                (create) => this.#appView.view(create),
-                (create) => this.#currentContextMenu
+            new util.Recycler(editorRoot)
+                .item((create) => this.#appView.view(create))
+                .item((create) => this.#currentContextMenu
                     ? this.#currentContextMenu.view(create)
-                    : create("div", "empty-context-menu")
-            );
+                    : create("div", "empty-context-menu"))
+                .commit();
 
             console.log(util.RecycleStatistics.report());
             return editorRoot;
