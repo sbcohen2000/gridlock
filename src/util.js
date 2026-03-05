@@ -106,59 +106,144 @@ export const RecycleStatistics = new class {
 };
 
 /**
+ * A factory function that returns an element for the render callback
+ * to populate. The element may be recycled from a previous render
+ * (when the tag and id match) or freshly created.
+ *
+ * @callback CreateElement
+ * @param {string} tagName
+ * @param {string} [id]
+ * @returns {HTMLElement}
+ */
+
+/**
  * Reconcile the children of `parent` against a list of items.
  *
- * For each item, call `render(item, prev)` where `prev` is the
- * existing child at that index (if any). When `prev` is provided,
- * `render` should update it in place; when absent, it should create
- * a fresh element. After processing all items, remove any leftover
- * children.
+ * For each item, call `render(item, create)` where `create(tagName, id?)`
+ * is a factory that returns an element of the requested tag. When an
+ * existing child matches by tag (and by id when provided), `create`
+ * returns that child (with attributes cleared); otherwise it creates
+ * a fresh element. When an id is provided, `create` searches all old
+ * children (not just the one at the same index). After processing all
+ * items, remove any unclaimed old children.
  *
  * @template T
  * @param {HTMLElement} parent
  * @param {T[]} items
- * @param {(item: T, prev?: HTMLElement) => HTMLElement} render
+ * @param {(item: T, create: CreateElement) => HTMLElement} render
  */
 export function recycleChildren(parent, items, render) {
     const oldChildren = [...parent.children];
-    for(let i = 0; i < items.length; ++i) {
-        if(i < oldChildren.length) {
-            const oldChild = /** @type {HTMLElement} */ (oldChildren[i]);
-            // Remove attributes from `oldChild` in case `oldChild` is
-            // used for a different purpose.
-            oldChild.getAttributeNames().forEach(attr => oldChild.removeAttribute(attr));
 
-            const updated = render(items[i], oldChild);
-            if(updated !== oldChild) {
-                // Updated doesn't use the same node as `oldChild`.
-                oldChildren[i].replaceWith(updated);
-                RecycleStatistics.created++;
-            } else {
-                RecycleStatistics.recycled++;
+    // Index old children that have an id, keyed by "TAG:id".
+    /** @type {Map<string, HTMLElement>} */
+    const idIndex = new Map();
+    for(const child of oldChildren) {
+        const el = /** @type {HTMLElement} */ (child);
+        if(el.id) {
+            idIndex.set(`${el.tagName}:${el.id}`, el);
+        }
+    }
+
+    // Track which old children have been claimed (recycled or
+    // displaced) so we know which leftovers to remove.
+    /** @type {Set<HTMLElement>} */
+    const claimed = new Set();
+
+    for(let i = 0; i < items.length; ++i) {
+        const positionalChild = i < oldChildren.length
+              ? /** @type {HTMLElement} */ (oldChildren[i])
+              : null;
+        let created = null;
+        /** @type {HTMLElement | null} */
+        let recycled = null;
+
+        /** @type {CreateElement} */
+        const create = (tagName, id) => {
+            if(created !== null) {
+                throw new Error("create() called more than once in a single render callback");
             }
+            const upperTag = tagName.toUpperCase();
+
+            // Try to find a matching old child to recycle.
+            if(id !== undefined) {
+                // When an id is provided, search by tag+id.
+                const key = `${upperTag}:${id}`;
+                const match = idIndex.get(key);
+                if(match && !claimed.has(match)) {
+                    recycled = match;
+                }
+            } else if(positionalChild
+                      && !claimed.has(positionalChild)
+                      && positionalChild.tagName === upperTag
+                      && !positionalChild.id) {
+                // No id: fall back to positional match (only if the
+                // positional child also has no id).
+                recycled = positionalChild;
+            }
+
+            if(recycled) {
+                recycled.getAttributeNames().forEach(attr => recycled.removeAttribute(attr));
+                created = recycled;
+            } else {
+                created = document.createElement(tagName);
+            }
+            if(id !== undefined) {
+                created.id = id;
+            }
+            return created;
+        };
+
+        const result = render(items[i], create);
+        if(result !== created) {
+            throw new Error("render must return the element produced by create()");
+        }
+
+        // Claim the positional child regardless of whether it was
+        // recycled, so it is not removed as a leftover.
+        if(positionalChild) {
+            claimed.add(positionalChild);
+        }
+
+        if(recycled) {
+            claimed.add(recycled);
+            RecycleStatistics.recycled++;
+            if(recycled !== positionalChild) {
+                // The recycled element came from elsewhere; move it
+                // into position.
+                if(positionalChild) {
+                    positionalChild.replaceWith(recycled);
+                } else {
+                    parent.appendChild(recycled);
+                }
+            }
+        } else if(positionalChild) {
+            positionalChild.replaceWith(result);
+            RecycleStatistics.created++;
         } else {
-            parent.appendChild(render(items[i]));
+            parent.appendChild(result);
             RecycleStatistics.created++;
         }
     }
-    // Remove leftover old children
-    for(let i = items.length; i < oldChildren.length; ++i) {
-        oldChildren[i].remove();
-        RecycleStatistics.removed++;
+    // Remove unclaimed old children.
+    for(const child of oldChildren) {
+        if(!claimed.has(/** @type {HTMLElement} */ (child))) {
+            child.remove();
+            RecycleStatistics.removed++;
+        }
     }
 }
 
 /**
  * Like `recycleChildren`, but for a fixed set of children. Each
- * render callback produces one child; the callback receives the
- * existing child element (if any) as `prev`.
+ * render callback receives a `create` factory to obtain its element.
  *
  * @param {HTMLElement} parent
- * @param  {...(prev?: HTMLElement) => HTMLElement} renders
+ * @param  {...(create: CreateElement) => HTMLElement} renders
  */
 export function recycleConstChildren(parent, ...renders) {
     const indices = renders.map((_, i) => i);
-    recycleChildren(parent, indices, (i, prev) => renders[i](prev));
+    recycleChildren(parent, indices, (i, create) => renders[i](create));
 }
 
 /**

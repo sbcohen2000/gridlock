@@ -110,11 +110,11 @@ export class View {
     }
 
     /**
-     * @param {HTMLElement} [prev] An existing element to update in place.
+     * @param {import("./util.js").CreateElement} create Factory to obtain the element.
      * @returns {HTMLElement}
      */
-    view(prev) {
-        return prev ?? document.createElement("div");
+    view(create) {
+        return create("div");
     }
 
     /**

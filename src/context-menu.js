@@ -167,21 +167,21 @@ export class ContextMenuView extends View {
     /**
      * View the context menu as an HTML element.
      *
-     * @param {HTMLElement} [prev] An existing element to update in place.
+     * @param {util.CreateElement} create Factory to obtain the root element.
      * @returns {HTMLElement}
      */
-    view(prev) {
-        const ctxMenuRoot = prev ?? document.createElement("div");
+    view(create) {
+        const ctxMenuRoot = create("div");
 
         util.recycleConstChildren(
             ctxMenuRoot,
-            (prev) => {
+            (create) => {
                 // Construct an element to sit behind the context
                 // menu, filling the entire screen, whose purpose is
                 // to detect mouse down events outside of the context
                 // menu, so that the user can close the menu by
                 // clicking outside of it.
-                const screenElem = prev ?? document.createElement("div");
+                const screenElem = create("div");
                 screenElem.className = "editor-context-menu-screen";
                 screenElem.onpointerdown = () => {
                     this.notify(new DismissContextMenu(this));
@@ -189,8 +189,8 @@ export class ContextMenuView extends View {
 
                 return screenElem;
             },
-            (prev) => {
-                this.#menuElem = prev ?? document.createElement("div");
+            (create) => {
+                this.#menuElem = create("div");
                 this.#menuElemResizeObserver.disconnect();
                 this.#menuElemResizeObserver.observe(this.#menuElem);
 
@@ -214,23 +214,23 @@ export class ContextMenuView extends View {
                 util.recycleChildren(
                     this.#menuElem,
                     this.#menuDescr.menu,
-                    (item, prev) => {
+                    (item, create) => {
                         switch(item.type) {
                         case "button": {
-                            const buttonElem = prev ?? document.createElement("div");
+                            const buttonElem = create("div");
                             buttonElem.className = "editor-context-menu-button";
                             buttonElem.onclick = item.onclick;
                             buttonElem.innerText = item.label;
                             return buttonElem;
                         }
                         case "label": {
-                            const labelElem = prev ?? document.createElement("div");
+                            const labelElem = create("div");
                             labelElem.className = "editor-context-menu-label";
                             labelElem.innerText = item.label;
                             return labelElem;
                         }
                         case "divider": {
-                            const dividerElem = prev ?? document.createElement("div");
+                            const dividerElem = create("div");
                             dividerElem.className = "editor-context-menu-divider";
                             return dividerElem;
                         }

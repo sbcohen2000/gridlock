@@ -133,15 +133,15 @@ export class EditorView extends View {
      * @param {number} rowNo The index of the line to view.
      * @param {grid.Leaf<Cell>} leaf The line's parent leaf.
      * @param {point.P2} p The position of the upper-left corner of the leaf.
-     * @param {HTMLElement} [prev] An existing line element to update in place.
+     * @param {import("./util.js").CreateElement} create Factory to obtain the line element.
      * @returns {HTMLElement} The HTML element generated to represent
      *     this line.
      */
-    viewLine(rowNo, leaf, p, prev) {
+    viewLine(rowNo, leaf, p, create) {
         void p;
 
         const line = leaf.data.lines[rowNo];
-        const lineElem = prev ?? document.createElement("div");
+        const lineElem = create("div");
         lineElem.className = "editor-line";
         this.#buildLineFragments(lineElem, line);
         return lineElem;
@@ -392,15 +392,15 @@ export class EditorView extends View {
      *
      * @param {grid.Leaf<Cell>} leaf The leaf to view.
      * @param {point.P2} leafUl The position of the upper-left corner of the leaf.
-     * @param {HTMLElement} [prev] An existing leaf element to update in place.
+     * @param {import("./util.js").CreateElement} create Factory to obtain the leaf element.
      * @returns {HTMLElement} The HTML element generated to represent
      *     this leaf.
      */
-    viewLeaf(leaf, leafUl, prev) {
+    viewLeaf(leaf, leafUl, create) {
         const sz = leaf.dims;
         const gridSpec = `${leafUl.y + 1}/${leafUl.x + 1}/span ${sz.height}/span ${sz.width}`;
 
-        const leafElem = prev ?? document.createElement("div");
+        const leafElem = create("div");
         leafElem.className      = "editor-leaf";
         leafElem.style.width    = `${sz.width}ch`;
         leafElem.style.position = "relative";
@@ -419,7 +419,7 @@ export class EditorView extends View {
         const lineIndices = leaf.data.lines.map((_, i) => i);
         util.recycleChildren(
             leafElem, lineIndices,
-            (rowNo, prev) => this.viewLine(rowNo, leaf, leafUl, prev)
+            (rowNo, create) => this.viewLine(rowNo, leaf, leafUl, create)
         );
 
         this.viewLeafSelection(leaf, leafElem);
@@ -511,9 +511,8 @@ export class EditorView extends View {
         util.recycleChildren(
             this.#bindingElem,
             indices,
-            (idx, prev) => {
-                /** @type {HTMLImageElement} */
-                const image = (prev && prev instanceof HTMLImageElement) ? prev : new Image;
+            (idx, create) => {
+                const image = /** @type {HTMLImageElement} */ (create("img"));
                 image.width = TOTAL_IMG_WIDTH * imagePxToScreenPx;
                 image.style.position = "absolute";
                 image.style.top = `${idx * imgScreenHeight}px`;
@@ -544,12 +543,12 @@ export class EditorView extends View {
     /**
      * View the spiral-ring binding to the left of the editor.
      *
-     * @param {HTMLElement} prev
+     * @param {import("./util.js").CreateElement} create Factory to obtain the binding element.
      * @returns {HTMLElement} The HTML element generated to represent
      *     the binding.
      */
-    #viewBinding(prev) {
-        this.#bindingElem = prev ?? document.createElement("div");
+    #viewBinding(create) {
+        this.#bindingElem = create("div");
         this.#bindingElem.className = "editor-binding";
         this.#bindingElem.style.width = `${BINDING_WIDTH}px`;
         return this.#bindingElem;
@@ -558,11 +557,11 @@ export class EditorView extends View {
     /**
      * View a strip of line numbers to the left of the editor.
      *
-     * @param {HTMLElement} prev
+     * @param {import("./util.js").CreateElement} create Factory to obtain the line numbers element.
      * @returns {HTMLElement}
      */
-    #viewLineNumbers(prev) {
-        const lineNumsElem = prev ?? document.createElement("div");
+    #viewLineNumbers(create) {
+        const lineNumsElem = create("div");
         lineNumsElem.className = "editor-line-nums-margin";
 
         const nLines = this.state.grid.dims.height
@@ -571,8 +570,8 @@ export class EditorView extends View {
         util.recycleChildren(
             lineNumsElem,
             lineNos,
-            (lineNo, prev) => {
-                const label = (prev && prev instanceof HTMLSpanElement) ? prev : document.createElement("span");
+            (lineNo, create) => {
+                const label = create("span");
                 label.className = "editor-line-num";
                 label.innerText = lineNo.toString();
                 return label;
@@ -585,20 +584,20 @@ export class EditorView extends View {
     /**
      * View the editor state as an HTML object rooted at `root`.
      *
-     * @param {HTMLElement} [prev] An existing element to update in place.
+     * @param {import("./util.js").CreateElement} create Factory to obtain the root element.
      * @returns {HTMLElement}
      */
-    view(prev) {
-        const root = prev ?? document.createElement("div");
+    view(create) {
+        const root = create("div");
         root.className = "editor-root";
         this.#rootElemResizeObserver.disconnect();
 
         util.recycleConstChildren(
             root,
-            (prev) => this.#viewBinding(prev),
-            (prev) => this.#viewLineNumbers(prev),
-            (prev) => {
-                const gridRoot = prev ?? document.createElement("div");
+            (create) => this.#viewBinding(create),
+            (create) => this.#viewLineNumbers(create),
+            (create) => {
+                const gridRoot = create("div");
                 gridRoot.style.display = "inline-grid";
                 gridRoot.style.gridTemplateColumns = "1ch";
                 gridRoot.style.gridTemplateRows = "1em";
@@ -608,7 +607,7 @@ export class EditorView extends View {
                 const leaves = [...grid.allLeavesWithPosition(this.state.grid)];
                 util.recycleChildren(
                     gridRoot, leaves,
-                    ([leaf, p], prev) => this.viewLeaf(leaf, p, prev)
+                    ([leaf, p], create) => this.viewLeaf(leaf, p, create)
                 );
                 return gridRoot;
             }

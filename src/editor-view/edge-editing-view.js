@@ -61,11 +61,11 @@ export class EdgeEditingView extends EditorView {
     #GLPKAbortController = null;
 
     /**
-     * @param {HTMLElement} [prev]
+     * @param {import("../util.js").CreateElement} create Factory to obtain the root element.
      * @returns {HTMLElement}
      */
-    view(prev) {
-        const root = super.view(prev);
+    view(create) {
+        const root = super.view(create);
 
         root.onpointermove = (e) => {
             if(!this.#dragState) return;

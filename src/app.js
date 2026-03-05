@@ -51,18 +51,18 @@ class AppView extends View {
     /**
      * View the editor's toolbar.
      *
-     * @param {HTMLElement} [prev] An existing toolbar element to update in place.
+     * @param {import("./util.js").CreateElement} create Factory to obtain the toolbar element.
      * @returns {HTMLElement} The HTML element generated to represent
      *     the editor's toolbar.
      */
-    #viewToolbar(prev) {
-        const toolbarElem = prev ?? document.createElement("div");
+    #viewToolbar(create) {
+        const toolbarElem = create("div");
         toolbarElem.className = "editor-toolbar";
 
         const descriptions = this.#editorView.describeToolbarItems();
         util.recycleChildren(
             toolbarElem, descriptions,
-            (descr, prev) => mkToolbarItem(descr, prev)
+            (descr, create) => mkToolbarItem(descr, create)
         );
         return toolbarElem;
     }
@@ -70,14 +70,14 @@ class AppView extends View {
     /**
      * View the application rooted at the element `root`.
      *
-     * @param {HTMLElement} [prev] An existing element to update in place.
+     * @param {import("./util.js").CreateElement} create Factory to obtain the root element.
      * @returns {HTMLElement}
      */
-    view(prev) {
-        const root = prev ?? document.createElement("div");
+    view(create) {
+        const root = create("div");
         util.recycleConstChildren(root,
-            (prev) => this.#viewToolbar(prev),
-            (prev) => this.#editorView.view(prev)
+            (create) => this.#viewToolbar(create),
+            (create) => this.#editorView.view(create)
         );
         return root;
     }
@@ -135,7 +135,7 @@ async function main() {
         /** @type {ReturnType<requestAnimationFrame> | null} */
         #animFrame;
 
-        /** @type {cmenu.ContextMenu | undefined} */
+        /** @type {cmenu.ContextMenuView | undefined} */
         #currentContextMenu;
 
         /**
@@ -226,13 +226,13 @@ async function main() {
 
             util.recycleConstChildren(
                 editorRoot,
-                (prev) => this.#appView.view(prev),
-                (prev) => this.#currentContextMenu
-                    ? this.#currentContextMenu.view(prev)
-                    : document.createElement("div")
+                (create) => this.#appView.view(create),
+                (create) => this.#currentContextMenu
+                    ? this.#currentContextMenu.view(create)
+                    : create("div", "empty-context-menu")
             );
 
-            // console.log(util.RecycleStatistics.report());
+            console.log(util.RecycleStatistics.report());
             return editorRoot;
         }
     })(null, initialView);

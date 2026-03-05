@@ -22,13 +22,13 @@ import * as util from "../util.js";
  * Construct or update an HTML element suitable for putting in the view toolbar.
  *
  * @param {ToolbarButtonDescription} [descr]
- * @param {HTMLElement} [prev] An existing button element to update in place.
+ * @param {import("../util.js").CreateElement} create Factory to obtain the button element.
  * @returns {HTMLElement}
  */
-function mkToolbarButton(descr, prev) {
+function mkToolbarButton(descr, create) {
     descr = descr ?? { type: "button" };
 
-    const buttonElem = prev ?? document.createElement("span");
+    const buttonElem = create("span");
     buttonElem.className = "editor-button";
     if(descr.enabled ?? false) {
         buttonElem.classList.add("editor-button-enabled");
@@ -37,9 +37,8 @@ function mkToolbarButton(descr, prev) {
     if(descr.iconSrc) {
         util.recycleConstChildren(
             buttonElem,
-            (prev) => {
-                /** @type {HTMLImageElement} */
-                const iconImg = (prev && prev instanceof HTMLImageElement) ? prev : document.createElement("img");
+            (create) => {
+                const iconImg = /** @type {HTMLImageElement} */ (create("img"));
                 iconImg.className = "editor-button-icon";
                 iconImg.src = descr.iconSrc;
                 iconImg.width  = 18;
@@ -57,16 +56,16 @@ function mkToolbarButton(descr, prev) {
 }
 
 /**
- * Construct or update an HTML elenet suitable for putting in the view toolbar.
+ * Construct or update an HTML element suitable for putting in the view toolbar.
  *
  * @param {ToolbarSpacerDescription} [descr]
- * @param {HTMLElement} [prev] An existing spacer element to update in place.
+ * @param {import("../util.js").CreateElement} create Factory to obtain the spacer element.
  * @returns {HTMLElement}
  */
-function mkToolbarSpacer(descr, prev) {
+function mkToolbarSpacer(descr, create) {
     descr = descr ?? { type: "spacer" };
 
-    const spacerElem = prev ?? document.createElement("span");
+    const spacerElem = create("span");
     spacerElem.className = "editor-toolbar-spacer";
     return spacerElem;
 }
@@ -75,12 +74,12 @@ function mkToolbarSpacer(descr, prev) {
  * Construct or update an HTML element representing the given description.
  *
  * @param {ToolbarDescription} descr
- * @param {HTMLElement} [prev] An existing element to update in place.
+ * @param {import("../util.js").CreateElement} create Factory to obtain the element.
  * @returns {HTMLElement}
  */
-export function mkToolbarItem(descr, prev) {
+export function mkToolbarItem(descr, create) {
     switch(descr.type) {
-    case "button": return mkToolbarButton(descr, prev);
-    case "spacer": return mkToolbarSpacer(descr, prev);
+    case "button": return mkToolbarButton(descr, create);
+    case "spacer": return mkToolbarSpacer(descr, create);
     }
 }
