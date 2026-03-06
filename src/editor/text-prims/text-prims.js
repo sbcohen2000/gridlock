@@ -656,10 +656,15 @@ export function removeString(st, n) {
  * document, then this function also creates a new line in the current
  * leaf and sets the point to it.
  *
- * If the point is at the first letter in a cell, then the cell's line
- * (and all of the lines after it) will become empty after the newline
- * is inserted. This means that immediately removing the global
- * newline is not a proper inverse of the operation.
+ * Note:
+ *   If the point is at the first letter in a cell, then the cell's line
+ *   (and all of the lines after it) will become empty after the newline
+ *   is inserted. This means that immediately removing the global
+ *   newline is not a proper inverse of the operation.
+ *
+ *   Perhaps the inverse operation has to consider the column at which
+ *   the newline was inserted, so that we can removeGlobalNewline back
+ *   into that position.
  *
  * @param {TextPrimsState} st   The editor state.
  * @param {any} glpk The GLPK instance.
