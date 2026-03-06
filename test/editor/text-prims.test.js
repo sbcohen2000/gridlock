@@ -437,7 +437,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textOnGlobalLineIterFromStringsIter([].values()), glpk);
+                st, 0, 0, textOnGlobalLineIterFromStringsIter([].values()), glpk);
 
             expect(serialize.printCommonState(st)).to.equal(src);
         });
@@ -450,7 +450,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textOnGlobalLineIterFromStringsIter(["hello"].values()), glpk);
+                st, 0, 0, textOnGlobalLineIterFromStringsIter(["hello"].values()), glpk);
 
             const exp =
                   "hello\n"  +
@@ -468,7 +468,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+                st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
 
             const exp =
                   "abc\n"  +
@@ -486,7 +486,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+                st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
 
             const exp =
                   "a b c\n"   +
@@ -504,7 +504,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+                st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
 
             const exp =
                   "a bc\n"  +
@@ -522,7 +522,25 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
+                st, 0, 0, textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
+
+            const exp =
+                  "aacbbd\n"   +
+                  "+--+--+-+\n" +
+                  "+--+--+-+"
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
+        it("Can spread multiple texts into multiple non-empty cells with a non-zero column", async () => {
+            const src =
+                  "aabb\n"    +
+                  "+-+-+-+\n" +
+                  "+-+-+-+"
+
+            const st = textPrims.editText(serialize.commonStateFromString(src));
+            await textPrims._spreadTextOnGlobalRow(
+                st, 0, 2, textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
 
             const exp =
                   "aabbcd\n"   +

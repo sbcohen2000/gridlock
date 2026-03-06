@@ -500,6 +500,55 @@ export function textOnGlobalLine(st, row) {
 /** Primitive Text Removal Functions                                        **/
 
 /**
+ * Kill the line at the current point, returning an iterator over the
+ * text segments which were to the right of the cursor.
+ *
+ * @param {TextPrimsState} st
+ * @returns {TextOnGlobalLineIterItem[]}
+ */
+export function _killLine(st) {
+    // Find the location of the cursor in the global coordinate space.
+    const globalPt  = _findGlobalPoint(st);
+    const globalRow = globalPt.y;
+    const globalCol = globalPt.x;
+
+    const textSegments = [..._extractGlobalLine(st, globalRow)];
+
+    /** @type {TextOnGlobalLineIterItem[]} */
+    let afterPointer;
+
+    // Find the index of the segment where the pointer lives, splitting
+    // the rest of the `textSegments` to the right of the point into
+    // `afterPointer`.
+    for(let i = textSegments.length - 1; i >= 0; --i) {
+        const seg = textSegments[i];
+
+        if(seg.globalCol <= globalCol) {
+            // Split off the text before the cursor, since that should
+            // remain on the current line.
+            let localCol = globalCol - seg.globalCol;
+            seg.leaf.data.lines[seg.localRow] =
+                seg.leaf.data.lines[seg.localRow].slice(0, localCol);
+
+            afterPointer = textSegments.slice(i);
+            afterPointer[0].text = seg.text.slice(localCol);
+            afterPointer[0].globalCol += localCol;
+
+            // Clear text on the original row for segments to the
+            // right of the cursor, since their content is moving to
+            // the new line.
+            for(let j = 1; j < afterPointer.length; ++j) {
+                const rightSeg = afterPointer[j];
+                rightSeg.leaf.data.lines[rightSeg.localRow] = "";
+            }
+            break;
+        }
+    }
+
+    return afterPointer;
+}
+
+/**
  * Remove the line referred to by the current point, across all
  * leaves, removing newly empty leaves.
  *
@@ -560,8 +609,8 @@ export async function removeGlobalNewline(st, glpk) {
 
     // Put the point at the end of the line.
     putPointAtEndOfGlobalLine(st);
-
-    await _spreadTextOnGlobalRow(st, globalRow - 1, textOnLine.values(), glpk);
+    const globalCol = _lastColumnOnGlobalLine(st, globalRow - 1);
+    await _spreadTextOnGlobalRow(st, globalRow - 1, globalCol, textOnLine.values(), glpk);
     return true;
 }
 
@@ -607,6 +656,11 @@ export function removeString(st, n) {
  * document, then this function also creates a new line in the current
  * leaf and sets the point to it.
  *
+ * If the point is at the first letter in a cell, then the cell's line
+ * (and all of the lines after it) will become empty after the newline
+ * is inserted. This means that immediately removing the global
+ * newline is not a proper inverse of the operation.
+ *
  * @param {TextPrimsState} st   The editor state.
  * @param {any} glpk The GLPK instance.
  * @returns {Promise<boolean>} `true` if the state was modified, `false` otherwise.
@@ -615,50 +669,21 @@ export async function insertGlobalNewline(st, glpk) {
     // Find the location of the cursor in the global coordinate space.
     const globalPt  = _findGlobalPoint(st);
     const globalRow = globalPt.y;
-    const globalCol = globalPt.x;
 
-    const textSegments = [..._extractGlobalLine(st, globalRow)];
+    const afterPointer = _killLine(st);
 
-    /** @type {TextOnGlobalLineIterItem[]} */
-    let afterPointer;
-
-    // Find the index of the segment where the pointer lives, splitting
-    // the rest of the `textSegments` to the right of the point into
-    // `afterPointer`.
-    for(let i = textSegments.length - 1; i >= 0; --i) {
-        const seg = textSegments[i];
-
-        if(seg.globalCol <= globalCol) {
-            // Split off the text before the cursor, since that should
-            // remain on the current line.
-            let localCol = globalCol - seg.globalCol;
-            seg.leaf.data.lines[seg.localRow] =
-                seg.leaf.data.lines[seg.localRow].slice(0, localCol);
-
-            afterPointer = textSegments.slice(i);
-            afterPointer[0].text = seg.text.slice(localCol);
-            afterPointer[0].globalCol += localCol;
-
-            // Clear text on the original row for segments to the
-            // right of the cursor, since their content is moving to
-            // the new line.
-            for(let j = 1; j < afterPointer.length; ++j) {
-                const rightSeg = afterPointer[j];
-                rightSeg.leaf.data.lines[rightSeg.localRow] = "";
-            }
-            break;
-        }
+    const leaves = [...grid.leavesUnderRow(st.grid, globalRow)];
+    // Make room under under `globalRow` for the new lines.
+    for(const leaf of leaves) {
+        const leafPos = grid.posOfLeaf(st.grid, leaf);
+        const localRow = globalRow - leafPos.y;
+        leaf.data.lines.splice(localRow + 1, 0, "");
     }
+
+    grid.modifyHeightOfLeaves(st.grid, 1, leaves);
 
     const newRow = globalRow + 1;
-
-    // Insert an empty line into each leaf at the new row position.
-    for(const seg of textSegments) {
-        seg.leaf.data.lines.splice(seg.localRow + 1, 0, "");
-    }
-
-    grid.modifyHeightOfLeaves(st.grid, 1, textSegments.map(seg => seg.leaf));
-    await _spreadTextOnGlobalRow(st, newRow, afterPointer.values(), glpk);
+    await _spreadTextOnGlobalRow(st, newRow, 0, afterPointer.values(), glpk);
 
     putPointOnGlobalPosition(st, point.mkP2(0, newRow), false);
     return true;
@@ -704,29 +729,27 @@ export async function insertString(st, s, glpk, advancePoint) {
 }
 
 /**
- * Given an iterator which yields text, and a global row, put the text
- * after the last column on the global row, but spread it between the
- * empty cells after (and including) the last non-empty cell.
+ * Given an iterator which yields text, and a global row and column,
+ * put the text at the column, but spread it between the cells after
+ * (and including) the cell with the current column, replacing the
+ * text therein.
  *
  * @param {TextPrimsState} st   The current state.
  * @param {number}         row  The global row at which to insert the text.
+ * @param {number}         col  The global column at which to insert the text.
  * @param {TextOnGlobalLineIter} textIter The text iterator from which we
  *    will determine the text to insert.
  * @param {any}            glpk The GLPK instance.
  */
-export async function _spreadTextOnGlobalRow(st, row, textIter, glpk) {
+export async function _spreadTextOnGlobalRow(st, row, col, textIter, glpk) {
     const leaves = [...grid.leavesUnderRow(st.grid, row)];
     util.assert(leaves.length > 0);
 
-    // Find the index of the last leaf whose content is non-empty
-    // under `row` (or the element at index 0, if all of the leaves
-    // on the row are empty).
+    // Find the index of the leaf in `leaves` under the current column.
     let i = leaves.length - 1;
     for(; i > 0; --i) {
-        const leafPos  = grid.posOfLeaf(st.grid, leaves[i]);
-        const localRow = row - leafPos.y;
-        const line     = leaves[i].data.lines[localRow];
-        if(line !== "") {
+        const leafCol  = grid.posOfLeaf(st.grid, leaves[i]).x;
+        if(leafCol <= col) {
             break;
         }
     }
