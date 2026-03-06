@@ -394,4 +394,96 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
     });
+
+    describe("_spreadTextOnGlobalRow", () => {
+        it("Can spread text into a single empty cell", async () => {
+            const src =
+                  "\n"  +
+                  "+-+\n" +
+                  "+-+"
+
+            const st = textPrims.editText(serialize.commonStateFromString(src));
+            await textPrims._spreadTextOnGlobalRow(
+                st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["hello"].values()), glpk);
+
+            const exp =
+                  "hello\n"  +
+                  "+----+\n" +
+                  "+----+"
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
+        it("Can spread multiple texts into a single empty cell", async () => {
+            const src =
+                  "\n"  +
+                  "+-+\n" +
+                  "+-+"
+
+            const st = textPrims.editText(serialize.commonStateFromString(src));
+            await textPrims._spreadTextOnGlobalRow(
+                st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+
+            const exp =
+                  "abc\n"  +
+                  "+--+\n" +
+                  "+--+"
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
+        it("Can spread multiple texts into multiple empty cells (1)", async () => {
+            const src =
+                  "\n"  +
+                  "+-+-+-+\n" +
+                  "+-+-+-+"
+
+            const st = textPrims.editText(serialize.commonStateFromString(src));
+            await textPrims._spreadTextOnGlobalRow(
+                st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+
+            const exp =
+                  "a b c\n"  +
+                  "+-+-+-+\n" +
+                  "+-+-+-+"
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
+        it("Can spread multiple texts into multiple empty cells (2)", async () => {
+            const src =
+                  "\n"  +
+                  "+-+-+\n" +
+                  "+-+-+"
+
+            const st = textPrims.editText(serialize.commonStateFromString(src));
+            await textPrims._spreadTextOnGlobalRow(
+                st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+
+            const exp =
+                  "a bc\n"  +
+                  "+-+-+\n" +
+                  "+-+-+"
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
+        it("Can spread multiple texts into multiple non-empty cells", async () => {
+            const src =
+                  "aabb\n"  +
+                  "+-+-+-+\n" +
+                  "+-+-+-+"
+
+            const st = textPrims.editText(serialize.commonStateFromString(src));
+            await textPrims._spreadTextOnGlobalRow(
+                st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
+
+            const exp =
+                  "aabbcd\n"  +
+                  "+-+--+-+\n" +
+                  "+-+--+-+"
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+    });
 });

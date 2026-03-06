@@ -26,7 +26,7 @@ export const PRIMITIVES = [
     },
     {
         function: prims.putPointOnNextGlobalLine,
-        args: [],
+        args: ["boolean"],
         retty: "boolean",
         async: false,
         const: false,
@@ -34,7 +34,7 @@ export const PRIMITIVES = [
     },
     {
         function: prims.putPointOnPrevGlobalLine,
-        args: [],
+        args: ["boolean"],
         retty: "boolean",
         async: false,
         const: false,
