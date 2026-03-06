@@ -11,7 +11,7 @@ describe("text-prims", () => {
     describe("insertString", () => {
         it("Can insert a string into a state with a single leaf", async () => {
             const src =
-                  "world\n" +
+                  "world\n"   +
                   "+-----+\n" +
                   "+-----+";
 
@@ -28,7 +28,7 @@ describe("text-prims", () => {
 
         it("Can insert individual spaces before a leaf", async () => {
             const src =
-                  "world\n" +
+                  "world\n"   +
                   "+-----+\n" +
                   "+-----+";
 
@@ -39,7 +39,7 @@ describe("text-prims", () => {
             await textPrims.insertString(st, " ", glpk);
 
             const exp =
-                  "    world\n" +
+                  "    world\n"  +
                   "+--------+\n" +
                   "+--------+";
 
@@ -48,7 +48,7 @@ describe("text-prims", () => {
 
         it("Can insert a string at the end of a single-line leaf", async () => {
             const src =
-                  "hello\n" +
+                  "hello\n"   +
                   "+-----+\n" +
                   "+-----+";
 
@@ -134,7 +134,7 @@ describe("text-prims", () => {
     describe("putPointAtEndOfGlobalLine", () => {
         it("Moves to end of line in a single-leaf document", () => {
             const src =
-                  "hello\n" +
+                  "hello\n"   +
                   "+-----+\n" +
                   "+-----+";
 
@@ -148,7 +148,7 @@ describe("text-prims", () => {
 
         it("Moves to end of rightmost leaf on the same row", () => {
             const src =
-                  "hellothere\n" +
+                  "hellothere\n"  +
                   "+----+----+\n" +
                   "+----+----+";
 
@@ -165,10 +165,10 @@ describe("text-prims", () => {
 
         it("Stays on the correct row in a multi-row document", () => {
             const src =
-                  "top   top\n"    +
-                  "bot   bot\n"    +
-                  "+-----+---+\n"  +
-                  "|     |   |\n"  +
+                  "top   top\n"   +
+                  "bot   bot\n"   +
+                  "+-----+---+\n" +
+                  "|     |   |\n" +
                   "+-----+---+";
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
@@ -398,7 +398,7 @@ describe("text-prims", () => {
     describe("_spreadTextOnGlobalRow", () => {
         it("Can spread text into a single empty cell", async () => {
             const src =
-                  "\n"  +
+                  "\n"    +
                   "+-+\n" +
                   "+-+"
 
@@ -416,7 +416,7 @@ describe("text-prims", () => {
 
         it("Can spread multiple texts into a single empty cell", async () => {
             const src =
-                  "\n"  +
+                  "\n"    +
                   "+-+\n" +
                   "+-+"
 
@@ -443,7 +443,7 @@ describe("text-prims", () => {
                 st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
 
             const exp =
-                  "a b c\n"  +
+                  "a b c\n"   +
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
@@ -470,7 +470,7 @@ describe("text-prims", () => {
 
         it("Can spread multiple texts into multiple non-empty cells", async () => {
             const src =
-                  "aabb\n"  +
+                  "aabb\n"    +
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
@@ -479,9 +479,48 @@ describe("text-prims", () => {
                 st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
 
             const exp =
-                  "aabbcd\n"  +
+                  "aabbcd\n"   +
                   "+-+--+-+\n" +
                   "+-+--+-+"
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+    });
+
+    describe("removeGlobalNewline", () => {
+        it("Does nothing on the first line of the document", async () => {
+            const src =
+                  "foo bar\n"   +
+                  "+---+---+\n" +
+                  "+---+---+"
+
+            const st = textPrims.editText(serialize.commonStateFromString(src));
+            textPrims.putPointOnGlobalPosition(st, point.mkOrigin(), false);
+            await textPrims.removeGlobalNewline(st, glpk);
+
+            expect(textPrims.pointAtBeginningOfGlobalLine(st)).to.be.true;
+            expect(serialize.printCommonState(st)).to.equal(src);
+        });
+
+        it("Can remove the line on a 2-line document", async () => {
+            const src =
+                  "foo bar\n"   +
+                  "baz\n"       +
+                  "+---+---+\n" +
+                  "|   |   |\n" +
+                  "+---+---+"
+
+            const st = textPrims.editText(serialize.commonStateFromString(src));
+            textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1), false);
+            await textPrims.removeGlobalNewline(st, glpk);
+
+            // Insert a character to test that the point is in the right spot.
+            await textPrims.insertString(st, "X", glpk, false);
+
+            const exp =
+                  "foo barXbaz\n"  +
+                  "+---+------+\n" +
+                  "+---+------+"
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });

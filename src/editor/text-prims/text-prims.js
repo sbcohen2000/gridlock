@@ -171,29 +171,8 @@ export function putPointAtStartOfGlobalLine(st) {
  */
 export function putPointAtEndOfGlobalLine(st) {
     const globalRow = _findGlobalPoint(st).y;
-    const last = util.iterLast(grid.leavesUnderRow(st.grid, globalRow));
-    if(last === undefined) {
-        // Somehow, there's no last child on this row, so do nothing.
-        console.warn(`No last child on row ${globalRow}`);
-        return false;
-    }
-
-    const lastPos = grid.posOfLeaf(st.grid, last);
-    const relRow  = globalRow - lastPos.y;
-    const col     = last.data.lines[relRow].length;
-
-    // Check if we're already at this position
-    if(st.selection.leaf === last &&
-       st.selection.pt.y === relRow &&
-       st.selection.pt.x === col) {
-        return false;
-    }
-
-    st.selection.leaf = last;
-    st.selection.pt.y = relRow;
-    st.selection.pt.x = col;
-    _updateLastGlobalCol(st);
-    return true;
+    const text = textOnGlobalLine(st, globalRow);
+    return putPointOnGlobalPosition(st, point.mkP2(text.length, globalRow), true);
 }
 
 /**
@@ -523,22 +502,19 @@ export function textOnGlobalLine(st, row) {
  * leaves, removing newly empty leaves.
  *
  * @param {TextPrimsState} st The editor state.
- * @returns {string} The contents of the line.
+ * @returns {boolean} `true` if the line was removed, and `false` otherwise.
  */
 export function removeGlobalLine(st) {
     // Don't remove the last line - editor must have at least one line
     if(st.grid.dims.height === 1) {
-        return "";
+        return false;
     }
 
-    let contents = "";
     const globalPt = _findGlobalPoint(st);
     const leaves = [...grid.leavesUnderRow(st.grid, globalPt.y)];
     for(const leaf of leaves) {
         const leafPos = grid.posOfLeaf(st.grid, leaf);
         const relRow  = globalPt.y - leafPos.y;
-
-        contents += leaf.data.lines[relRow];
         leaf.data.lines.splice(relRow, 1);
     }
 
@@ -554,7 +530,37 @@ export function removeGlobalLine(st) {
     const newRow = Math.max(0, globalPt.y - 1);
     putPointOnGlobalPosition(st, point.mkP2(0, newRow));
 
-    return contents;
+    return true;
+}
+
+/**
+ * Like `removeGlobalLine`, except it puts the contents of the line on
+ * the previous line, spreading the contents among cells if possible.
+ *
+ * @param {TextPrimsState} st   The editor state.
+ * @param {any}            glpk The GLPK instance.
+ * @returns {Promise<boolean>} `true` if the line was removed, and `false`
+ *     otherwise.
+ */
+export async function removeGlobalNewline(st, glpk) {
+    // Find the text on the global line.
+    const globalRow = _findGlobalPoint(st).y;
+
+    // Note that we need to force the entire iterator now because
+    // we're about to delete the line of the document that this
+    // iterator fetches.
+    const textOnLine = [..._extractGlobalLine(st, globalRow)];
+
+    // Remove the global line.
+    if(!removeGlobalLine(st)) {
+        return false;
+    }
+
+    // Put the point at the end of the line.
+    putPointAtEndOfGlobalLine(st);
+
+    await _spreadTextOnGlobalRow(st, globalRow - 1, textOnLine.values(), glpk);
+    return true;
 }
 
 /**

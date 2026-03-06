@@ -117,11 +117,13 @@ export class TextEditingView extends EditorView {
             switch(e.key) {
             case "Backspace": {
                 if(textPrims.pointAtBeginningOfGlobalLine(this.#teState)) {
-                    textPrims.removeGlobalLine(this.#teState);
+                    textPrims.removeGlobalNewline(this.#teState, theGLPKInstance.glpk).then(() => {
+                        this.requestRedraw();
+                    });
                 } else {
                     textPrims.removeString(this.#teState, 1);
+                    this.requestRedraw();
                 }
-                this.requestRedraw();
             } break;
             case "Enter": {
                 textPrims.insertGlobalNewline(this.#teState);
