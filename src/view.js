@@ -110,11 +110,9 @@ export class View {
     }
 
     /**
-     * @param {import("./util.js").CreateElement} create Factory to obtain the element.
-     * @returns {HTMLElement}
+     * @param {HTMLElement} _root The element to populate.
      */
-    view(create) {
-        return create("div");
+    view(_root) {
     }
 
     /**

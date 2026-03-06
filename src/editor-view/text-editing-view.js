@@ -62,24 +62,20 @@ export class TextEditingView extends EditorView {
      * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {import("../util.js").Recycler} recycler
+     * @param {import("../framework.js").default} recycler
      */
     viewLeafSelection(leaf, recycler) {
         super.viewLeafSelection(leaf, recycler);
 
         if(this.#teState.selection.leaf === leaf) {
-            recycler.item((create) => {
-                const cursorElem = create("div");
+            recycler.elem({ tag: "div", key: "cursor" }, (cursorElem) => {
                 cursorElem.className = "editor-cursor";
                 cursorElem.style.position = "absolute";
                 cursorElem.style.left = `${this.state.selection.pt.x}ch`;
                 cursorElem.style.top  = `${this.state.selection.pt.y}em`;
-                return cursorElem;
             });
-            recycler.item((create) => {
-                const haloElem = create("div");
+            recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
                 haloElem.className = "editor-cell-halo";
-                return haloElem;
             });
         }
     }

@@ -2,7 +2,7 @@ import * as edgePrims from "./editor/edge-prims/edge-prims.js";
 import * as grid from "./grid.js";
 import * as point from "./point.js";
 import * as textPrims from "./editor/text-prims/text-prims.js";
-import * as util from "./util.js";
+import Recycler from "./framework.js";
 import { View, ViewEvent } from "./view.js";
 
 import binder_ring_center_url from "../assets/binder-ring-center.png";
@@ -98,7 +98,6 @@ export class EditorView extends View {
      * @param {string} line
      */
     #buildLineFragments(lineElem, line) {
-        lineElem.replaceChildren();
         const groups = [...groupBySpaces(line)];
         for(let i = 0; i < groups.length; ++i) {
             const group = groups[i];
@@ -133,18 +132,14 @@ export class EditorView extends View {
      * @param {number} rowNo The index of the line to view.
      * @param {grid.Leaf<Cell>} leaf The line's parent leaf.
      * @param {point.P2} p The position of the upper-left corner of the leaf.
-     * @param {import("./util.js").CreateElement} create Factory to obtain the line element.
-     * @returns {HTMLElement} The HTML element generated to represent
-     *     this line.
+     * @param {HTMLElement} lineElem The element to populate.
      */
-    viewLine(rowNo, leaf, p, create) {
+    viewLine(rowNo, leaf, p, lineElem) {
         void p;
 
         const line = leaf.data.lines[rowNo];
-        const lineElem = create("div");
         lineElem.className = "editor-line";
         this.#buildLineFragments(lineElem, line);
-        return lineElem;
     }
 
     /**
@@ -227,15 +222,13 @@ export class EditorView extends View {
      * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {util.Recycler} recycler
+     * @param {Recycler} recycler
      */
     viewLeafSelection(leaf, recycler) {
         if(this.#mouseNearEdge !== null && this.#mouseNearEdge.leaf === leaf) {
-            recycler.item((create) => {
-                const elem = create("div");
+            recycler.elem({ tag: "div", key: "edge-preview-halo" }, (elem) => {
                 elem.className = "editor-edge-preview-halo";
                 this.#positionEdgeHalo(elem, this.#mouseNearEdge.edge);
-                return elem;
             });
         }
     }
@@ -288,7 +281,6 @@ export class EditorView extends View {
      */
     editTextOnDoubleClick(ctx) {
         const isDoubleClick = this.#classifyDoubleClick(ctx.leaf);
-        console.log("isDoubleClick", isDoubleClick);
         if(isDoubleClick) {
             // If the user double-clicked on the leaf, we want to
             // change to text-editing mode, setting the selection
@@ -390,15 +382,12 @@ export class EditorView extends View {
      *
      * @param {grid.Leaf<Cell>} leaf The leaf to view.
      * @param {point.P2} leafUl The position of the upper-left corner of the leaf.
-     * @param {import("./util.js").CreateElement} create Factory to obtain the leaf element.
-     * @returns {HTMLElement} The HTML element generated to represent
-     *     this leaf.
+     * @param {HTMLElement} leafElem The element to populate.
      */
-    viewLeaf(leaf, leafUl, create) {
+    viewLeaf(leaf, leafUl, leafElem) {
         const sz = leaf.dims;
         const gridSpec = `${leafUl.y + 1}/${leafUl.x + 1}/span ${sz.height}/span ${sz.width}`;
 
-        const leafElem = create("div");
         leafElem.className      = "editor-leaf";
         leafElem.style.width    = `${sz.width}ch`;
         leafElem.style.position = "relative";
@@ -415,11 +404,13 @@ export class EditorView extends View {
         }
 
         const lineIndices = leaf.data.lines.map((_, i) => i);
-        const recycler = new util.Recycler(leafElem)
-            .items(lineIndices, (rowNo, create) => this.viewLine(rowNo, leaf, leafUl, create));
+        const recycler = new Recycler(leafElem)
+              .elems(lineIndices,
+                     { tag: "div", clearChildren: true },
+                     (rowNo, lineElem) => this.viewLine(rowNo, leaf, leafUl, lineElem)
+                    );
         this.viewLeafSelection(leaf, recycler);
         recycler.commit();
-        return leafElem;
     }
 
     /**
@@ -504,21 +495,20 @@ export class EditorView extends View {
         const nCenters = Math.round(height / imgScreenHeight) - 1;
 
         const indices = Array.from({ length: nCenters + 1 }, (_, i) => i);
-        new util.Recycler(this.#bindingElem)
-            .items(indices, (idx, create) => {
-                const image = /** @type {HTMLImageElement} */ (create("img"));
-                image.width = TOTAL_IMG_WIDTH * imagePxToScreenPx;
-                image.style.position = "absolute";
-                image.style.top = `${idx * imgScreenHeight}px`;
-                image.style.right = `0`;
+        new Recycler(this.#bindingElem)
+            .elems(indices, "img", (idx, image) => {
+                const img = /** @type {HTMLImageElement} */ (image);
+                img.width = TOTAL_IMG_WIDTH * imagePxToScreenPx;
+                img.style.position = "absolute";
+                img.style.top = `${idx * imgScreenHeight}px`;
+                img.style.right = `0`;
                 if(idx < nCenters) {
                     // Draw a center.
-                    image.src = binder_ring_center_url;
+                    img.src = binder_ring_center_url;
                 } else {
                     // Draw the end cap.
-                    image.src = binder_ring_end_url;
+                    img.src = binder_ring_end_url;
                 }
-                return image;
             })
             .commit();
     }
@@ -537,58 +527,46 @@ export class EditorView extends View {
     /**
      * View the spiral-ring binding to the left of the editor.
      *
-     * @param {import("./util.js").CreateElement} create Factory to obtain the binding element.
-     * @returns {HTMLElement} The HTML element generated to represent
-     *     the binding.
+     * @param {HTMLElement} bindingElem The element to populate.
      */
-    #viewBinding(create) {
-        this.#bindingElem = create("div");
+    #viewBinding(bindingElem) {
+        this.#bindingElem = bindingElem;
         this.#bindingElem.className = "editor-binding";
         this.#bindingElem.style.width = `${BINDING_WIDTH}px`;
-        return this.#bindingElem;
     }
 
     /**
      * View a strip of line numbers to the left of the editor.
      *
-     * @param {import("./util.js").CreateElement} create Factory to obtain the line numbers element.
-     * @returns {HTMLElement}
+     * @param {HTMLElement} lineNumsElem The element to populate.
      */
-    #viewLineNumbers(create) {
-        const lineNumsElem = create("div");
+    #viewLineNumbers(lineNumsElem) {
         lineNumsElem.className = "editor-line-nums-margin";
 
         const nLines = this.state.grid.dims.height
         const lineNos = Array.from({ length: nLines }, (_, i) => i + 1);
 
-        new util.Recycler(lineNumsElem)
-            .items(lineNos, (lineNo, create) => {
-                const label = create("span");
+        new Recycler(lineNumsElem)
+            .elems(lineNos, "span", (lineNo, label) => {
                 label.className = "editor-line-num";
                 label.innerText = lineNo.toString();
-                return label;
             })
             .commit();
-
-        return lineNumsElem;
     }
 
     /**
      * View the editor state as an HTML object rooted at `root`.
      *
-     * @param {import("./util.js").CreateElement} create Factory to obtain the root element.
-     * @returns {HTMLElement}
+     * @param {HTMLElement} root The root element to populate.
      */
-    view(create) {
-        const root = create("div");
+    view(root) {
         root.className = "editor-root";
         this.#rootElemResizeObserver.disconnect();
 
-        new util.Recycler(root)
-            .item((create) => this.#viewBinding(create))
-            .item((create) => this.#viewLineNumbers(create))
-            .item((create) => {
-                const gridRoot = create("div");
+        new Recycler(root)
+            .elem("div", (e) => this.#viewBinding(e))
+            .elem("div", (e) => this.#viewLineNumbers(e))
+            .elem("div", (gridRoot) => {
                 gridRoot.style.display = "inline-grid";
                 gridRoot.style.gridTemplateColumns = "1ch";
                 gridRoot.style.gridTemplateRows = "1em";
@@ -596,14 +574,11 @@ export class EditorView extends View {
                 this.#rootElemResizeObserver.observe(this._root);
 
                 const leaves = [...grid.allLeavesWithPosition(this.state.grid)];
-                new util.Recycler(gridRoot)
-                    .items(leaves, ([leaf, p], create) => this.viewLeaf(leaf, p, create))
+                new Recycler(gridRoot)
+                    .elems(leaves, "div", ([leaf, p], leafElem) => this.viewLeaf(leaf, p, leafElem))
                     .commit();
-                return gridRoot;
             })
             .commit();
-
-        return root;
     }
 
     /**

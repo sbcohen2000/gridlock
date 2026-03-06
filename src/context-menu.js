@@ -1,5 +1,5 @@
-import * as util from "./util.js"
 import * as point from "../src/point.js";
+import Recycler from "./framework.js";
 import { View, ViewEvent } from "./view.js";
 
 /**
@@ -116,7 +116,7 @@ export class ContextMenuView extends View {
     #updateMenuPosition(width, height) {
         console.log(`Context menu measured with size ${width}px X ${height}px.`);
 
-        const windowWidth = window.innerWidth;
+        const windowWidth  = window.innerWidth;
         const windowHeight = window.innerHeight;
 
         const idealOrigin = this.#menuDescr.origin;
@@ -167,29 +167,23 @@ export class ContextMenuView extends View {
     /**
      * View the context menu as an HTML element.
      *
-     * @param {util.CreateElement} create Factory to obtain the root element.
-     * @returns {HTMLElement}
+     * @param {HTMLElement} ctxMenuRoot The element to populate.
      */
-    view(create) {
-        const ctxMenuRoot = create("div");
-
-        new util.Recycler(ctxMenuRoot)
-            .item((create) => {
+    view(ctxMenuRoot) {
+        new Recycler(ctxMenuRoot)
+            .elem("div", (screenElem) => {
                 // Construct an element to sit behind the context
                 // menu, filling the entire screen, whose purpose is
                 // to detect mouse down events outside of the context
                 // menu, so that the user can close the menu by
                 // clicking outside of it.
-                const screenElem = create("div");
                 screenElem.className = "editor-context-menu-screen";
                 screenElem.onpointerdown = () => {
                     this.notify(new DismissContextMenu(this));
                 };
-
-                return screenElem;
             })
-            .item((create) => {
-                this.#menuElem = create("div");
+            .elem("div", (menuElem) => {
+                this.#menuElem = menuElem;
                 this.#menuElemResizeObserver.disconnect();
                 this.#menuElemResizeObserver.observe(this.#menuElem);
 
@@ -210,35 +204,28 @@ export class ContextMenuView extends View {
                     this.notify(new DismissContextMenu(this));
                 };
 
-                new util.Recycler(this.#menuElem)
-                    .items(this.#menuDescr.menu, (item, create) => {
+                new Recycler(this.#menuElem)
+                    .elems(this.#menuDescr.menu, { tag: "div", clearAttributes: true } , (item, elem) => {
                         switch(item.type) {
                         case "button": {
-                            const buttonElem = create("div");
-                            buttonElem.className = "editor-context-menu-button";
-                            buttonElem.onclick = item.onclick;
-                            buttonElem.innerText = item.label;
-                            return buttonElem;
+                            elem.className = "editor-context-menu-button";
+                            elem.onclick = item.onclick;
+                            elem.innerText = item.label;
+                            break;
                         }
                         case "label": {
-                            const labelElem = create("div");
-                            labelElem.className = "editor-context-menu-label";
-                            labelElem.innerText = item.label;
-                            return labelElem;
+                            elem.className = "editor-context-menu-label";
+                            elem.innerText = item.label;
+                            break;
                         }
                         case "divider": {
-                            const dividerElem = create("div");
-                            dividerElem.className = "editor-context-menu-divider";
-                            return dividerElem;
+                            elem.className = "editor-context-menu-divider";
+                            break;
                         }
                         }
                     })
                     .commit();
-
-                return this.#menuElem;
             })
             .commit();
-
-        return ctxMenuRoot;
     }
 }

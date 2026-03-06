@@ -1,8 +1,8 @@
 import * as cmenu from "./context-menu.js";
 import * as serialize from "./editor/serialize-common-state.js";
 import * as textPrims from "./editor/text-prims/text-prims.js";
-import * as util from "./util.js";
 import GLPK from "glpk.js";
+import Recycler, { RecycleStatistics } from "./framework.js";
 import { EditorView, ReplaceEditorViewEvent } from "./editor-view.js";
 import { TextEditingView } from "./editor-view/text-editing-view.js";
 import { View, RedrawViewEvent, RequestFocusViewEvent, KeyViewEvent, ViewDeletedViewEvent } from "./view.js";
@@ -51,34 +51,27 @@ class AppView extends View {
     /**
      * View the editor's toolbar.
      *
-     * @param {import("./util.js").CreateElement} create Factory to obtain the toolbar element.
-     * @returns {HTMLElement} The HTML element generated to represent
-     *     the editor's toolbar.
+     * @param {HTMLElement} toolbarElem The element to populate.
      */
-    #viewToolbar(create) {
-        const toolbarElem = create("div");
+    #viewToolbar(toolbarElem) {
         toolbarElem.className = "editor-toolbar";
 
         const descriptions = this.#editorView.describeToolbarItems();
-        new util.Recycler(toolbarElem)
-            .items(descriptions, (descr, create) => mkToolbarItem(descr, create))
+        new Recycler(toolbarElem)
+            .elems(descriptions, "span", (descr, e) => mkToolbarItem(descr, e))
             .commit();
-        return toolbarElem;
     }
 
     /**
      * View the application rooted at the element `root`.
      *
-     * @param {import("./util.js").CreateElement} create Factory to obtain the root element.
-     * @returns {HTMLElement}
+     * @param {HTMLElement} root The root element to populate.
      */
-    view(create) {
-        const root = create("div");
-        new util.Recycler(root)
-            .item((create) => this.#viewToolbar(create))
-            .item((create) => this.#editorView.view(create))
+    view(root) {
+        new Recycler(root)
+            .elem("div", (e) => this.#viewToolbar(e))
+            .elem("div", (e) => this.#editorView.view(e))
             .commit();
-        return root;
     }
 
     /**
@@ -221,16 +214,20 @@ async function main() {
 
         /** @returns {HTMLElement} */
         view() {
-            util.RecycleStatistics.reset();
+            RecycleStatistics.reset();
 
-            new util.Recycler(editorRoot)
-                .item((create) => this.#appView.view(create))
-                .item((create) => this.#currentContextMenu
-                    ? this.#currentContextMenu.view(create)
-                    : create("div", "empty-context-menu"))
-                .commit();
+            const r = new Recycler(editorRoot)
+                .elem("div", (e) => this.#appView.view(e));
 
-            // console.log(util.RecycleStatistics.report());
+            if(this.#currentContextMenu) {
+                r.elem("div", (e) => this.#currentContextMenu.view(e));
+            } else {
+                r.elem({ tag: "div", key: "empty-context-menu" }, (_e) => {});
+            }
+
+            r.commit();
+
+            // console.log(RecycleStatistics.report());
             return editorRoot;
         }
     })(null, initialView);

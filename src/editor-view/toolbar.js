@@ -1,4 +1,4 @@
-import * as util from "../util.js";
+import Recycler from "../framework.js";
 
 /**
  * @typedef {Object} ToolbarButtonDescription
@@ -22,26 +22,22 @@ import * as util from "../util.js";
  * Construct or update an HTML element suitable for putting in the view toolbar.
  *
  * @param {ToolbarButtonDescription} descr
- * @param {import("../util.js").CreateElement} create Factory to obtain the button element.
- * @returns {HTMLElement}
+ * @param {HTMLSpanElement} buttonElem
  */
-function mkToolbarButton(descr, create) {
+function mkToolbarButton(descr, buttonElem) {
 
-    const buttonElem = create("span");
     buttonElem.className = "editor-button";
     if(descr.enabled ?? false) {
         buttonElem.classList.add("editor-button-enabled");
     }
 
     if(descr.iconSrc) {
-        new util.Recycler(buttonElem)
-            .item((create) => {
-                const iconImg = /** @type {HTMLImageElement} */ (create("img"));
+        new Recycler(buttonElem)
+            .elem("img", (iconImg) => {
                 iconImg.className = "editor-button-icon";
                 iconImg.src = descr.iconSrc;
                 iconImg.width  = 18;
                 iconImg.height = 18;
-                return iconImg;
             })
             .commit();
     } else {
@@ -49,34 +45,28 @@ function mkToolbarButton(descr, create) {
     }
 
     buttonElem.onclick = descr.onclick ?? (() => {});
-
-    return buttonElem;
 }
 
 /**
  * Construct or update an HTML element suitable for putting in the view toolbar.
  *
- * @param {ToolbarSpacerDescription} descr
- * @param {import("../util.js").CreateElement} create Factory to obtain the spacer element.
- * @returns {HTMLElement}
+ * @param {ToolbarSpacerDescription} _descr
+ * @param {HTMLSpanElement} spacerElem
  */
-function mkToolbarSpacer(descr, create) {
+function mkToolbarSpacer(_descr, spacerElem) {
 
-    const spacerElem = create("span");
     spacerElem.className = "editor-toolbar-spacer";
-    return spacerElem;
 }
 
 /**
  * Construct or update an HTML element representing the given description.
  *
  * @param {ToolbarDescription} descr
- * @param {import("../util.js").CreateElement} create Factory to obtain the element.
- * @returns {HTMLElement}
+ * @param {HTMLSpanElement} elem
  */
-export function mkToolbarItem(descr, create) {
+export function mkToolbarItem(descr, elem) {
     switch(descr.type) {
-    case "button": return mkToolbarButton(descr, create);
-    case "spacer": return mkToolbarSpacer(descr, create);
+    case "button": return mkToolbarButton(descr, elem);
+    case "spacer": return mkToolbarSpacer(descr, elem);
     }
 }

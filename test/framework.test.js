@@ -77,21 +77,21 @@ describe("Recycler", () => {
         expect(d.lastElementChild).to.equal(theDiv, "the div _was_ re-used");
     });
 
-    it("Won't recycle nodes with different IDs", () => {
+    it("Won't recycle nodes with different keys", () => {
         const document = freshDoc();
         const d = document.createElement("div");
 
         new Recycler(d)
-            .elem({ tag: "div", id: "a" }, _e => {})
-            .elem({ tag: "div"          }, _e => {})
+            .elem({ tag: "div", key: "a" }, _e => {})
+            .elem({ tag: "div"           }, _e => {})
             .commit();
 
         const div1 = /** @type{HTMLElement} */ (d.firstElementChild);
-        const div2  = /** @type{HTMLElement} */ (d.lastElementChild);
+        const div2 = /** @type{HTMLElement} */ (d.lastElementChild);
 
         new Recycler(d)
-            .elem({ tag: "div", id: "b" }, _e => {})
-            .elem({ tag: "div"          }, _e => {})
+            .elem({ tag: "div", key: "b" }, _e => {})
+            .elem({ tag: "div"           }, _e => {})
             .commit();
 
         expect(d.firstElementChild).to.not.equal(div1);
@@ -103,17 +103,17 @@ describe("Recycler", () => {
         const d = document.createElement("div");
 
         new Recycler(d)
-            .elem({ tag: "div"          }, _e => {})
-            .elem({ tag: "div", id: "a" }, _e => {})
-            .elem({ tag: "div"          }, _e => {})
+            .elem({ tag: "div"           }, _e => {})
+            .elem({ tag: "div", key: "a" }, _e => {})
+            .elem({ tag: "div"           }, _e => {})
             .commit();
 
         const div2 = /** @type{HTMLElement} */ (d.firstElementChild.nextElementSibling);
         const div3 = /** @type{HTMLElement} */ (d.lastElementChild);
 
         new Recycler(d)
-            .elem({ tag: "div", id: "a" }, _e => {})
-            .elem({ tag: "div"          }, _e => {})
+            .elem({ tag: "div", key: "a" }, _e => {})
+            .elem({ tag: "div"           }, _e => {})
             .commit();
 
         expect(d.firstElementChild).to.equal(div2);
@@ -125,15 +125,15 @@ describe("Recycler", () => {
         const d = document.createElement("div");
 
         new Recycler(d)
-            .elem({ tag: "div", id: "a" }, _e => {})
+            .elem({ tag: "div", key: "a" }, _e => {})
             .commit();
 
         const div1 = /** @type{HTMLElement} */ (d.firstElementChild);
 
         new Recycler(d)
-            .elem({ tag: "div"          }, _e => {})
-            .elem({ tag: "div", id: "a" }, _e => {})
-            .elem({ tag: "div"          }, _e => {})
+            .elem({ tag: "div"           }, _e => {})
+            .elem({ tag: "div", key: "a" }, _e => {})
+            .elem({ tag: "div"           }, _e => {})
             .commit();
 
         expect(d.childElementCount).to.equal(3);

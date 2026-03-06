@@ -82,7 +82,7 @@ class CellSlicingView extends EditorView {
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
-     * @param {import("../util.js").Recycler} recycler
+     * @param {import("../framework.js").default} recycler
      */
     makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
         void leaf; void leafPos; void hoverGlobalPos; void recycler;
@@ -91,7 +91,7 @@ class CellSlicingView extends EditorView {
 
     /**
      * @param {grid.Leaf<Cell>} leaf
-     * @param {import("../util.js").Recycler} recycler
+     * @param {import("../framework.js").default} recycler
      */
     viewLeafSelection(leaf, recycler) {
         super.viewLeafSelection(leaf, recycler);
@@ -123,7 +123,7 @@ export class VerticalCellSlicingView extends CellSlicingView {
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
-     * @param {import("../util.js").Recycler} recycler
+     * @param {import("../framework.js").default} recycler
      */
     makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
         // Check if hover is within this leaf's column range
@@ -132,8 +132,7 @@ export class VerticalCellSlicingView extends CellSlicingView {
 
         const localRow = hoverGlobalPos.y - leafPos.y;
 
-        recycler.item((create) => {
-            const preview = create("div");
+        recycler.elem({ tag: "div", key: "slice-preview" }, (preview) => {
             preview.className = "editor-slice-preview";
             preview.style.position = "absolute";
             preview.style.top = `calc(${localRow}em - 1px)`;
@@ -142,7 +141,6 @@ export class VerticalCellSlicingView extends CellSlicingView {
             preview.style.height = "0";
             preview.style.borderTop = "2px solid red";
             preview.style.pointerEvents = "none";
-            return preview;
         });
     }
 
@@ -167,7 +165,7 @@ export class HorizontalCellSlicingView extends CellSlicingView {
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
-     * @param {import("../util.js").Recycler} recycler
+     * @param {import("../framework.js").default} recycler
      */
     makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
         // Check if hover is within this leaf's range
@@ -176,8 +174,7 @@ export class HorizontalCellSlicingView extends CellSlicingView {
 
         const localCol = hoverGlobalPos.x - leafPos.x;
 
-        recycler.item((create) => {
-            const preview = create("div");
+        recycler.elem({ tag: "div", key: "slice-preview" }, (preview) => {
             preview.className = "editor-slice-preview";
             preview.style.position = "absolute";
             preview.style.left = `calc(${localCol}ch - 1px)`;
@@ -186,7 +183,6 @@ export class HorizontalCellSlicingView extends CellSlicingView {
             preview.style.width = "0";
             preview.style.borderLeft = "2px solid red";
             preview.style.pointerEvents = "none";
-            return preview;
         });
     }
 

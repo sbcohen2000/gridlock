@@ -61,11 +61,10 @@ export class EdgeEditingView extends EditorView {
     #GLPKAbortController = null;
 
     /**
-     * @param {import("../util.js").CreateElement} create Factory to obtain the root element.
-     * @returns {HTMLElement}
+     * @param {HTMLElement} root The root element to populate.
      */
-    view(create) {
-        const root = super.view(create);
+    view(root) {
+        super.view(root);
 
         root.onpointermove = (e) => {
             if(!this.#dragState) return;
@@ -131,7 +130,6 @@ export class EdgeEditingView extends EditorView {
             }
         };
 
-        return root;
     }
 
     /**
@@ -164,15 +162,13 @@ export class EdgeEditingView extends EditorView {
      * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {import("../util.js").Recycler} recycler
+     * @param {import("../framework.js").default} recycler
      */
     viewLeafSelection(leaf, recycler) {
         if(leaf === this.#eeState.selection.leaf) {
-            recycler.item((create) => {
-                const elem = create("div");
+            recycler.elem({ tag: "div", key: "edge-halo" }, (elem) => {
                 elem.className = "editor-edge-halo";
                 this.#positionEdgeHalo(elem);
-                return elem;
             });
         }
     }

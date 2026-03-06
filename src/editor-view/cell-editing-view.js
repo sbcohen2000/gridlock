@@ -51,16 +51,14 @@ export class CellEditingView extends EditorView {
      * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {import("../util.js").Recycler} recycler
+     * @param {import("../framework.js").default} recycler
      */
     viewLeafSelection(leaf, recycler) {
         super.viewLeafSelection(leaf, recycler);
 
         if(this.#ceState.selection.leaves.has(leaf)) {
-            recycler.item((create) => {
-                const haloElem = create("div");
+            recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
                 haloElem.className = "editor-cell-halo";
-                return haloElem;
             });
         }
     }

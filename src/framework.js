@@ -1,12 +1,45 @@
 /**
- * A tiny UI framework which manages sharing nodes between two
- * renderings of DOM nodes. The main idea of this module is to use
- * actual HTML elements as much as possible rather than their proxies
- * (e.g. a virtual DOM). We want to use as much of the functionality
- * that the DOM already affords as possible, while contending with the
- * fact that we want to write `view` functions which pretend that
- * they're building up a view of HTML elements from scratch on every
- * render.
+ * A tiny UI framework which makes it easier to share DOM nodes
+ * between two renderings of a view. The reason we do this is not so
+ * much for performance reasons as it is for ensuring that when we
+ * attach handlers to nodes in a `view` function, they aren't removed
+ * with the old node when we draw a new view.
+ *
+ * The main pain-point in writing elm-style view functions is that if
+ * we write them naively, new DOM nodes will be constructed on each
+ * `view`, loosing these precious references, some of which may need
+ * to be retained between views (e.g. pointer captures).
+ *
+ * This module gives us a class, called `Recycler`, which acts like a
+ * factory for DOM nodes, but transparently constructs a new node only
+ * when it couldn't find a node in the _old_ DOM which it can re-use
+ * for the current render. The `Recycler` is shallow; it only
+ * constructs nodes corresponding to the _children_ of the parent node
+ * it's given.
+ *
+ * It's also designed, somewhat purposely, to not be very clever. This
+ * is an attempt to make it predictable. The criteria for sharing
+ * nodes is simple:
+ *   1. If two nodes have the same tag, they
+ *      are candidates to be shared, with a single exception:
+ *   2. If a node has a `key` property, it will only be shared
+ *      with another node with the same `key`.
+ *
+ * The second rule is effectively the sole means by which we can
+ * control recycling in a fine-grained way.
+ *
+ * If two nodes aren't semantically equal (i.e. they can't be
+ * interchanged, because, for example, one acts as a button and one
+ * acts as a label), they must have either different tags or different
+ * `key`s. Otherwise, there's no guarantee that the `Recycler` won't
+ * choose the first node to play the role of a button in one view and
+ * a label in the next.
+ *
+ * If this doesn't seem like a big deal, consider that once the
+ * `Recycler` decides to recycle an element, it doesn't touch it at
+ * all. (It doesn't, for example, remove the element's children). So,
+ * if we don't differentiate between the label and the button, our
+ * label could end up with a button's children.
  *
  * @module framework
  */
@@ -16,8 +49,17 @@ import { diff } from "./framework/lcs.js";
 /**
  * @template {keyof HTMLElementTagNameMap} T
  * @typedef {Object} ElemSettingsObject
- * @property {T}      tag  The element's tag.
- * @property {string} [id] The element's id.
+ * @property {T}       tag  The element's tag.
+ * @property {string}  [key] The element's key.
+ * @property {boolean} [clearAttributes] If `true`, then the
+ *     attributes of a recycled node will be cleared before being
+ *     returned to the client. The default is `false`.
+ * @property {boolean} [clearChildren] If `true`, then the children of
+ *     a recycled node will be cleared before being returned to the
+ *     client. The default is `false`. Be careful; setting this
+ *     property to `true` defeats the purpose of the `Recycler`
+ *     (albeit locally) since the subtree rooted at a child of this
+ *     node will always have to be constructed from scratch.
  */
 
 /**
@@ -45,8 +87,8 @@ import { diff } from "./framework/lcs.js";
  * `Recycler` will try to match that child element with a new child
  * with the same tag.
  *
- * If a child has an `id`, then re-use will occur only for elements
- * which specify the same `id`. This allows the client to specify a
+ * If a child has a `key`, then re-use will occur only for elements
+ * which specify the same `key`. This allows the client to specify a
  * particular element order, or to ensure that an element, will _not_
  * be re-used, even if it has the same tag.
  */
@@ -126,14 +168,14 @@ export default class Recycler {
      */
     commit() {
         /**
-         * Find a string which represents the tag and id of an
+         * Find a string which represents the tag and key of an
          * HTMLElement.
          *
          * @param {HTMLElement} e
          * @returns {string}
          */
         const identifierOfElement = (e) =>
-              `${e.tagName.toUpperCase()}:${e.id ?? ""}`;
+              `${e.tagName.toUpperCase()}:${e.getAttribute("data-key") ?? ""}`;
 
         /** @type {HTMLElement[]} */
         const oldChildren = [];
@@ -143,7 +185,7 @@ export default class Recycler {
 
         const oldChildrenStr = oldChildren.map(identifierOfElement);
         const newChildrenStr = this.#spec.map(
-            spec => `${spec.tag.toUpperCase()}:${spec.id ?? ""}`
+            spec => `${spec.tag.toUpperCase()}:${spec.key ?? ""}`
         );
         const ops = diff(oldChildrenStr, newChildrenStr);
 
@@ -175,9 +217,23 @@ export default class Recycler {
             if(mapped[i] !== null) {
                 elem = mapped[i];
                 reused.add(elem);
+                if(spec.clearAttributes) {
+                    elem.getAttributeNames().forEach(attrName => {
+                        if(attrName !== "data-key") {
+                            elem.removeAttribute(attrName);
+                        }
+                    });
+                }
+                if(spec.clearChildren) {
+                    elem.replaceChildren();
+                }
+
+                ++RecycleStatistics.recycled;
             } else {
                 elem = /** @type {HTMLElement} */ (doc.createElement(spec.tag));
-                if(spec.id) elem.id = spec.id;
+                if(spec.key) elem.setAttribute("data-key", spec.key);
+
+                ++RecycleStatistics.created;
             }
             spec.render(spec.item, elem);
             newChildren.push(elem);
@@ -200,7 +256,55 @@ export default class Recycler {
         for(const old of oldChildren) {
             if(!reused.has(old)) {
                 old.remove();
+
+                ++RecycleStatistics.removed;
             }
         }
     }
 }
+
+/**
+ * Global singleton tracking how many DOM elements are recycled vs
+ * created during a draw cycle.
+ */
+export const RecycleStatistics = new class {
+    /** @type {number} Number of elements reused from a previous render. */
+    recycled = 0;
+    /** @type {number} Number of elements freshly created. */
+    created = 0;
+    /** @type {number} Number of leftover elements removed. */
+    removed = 0;
+
+    /** Reset all counters. Call this before each draw. */
+    reset() {
+        this.recycled = 0;
+        this.created  = 0;
+        this.removed  = 0;
+    }
+
+    /**
+     * Total elements processed (recycled + created + removed).
+     * @returns {number}
+     */
+    get total() {
+        return this.recycled + this.created + this.removed;
+    }
+
+    /**
+     * Percentage of processed elements that were recycled,
+     * or 0 if no elements were processed.
+     * @returns {number}
+     */
+    get recycledPct() {
+        return this.total === 0 ? 0 : this.recycled / this.total;
+    }
+
+    /**
+     * Return a summary string suitable for logging.
+     * @returns {string}
+     */
+    report() {
+        return `recycled: ${this.recycled}, created: ${this.created}, removed: ${this.removed}, ` +
+               `total: ${this.total}, reuse: ${(this.recycledPct * 100).toFixed(1)}%`;
+    }
+};
