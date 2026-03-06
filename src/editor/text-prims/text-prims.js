@@ -171,8 +171,30 @@ export function putPointAtStartOfGlobalLine(st) {
  */
 export function putPointAtEndOfGlobalLine(st) {
     const globalRow = _findGlobalPoint(st).y;
-    const text = textOnGlobalLine(st, globalRow);
-    return putPointOnGlobalPosition(st, point.mkP2(text.length, globalRow), true);
+    const globalCol = _lastColumnOnGlobalLine(st, globalRow);
+    return putPointOnGlobalPosition(st, point.mkP2(globalCol, globalRow), true);
+}
+
+/**
+ * Find the column number of the last column on a global line
+ * (counting explicit whitespace).
+ *
+ * @param {TextPrimsState} st
+ * @param {number} row
+ * @returns {number}
+ */
+function _lastColumnOnGlobalLine(st, row) {
+    const textSegments = [..._extractGlobalLine(st, row)];
+
+    // Find the last non-empty text segment.
+    for(let i = textSegments.length - 1; i >= 0; --i) {
+        const { globalCol, text } = textSegments[i];
+        if(text !== "") {
+            return globalCol + text.length;
+        }
+    }
+
+    return 0;
 }
 
 /**
@@ -181,7 +203,7 @@ export function putPointAtEndOfGlobalLine(st) {
  *
  * @param {TextPrimsState} st The editor state.
  * @param {boolean} [stayInCell] Try to stay in the current cell, even
- *     if the cell is empty. It defaults to `false`. When `true`, this
+ *     if the cell is empty. It defaults to `false`. When `false`, this
  *     function imitates the behavior of an editor with no cells.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
@@ -193,9 +215,7 @@ export function putPointOnNextGlobalLine(st, stayInCell) {
 
     let lastColumn = Infinity;
     if(!stayInCell) {
-    // Find the last column with textual content.
-        const textOnNextGlobalLine = textOnGlobalLine(st, globalPt.y + 1);
-        lastColumn                 = textOnNextGlobalLine.length;
+        lastColumn = _lastColumnOnGlobalLine(st, globalPt.y + 1);
     }
 
     return putPointOnGlobalPosition(
@@ -214,7 +234,7 @@ export function putPointOnNextGlobalLine(st, stayInCell) {
  *
  * @param {TextPrimsState} st The editor state.
  * @param {boolean} [stayInCell] Try to stay in the current cell, even
- *     if the cell is empty. It defaults to `false`. When `true`, this
+ *     if the cell is empty. It defaults to `false`. When `false`, this
  *     function imitates the behavior of an editor with no cells.
  * @returns {boolean} `true` if the state was modified, `false` otherwise.
  */
@@ -226,9 +246,7 @@ export function putPointOnPrevGlobalLine(st, stayInCell) {
 
     let lastColumn = Infinity;
     if(!stayInCell) {
-        // Find the last column with textual content.
-        const textOnNextGlobalLine = textOnGlobalLine(st, globalPt.y - 1);
-        lastColumn                 = textOnNextGlobalLine.length;
+        lastColumn = _lastColumnOnGlobalLine(st, globalPt.y - 1);
     }
 
     return putPointOnGlobalPosition(
@@ -393,20 +411,18 @@ export function pointOnLastGlobalLine(st) {
  * @returns {boolean}
  */
 export function globalLineIsEmpty(st) {
-    const globalPt = _findGlobalPoint(st);
-    return grid.leavesUnderRow(st.grid, globalPt.y).every(leaf => {
-        const leafPos = grid.posOfLeaf(st.grid, leaf);
-        const relRow = globalPt.y - leafPos.y;
-
-        return leaf.data.lines[relRow].length === 0;
-    });
+    const globalRow = _findGlobalPoint(st).y;
+    return _extractGlobalLine(st, globalRow).every(({ text }) => text === "");
 }
 
 /**
  * @typedef {Object} TextOnGlobalLineIterItem
  * @property {number} globalCol The global column of the
  *     first letter of the line of text in `leaf`.
+ * @property {number} localRow  The local row number of
+ *     the line in the `leaf`.
  * @property {string} text      The text on the local line of `leaf`.
+ * @property {grid.Leaf<Cell>} leaf The leaf.
  */
 
 /**
@@ -425,26 +441,12 @@ function _extractGlobalLine(st, row) {
     return grid.leavesUnderRow(st.grid, row).map(leaf => {
         const leafPos = grid.posOfLeaf(st.grid, leaf);
         const localRow = row - leafPos.y;
-        return { globalCol: leafPos.x, text: leaf.data.lines[localRow] };
-    });
-}
-
-/**
- * Convert an iterator over strings to an iterator over positioned
- * strings. It assigns columns assuming that the strings have no gaps
- * between them.
- *
- * This function is only useful for testing.
- *
- * @param {IteratorObject<string>} strIter
- * @returns {TextOnGlobalLineIter}
- */
-export function _textOnGlobalLineIterFromStringsIter(strIter) {
-    let col = 0;
-    return strIter.map(str => {
-        const item = { globalCol: col, text: str };
-        col += str.length;
-        return item;
+        return {
+            globalCol: leafPos.x,
+            localRow,
+            text: leaf.data.lines[localRow],
+            leaf
+        };
     });
 }
 
@@ -583,6 +585,9 @@ export function removeString(st, n) {
         return false;
     }
 
+    // Clamp n to the number of characters before the cursor.
+    n = Math.min(n, col);
+
     const before = line.slice(0, col - n);
     const after  = line.slice(col);
     sel.leaf.data.lines[row] = before + after;
@@ -603,34 +608,59 @@ export function removeString(st, n) {
  * leaf and sets the point to it.
  *
  * @param {TextPrimsState} st   The editor state.
- * @returns {boolean} `true` if the state was modified, `false` otherwise.
+ * @param {any} glpk The GLPK instance.
+ * @returns {Promise<boolean>} `true` if the state was modified, `false` otherwise.
  */
-export function insertGlobalNewline(st) {
+export async function insertGlobalNewline(st, glpk) {
     // Find the location of the cursor in the global coordinate space.
     const globalPt  = _findGlobalPoint(st);
     const globalRow = globalPt.y;
     const globalCol = globalPt.x;
 
-    // Add a line to each leaf _at_ `row`.
-    const leaves = [...grid.leavesUnderRow(st.grid, globalRow)];
-    for(const leaf of leaves) {
-        const leafUpperLeft = grid.posOfLeaf(st.grid, leaf);
-        const localRow = globalRow - leafUpperLeft.y;
-        const localCol = globalCol - leafUpperLeft.x;
+    const textSegments = [..._extractGlobalLine(st, globalRow)];
 
-        // Find two strings, the string which we should preserve on
-        // the original line, and the string which should be pulled
-        // onto the new line (flush).
-        const line = leaf.data.lines[localRow];
-        const preserve = line.slice(0, util.clamp(0, localCol, line.length));
-        const flush    = line.slice(util.clamp(0, localCol, line.length));
+    /** @type {TextOnGlobalLineIterItem[]} */
+    let afterPointer;
 
-        leaf.data.lines[localRow] = preserve;
-        leaf.data.lines.splice(localRow + 1, 0, flush);
+    // Find the index of the segment where the pointer lives, splitting
+    // the rest of the `textSegments` to the right of the point into
+    // `afterPointer`.
+    for(let i = textSegments.length - 1; i >= 0; --i) {
+        const seg = textSegments[i];
+
+        if(seg.globalCol <= globalCol) {
+            // Split off the text before the cursor, since that should
+            // remain on the current line.
+            let localCol = globalCol - seg.globalCol;
+            seg.leaf.data.lines[seg.localRow] =
+                seg.leaf.data.lines[seg.localRow].slice(0, localCol);
+
+            afterPointer = textSegments.slice(i);
+            afterPointer[0].text = seg.text.slice(localCol);
+            afterPointer[0].globalCol += localCol;
+
+            // Clear text on the original row for segments to the
+            // right of the cursor, since their content is moving to
+            // the new line.
+            for(let j = 1; j < afterPointer.length; ++j) {
+                const rightSeg = afterPointer[j];
+                rightSeg.leaf.data.lines[rightSeg.localRow] = "";
+            }
+            break;
+        }
     }
-    grid.modifyHeightOfLeaves(st.grid, 1, leaves);
 
-    putPointOnGlobalPosition(st, point.mkP2(0, globalRow + 1), false);
+    const newRow = globalRow + 1;
+
+    // Insert an empty line into each leaf at the new row position.
+    for(const seg of textSegments) {
+        seg.leaf.data.lines.splice(seg.localRow + 1, 0, "");
+    }
+
+    grid.modifyHeightOfLeaves(st.grid, 1, textSegments.map(seg => seg.leaf));
+    await _spreadTextOnGlobalRow(st, newRow, afterPointer.values(), glpk);
+
+    putPointOnGlobalPosition(st, point.mkP2(0, newRow), false);
     return true;
 }
 
@@ -686,6 +716,7 @@ export async function insertString(st, s, glpk, advancePoint) {
  */
 export async function _spreadTextOnGlobalRow(st, row, textIter, glpk) {
     const leaves = [...grid.leavesUnderRow(st.grid, row)];
+    util.assert(leaves.length > 0);
 
     // Find the index of the last leaf whose content is non-empty
     // under `row` (or the element at index 0, if all of the leaves

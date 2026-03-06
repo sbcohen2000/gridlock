@@ -196,11 +196,11 @@ describe("text-prims", () => {
             // Update the selection to point past the last letter in
             // `hello`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-            textPrims.insertGlobalNewline(st);
+            await textPrims.insertGlobalNewline(st, glpk);
 
             const exp =
-                  "hello\n"      +
-                  "\n"           +
+                  "hello\n"   +
+                  "\n"        +
                   "+-----+\n" +
                   "|     |\n" +
                   "+-----+"
@@ -218,11 +218,11 @@ describe("text-prims", () => {
             // Update the selection to point past the last letter in
             // `hello`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-            textPrims.insertGlobalNewline(st);
+            await textPrims.insertGlobalNewline(st, glpk);
 
             const exp =
-                  "hello\n"  +
-                  "     there\n"  +
+                  "hello\n"       +
+                  "there\n"       +
                   "+----+----+\n" +
                   "|    |    |\n" +
                   "+----+----+";
@@ -238,7 +238,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
-            textPrims.insertGlobalNewline(st);
+            await textPrims.insertGlobalNewline(st, glpk);
 
             const exp =
                   "hel\n"         +
@@ -250,7 +250,33 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can split a row of leaves.", async () => {
+        it("Can split a row of leaves. (1)", async () => {
+            const src =
+                  "one  two  three\n"  +
+                  "one  two  three\n"  +
+                  "+----+----+----+\n" +
+                  "|    |    |    |\n" +
+                  "+----+----+----+";
+
+            const st = textPrims.editText(serialize.commonStateFromString(src));
+            // Update the selection to point to the first letter in
+            // the top `two`.
+            textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
+            await textPrims.insertGlobalNewline(st, glpk);
+
+            const exp =
+                  "one\n"              +
+                  "two  three\n"       +
+                  "one  two  three\n"  +
+                  "+----+----+----+\n" +
+                  "|    |    |    |\n" +
+                  "|    |    |    |\n" +
+                  "+----+----+----+";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
+        it("Can split a row of leaves. (2)", async () => {
             const src =
                   "one  two  three\n"  +
                   "one  two  three\n"  +
@@ -262,10 +288,10 @@ describe("text-prims", () => {
             // Update the selection to point past the last letter in the
             // top `one`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
-            textPrims.insertGlobalNewline(st);
+            await textPrims.insertGlobalNewline(st, glpk);
 
-            const exp0 =
-                  "one\n"  +
+            const exp =
+                  "one\n"              +
                   "     two  three\n"  +
                   "one  two  three\n"  +
                   "+----+----+----+\n" +
@@ -273,22 +299,7 @@ describe("text-prims", () => {
                   "|    |    |    |\n" +
                   "+----+----+----+";
 
-            expect(serialize.printCommonState(st)).to.equal(exp0);
-
-            // Ensure that the point is in the correct place by inserting
-            // some text.
-            await textPrims.insertString(st, "some text", glpk);
-
-            const exp1 =
-                  "one\n"  +
-                  "some texttwo  three\n"  +
-                  "one      two  three\n"  +
-                  "+--------+----+----+\n" +
-                  "|        |    |    |\n" +
-                  "|        |    |    |\n" +
-                  "+--------+----+----+";
-
-            expect(serialize.printCommonState(st)).to.equal(exp1);
+            expect(serialize.printCommonState(st)).to.equal(exp);
         });
     });
 
@@ -396,6 +407,41 @@ describe("text-prims", () => {
     });
 
     describe("_spreadTextOnGlobalRow", () => {
+        /**
+         * Convert an iterator over strings to an iterator over positioned
+         * strings. It assigns columns assuming that the strings have no gaps
+         * between them.
+         *
+         * @param {IteratorObject<string>} strIter
+         * @returns {textPrims.TextOnGlobalLineIter}
+         */
+        function textOnGlobalLineIterFromStringsIter(strIter) {
+            let col = 0;
+            return strIter.map(str => {
+                const item = {
+                    globalCol: col,
+                    localRow: null,
+                    text: str,
+                    leaf: null,
+                };
+                col += str.length;
+                return item;
+            });
+        }
+
+        it("Can spread empty text into a single cell", async () => {
+            const src =
+                  "hello\n"    +
+                  "+----+\n" +
+                  "+----+"
+
+            const st = textPrims.editText(serialize.commonStateFromString(src));
+            await textPrims._spreadTextOnGlobalRow(
+                st, 0, textOnGlobalLineIterFromStringsIter([].values()), glpk);
+
+            expect(serialize.printCommonState(st)).to.equal(src);
+        });
+
         it("Can spread text into a single empty cell", async () => {
             const src =
                   "\n"    +
@@ -404,7 +450,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["hello"].values()), glpk);
+                st, 0, textOnGlobalLineIterFromStringsIter(["hello"].values()), glpk);
 
             const exp =
                   "hello\n"  +
@@ -422,7 +468,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+                st, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
 
             const exp =
                   "abc\n"  +
@@ -440,7 +486,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+                st, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
 
             const exp =
                   "a b c\n"   +
@@ -458,7 +504,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+                st, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
 
             const exp =
                   "a bc\n"  +
@@ -476,7 +522,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.commonStateFromString(src));
             await textPrims._spreadTextOnGlobalRow(
-                st, 0, textPrims._textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
+                st, 0, textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
 
             const exp =
                   "aabbcd\n"   +

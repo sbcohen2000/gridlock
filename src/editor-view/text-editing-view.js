@@ -126,8 +126,9 @@ export class TextEditingView extends EditorView {
                 }
             } break;
             case "Enter": {
-                textPrims.insertGlobalNewline(this.#teState);
-                this.requestRedraw();
+                textPrims.insertGlobalNewline(this.#teState, theGLPKInstance.glpk).then(() => {
+                    this.requestRedraw();
+                });
             } break;
             default: break;
             }

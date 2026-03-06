@@ -114,9 +114,9 @@ export const PRIMITIVES = [
     },
     {
         function: prims.insertGlobalNewline,
-        args: [],
+        args: ["glpk"],
         retty: "boolean",
-        async: false,
+        async: true,
         const: false,
         description: "Insert a newline at current point"
     },
