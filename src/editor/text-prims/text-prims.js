@@ -6,9 +6,17 @@
 
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
+import * as state from "../state-utils.js";
 import * as util from "../../util.js";
 
+/** @import { Inverse } from "../common-state.d.ts" */
 /** @import { TextPrimsState, CommonState, Cell } from "./state.d.ts"; */
+
+/**
+ * The identity inverse.
+ * @type {Inverse<TextPrimsState>}
+ */
+export const id = async (_st) => {};
 
 /**
  * Update the last global column to the currently selected column.
@@ -16,7 +24,7 @@ import * as util from "../../util.js";
  * @param {TextPrimsState} st The current editor state.
  */
 function _updateLastGlobalCol(st) {
-    const globalCol = _findGlobalPoint(st).x;
+    const globalCol = findGlobalPoint(st).x;
     st.selection.lastGlobalCol = globalCol;
 }
 
@@ -71,9 +79,12 @@ function _putPointOnLocalPosition(st, leaf, pt, newGlobalCol) {
  * @param {boolean} [updateGlobalCol] If `true`, it updates the
  *     `lastGlobalCol` property of the selection to the new point. If
  *     it is omitted, it defaults to `true`.
- * @returns {boolean} `true` if the state was modified, `false` otherwise.
+ * @returns {Inverse<TextPrimsState>}
  */
 export function putPointOnGlobalPosition(st, pt, updateGlobalCol) {
+    const oldGlobalCol = st.selection.lastGlobalCol;
+    const oldGlobalPt  = findGlobalPoint(st);
+
     if(updateGlobalCol === undefined) {
         updateGlobalCol = true;
     }
@@ -100,11 +111,20 @@ export function putPointOnGlobalPosition(st, pt, updateGlobalCol) {
         x += leaf.dims.width;
     }
 
-    if(!theLeaf) return false;
+    if(!theLeaf) return id;
 
     const leafPos    = grid.posOfLeaf(st.grid, theLeaf);
     const relLeafPos = point.mkP2(pt.x - leafPos.x, pt.y - leafPos.y);
-    return _putPointOnLocalPosition(st, theLeaf, relLeafPos, updateGlobalCol ? pt.x : undefined);
+    const didMove    = _putPointOnLocalPosition(st, theLeaf, relLeafPos, updateGlobalCol ? pt.x : undefined);
+
+    if(didMove) {
+        return async (st) => {
+            putPointOnGlobalPosition(st, oldGlobalPt, false);
+            st.selection.lastGlobalCol = oldGlobalCol;
+        };
+    } else {
+        return id;
+    }
 }
 
 /**
@@ -140,9 +160,13 @@ async function _expandLeafWidthIfNecessary(g, leaf, glpk) {
  * @returns {point.P2} The location of the single selection, in global
  *                     coordinates.
  */
-function _findGlobalPoint(st) {
+export function findGlobalPoint(st) {
+    const leafPos = grid.posOfLeaf(st.grid, st.selection.leaf);
+    if(leafPos === undefined) {
+        return point.mkP2(st.selection.pt.x, st.selection.pt.y);
+    }
     return point.offset(
-        grid.posOfLeaf(st.grid, st.selection.leaf),
+        leafPos,
         point.mkV2(st.selection.pt.x, st.selection.pt.y)
     );
 }
@@ -155,10 +179,10 @@ function _findGlobalPoint(st) {
  * that line belongs to a different cell.
  *
  * @param {TextPrimsState} st The editor state.
- * @returns {boolean} `true` if the state was modified, `false` otherwise.
+ * @returns {Inverse<TextPrimsState>}
  */
 export function putPointAtStartOfGlobalLine(st) {
-    const globalRow = _findGlobalPoint(st).y;
+    const globalRow = findGlobalPoint(st).y;
     return putPointOnGlobalPosition(st, point.mkP2(0, globalRow));
 }
 
@@ -167,10 +191,10 @@ export function putPointAtStartOfGlobalLine(st) {
  * that line belongs to a different cell.
  *
  * @param {TextPrimsState} st The editor state.
- * @returns {boolean} `true` if the state was modified, `false` otherwise.
+ * @returns {Inverse<TextPrimsState>}
  */
 export function putPointAtEndOfGlobalLine(st) {
-    const globalRow = _findGlobalPoint(st).y;
+    const globalRow = findGlobalPoint(st).y;
     const globalCol = _lastColumnOnGlobalLine(st, globalRow);
     return putPointOnGlobalPosition(st, point.mkP2(globalCol, globalRow), true);
 }
@@ -205,13 +229,13 @@ function _lastColumnOnGlobalLine(st, row) {
  * @param {boolean} [stayInCell] Try to stay in the current cell, even
  *     if the cell is empty. It defaults to `false`. When `false`, this
  *     function imitates the behavior of an editor with no cells.
- * @returns {boolean} `true` if the state was modified, `false` otherwise.
+ * @returns {Inverse<TextPrimsState>}
  */
 export function putPointOnNextGlobalLine(st, stayInCell) {
     if(pointOnLastGlobalLine(st)) {
-        return false;
+        return id;
     }
-    const globalPt = _findGlobalPoint(st);
+    const globalPt = findGlobalPoint(st);
 
     let lastColumn = Infinity;
     if(!stayInCell) {
@@ -236,13 +260,13 @@ export function putPointOnNextGlobalLine(st, stayInCell) {
  * @param {boolean} [stayInCell] Try to stay in the current cell, even
  *     if the cell is empty. It defaults to `false`. When `false`, this
  *     function imitates the behavior of an editor with no cells.
- * @returns {boolean} `true` if the state was modified, `false` otherwise.
+ * @returns {Inverse<TextPrimsState>}
  */
 export function putPointOnPrevGlobalLine(st, stayInCell) {
     if(pointOnFirstGlobalLine(st)) {
-        return false;
+        return id;
     }
-    const globalPt = _findGlobalPoint(st);
+    const globalPt = findGlobalPoint(st);
 
     let lastColumn = Infinity;
     if(!stayInCell) {
@@ -264,11 +288,11 @@ export function putPointOnPrevGlobalLine(st, stayInCell) {
  * possible, even if the next column is not part of the current leaf.
  *
  * @param {TextPrimsState} st The editor state.
- * @returns {boolean} `true` if the state was modified, `false` otherwise.
+ * @returns {Inverse<TextPrimsState>}
  */
 export function putPointOnNextGlobalCol(st) {
     if(pointAtEndOfGlobalLine(st)) {
-        return false;
+        return id;
     }
 
     const localLine = st.selection.leaf.data.lines[st.selection.pt.y];
@@ -297,7 +321,7 @@ export function putPointOnNextGlobalCol(st) {
  * leaving the current leaf.
  *
  * @param {TextPrimsState} st
- * @returns {boolean} `true` if the point moved, and `false` otherwise.
+ * @returns {Inverse<TextPrimsState>}
  */
 function _putPointOnNextCol(st) {
     const localRow = st.selection.pt.y;
@@ -305,13 +329,18 @@ function _putPointOnNextCol(st) {
     const line     = st.selection.leaf.data.lines[localRow];
 
     if(localCol === line.length) {
-        return false;
+        return id;
     }
 
     st.selection.pt.x += 1;
 
+    const originalGlobalCol = st.selection.lastGlobalCol;
     _updateLastGlobalCol(st);
-    return true;
+
+    return async (st) => {
+        st.selection.pt.x -= 1;
+        st.selection.lastGlobalCol = originalGlobalCol;
+    };
 }
 
 /**
@@ -320,14 +349,14 @@ function _putPointOnNextCol(st) {
  * leaf.
  *
  * @param {TextPrimsState} st The editor state.
- * @returns {boolean} `true` if the state was modified, `false` otherwise.
+ * @returns {Inverse<TextPrimsState>}
  */
 export function putPointOnPrevGlobalCol(st) {
     if(pointAtBeginningOfGlobalLine(st)) {
-        return false;
+        return id;
     }
 
-    const globalPt = _findGlobalPoint(st);
+    const globalPt = findGlobalPoint(st);
     return putPointOnGlobalPosition(st, point.offset(globalPt, point.mkV2(-1, 0)));
 }
 
@@ -351,7 +380,7 @@ export function pointAtEndOfGlobalLine(st) {
     }
 
     // Check that there's no cell to the right of us.
-    const globalPt = _findGlobalPoint(st);
+    const globalPt = findGlobalPoint(st);
     return undefined === grid.leafUnderPoint(
         st.grid,
         point.offset(globalPt, point.mkV2(1, 0))
@@ -366,7 +395,7 @@ export function pointAtEndOfGlobalLine(st) {
  * @returns {boolean}
  */
 export function pointAtBeginningOfGlobalLine(st) {
-    return _findGlobalPoint(st).x === 0;
+    return findGlobalPoint(st).x === 0;
 }
 
 /**
@@ -377,7 +406,7 @@ export function pointAtBeginningOfGlobalLine(st) {
  * @returns {boolean}
  */
 export function pointOnFirstGlobalLine(st) {
-    return _findGlobalPoint(st).y === 0;
+    return findGlobalPoint(st).y === 0;
 }
 
 /**
@@ -394,7 +423,7 @@ export function pointOnLastGlobalLine(st) {
     }
 
     // Check that there's no cell below us.
-    const globalPt = _findGlobalPoint(st);
+    const globalPt = findGlobalPoint(st);
     return undefined === grid.leafUnderPoint(
         st.grid,
         point.offset(globalPt, point.mkV2(0, 1))
@@ -411,7 +440,7 @@ export function pointOnLastGlobalLine(st) {
  * @returns {boolean}
  */
 export function globalLineIsEmpty(st) {
-    const globalRow = _findGlobalPoint(st).y;
+    const globalRow = findGlobalPoint(st).y;
     return _extractGlobalLine(st, globalRow).every(({ text }) => text === "");
 }
 
@@ -508,7 +537,7 @@ export function textOnGlobalLine(st, row) {
  */
 function _killLine(st) {
     // Find the location of the cursor in the global coordinate space.
-    const globalPt  = _findGlobalPoint(st);
+    const globalPt  = findGlobalPoint(st);
     const globalRow = globalPt.y;
     const globalCol = globalPt.x;
 
@@ -555,13 +584,13 @@ function _killLine(st) {
  * @param {TextPrimsState} st The editor state.
  * @returns {boolean} `true` if the line was removed, and `false` otherwise.
  */
-export function removeGlobalLine(st) {
+function _removeGlobalLine(st) {
     // Don't remove the last line - editor must have at least one line
     if(st.grid.dims.height === 1) {
         return false;
     }
 
-    const globalPt = _findGlobalPoint(st);
+    const globalPt = findGlobalPoint(st);
     const leaves = [...grid.leavesUnderRow(st.grid, globalPt.y)];
     for(const leaf of leaves) {
         const leafPos = grid.posOfLeaf(st.grid, leaf);
@@ -585,72 +614,76 @@ export function removeGlobalLine(st) {
 }
 
 /**
+ * Remove the line referred to by the current point, across all
+ * leaves, removing newly empty leaves.
+ *
+ * @type {(st: TextPrimsState) => Promise<Inverse<TextPrimsState>>}
+ */
+export const removeGlobalLine = state.withDefaultInverse(
+    (/** @type {TextPrimsState} */ st) => { _removeGlobalLine(st); }
+);
+
+/**
  * Like `removeGlobalLine`, except it puts the contents of the line on
  * the previous line, spreading the contents among cells if possible.
+ * If the point is not at the beginning of the line, this function is
+ * a no-op.
  *
- * @param {TextPrimsState} st   The editor state.
- * @param {any}            glpk The GLPK instance.
- * @returns {Promise<boolean>} `true` if the line was removed, and `false`
- *     otherwise.
+ * @type {(st: TextPrimsState, glpk: any) => Promise<Inverse<TextPrimsState>>}
  */
-export async function removeGlobalNewline(st, glpk) {
-    // There is no newline before the first line to remove.
-    if(pointOnFirstGlobalLine(st)) {
-        return false;
+export const removeGlobalNewline = state.withDefaultInverse(
+    async (/** @type {TextPrimsState} */ st, /** @type {any} */ glpk) => {
+        const globalPt = findGlobalPoint(st);
+        if(globalPt.y === 0) return;
+        if(globalPt.x >   0) return;
+
+        // Find the text on the global line.
+        const globalRow = globalPt.y;
+
+        // Note that we need to force the entire iterator now because
+        // we're about to delete the line of the document that this
+        // iterator fetches.
+        const textOnLine = [..._extractGlobalLine(st, globalRow)];
+
+        // Remove the global line.
+        if(!_removeGlobalLine(st)) return;
+
+        // Put the point at the end of the line.
+        putPointAtEndOfGlobalLine(st);
+        const globalCol = _lastColumnOnGlobalLine(st, globalRow - 1);
+        await _spreadTextOnGlobalRow(st, globalRow - 1, globalCol, textOnLine.values(), glpk);
     }
-
-    // Find the text on the global line.
-    const globalRow = _findGlobalPoint(st).y;
-
-    // Note that we need to force the entire iterator now because
-    // we're about to delete the line of the document that this
-    // iterator fetches.
-    const textOnLine = [..._extractGlobalLine(st, globalRow)];
-
-    // Remove the global line.
-    if(!removeGlobalLine(st)) {
-        return false;
-    }
-
-    // Put the point at the end of the line.
-    putPointAtEndOfGlobalLine(st);
-    const globalCol = _lastColumnOnGlobalLine(st, globalRow - 1);
-    await _spreadTextOnGlobalRow(st, globalRow - 1, globalCol, textOnLine.values(), glpk);
-    return true;
-}
+);
 
 /**
  * Remove the `n` characters of text before the point. This function
  * will not leave the context of its leaf, even if `n` exceeds the
  * length of the current line.
  *
- * @param {TextPrimsState} st The editor state.
- * @param {number} n The number of characters to remove.
- * @returns {boolean} `true` if the state was modified, `false` otherwise.
+ * @type {(st: TextPrimsState, n: number) => Promise<Inverse<TextPrimsState>>}
  */
-export function removeString(st, n) {
-    const sel = st.selection;
+export const removeString = state.withDefaultInverse(
+    (/** @type {TextPrimsState} */ st, /** @type {number} */ n) => {
+        const sel = st.selection;
 
-    const row    = sel.pt.y;
-    const col    = sel.pt.x;
-    const line   = sel.leaf.data.lines[row];
+        const row    = sel.pt.y;
+        const col    = sel.pt.x;
+        const line   = sel.leaf.data.lines[row];
 
-    if(line === "" || sel.pt.x === 0) {
-        return false;
+        if(line === "" || sel.pt.x === 0) return;
+
+        // Clamp n to the number of characters before the cursor.
+        n = Math.min(n, col);
+
+        const before = line.slice(0, col - n);
+        const after  = line.slice(col);
+        sel.leaf.data.lines[row] = before + after;
+
+        // Move the cursor left by the number of characters removed.
+        sel.pt.x -= n;
+        _updateLastGlobalCol(st);
     }
-
-    // Clamp n to the number of characters before the cursor.
-    n = Math.min(n, col);
-
-    const before = line.slice(0, col - n);
-    const after  = line.slice(col);
-    sel.leaf.data.lines[row] = before + after;
-
-    // Move the cursor left by the number of characters removed.
-    sel.pt.x -= n;
-    _updateLastGlobalCol(st);
-    return true;
-}
+);
 
 /*****************************************************************************/
 /** Primitive Text Insertion Functions                                      **/
@@ -661,82 +694,64 @@ export function removeString(st, n) {
  * document, then this function also creates a new line in the current
  * leaf and sets the point to it.
  *
- * Note:
- *   If the point is at the first letter in a cell, then the cell's line
- *   (and all of the lines after it) will become empty after the newline
- *   is inserted. This means that immediately removing the global
- *   newline is not a proper inverse of the operation.
- *
- *   Perhaps the inverse operation has to consider the column at which
- *   the newline was inserted, so that we can removeGlobalNewline back
- *   into that position.
- *
- * @param {TextPrimsState} st   The editor state.
- * @param {any} glpk The GLPK instance.
- * @returns {Promise<boolean>} `true` if the state was modified, `false` otherwise.
+ * @type {(st: TextPrimsState, glpk: any) => Promise<Inverse<TextPrimsState>>}
  */
-export async function insertGlobalNewline(st, glpk) {
-    // Find the location of the cursor in the global coordinate space.
-    const globalPt  = _findGlobalPoint(st);
-    const globalRow = globalPt.y;
+export const insertGlobalNewline = state.withDefaultInverse(
+    async (/** @type {TextPrimsState} */ st, /** @type {any} */ glpk) => {
+        // Find the location of the cursor in the global coordinate space.
+        const globalPt  = findGlobalPoint(st);
+        const globalRow = globalPt.y;
 
-    const afterPointer = _killLine(st);
+        const afterPointer = _killLine(st);
 
-    const leaves = [...grid.leavesUnderRow(st.grid, globalRow)];
-    // Make room under under `globalRow` for the new lines.
-    for(const leaf of leaves) {
-        const leafPos = grid.posOfLeaf(st.grid, leaf);
-        const localRow = globalRow - leafPos.y;
-        leaf.data.lines.splice(localRow + 1, 0, "");
+        const leaves = [...grid.leavesUnderRow(st.grid, globalRow)];
+        // Make room under under `globalRow` for the new lines.
+        for(const leaf of leaves) {
+            const leafPos = grid.posOfLeaf(st.grid, leaf);
+            const localRow = globalRow - leafPos.y;
+            leaf.data.lines.splice(localRow + 1, 0, "");
+        }
+
+        grid.modifyHeightOfLeaves(st.grid, 1, leaves);
+
+        const newRow = globalRow + 1;
+        await _spreadTextOnGlobalRow(st, newRow, 0, afterPointer.values(), glpk);
+
+        putPointOnGlobalPosition(st, point.mkP2(0, newRow), false);
     }
-
-    grid.modifyHeightOfLeaves(st.grid, 1, leaves);
-
-    const newRow = globalRow + 1;
-    await _spreadTextOnGlobalRow(st, newRow, 0, afterPointer.values(), glpk);
-
-    putPointOnGlobalPosition(st, point.mkP2(0, newRow), false);
-    return true;
-}
+);
 
 /**
  * Insert a string at the current cursor, updating the cursor. If the
  * selection is a multi-selection, then it is converted to a single
  * selection prior to insertion.
  *
- * @param {TextPrimsState} st   The editor state.
- * @param {string}         s    The string to insert.
- * @param {any}            glpk The GLPK instance.
- * @param {boolean} [advancePoint] Should the point advance as a
- *     result of inserting the string? If omitted, the default is
- *     `true`.
- * @returns {Promise<boolean>} `true` if the state was modified, `false` otherwise.
+ * @type {(st: TextPrimsState, s: string, glpk: any, advancePoint?: boolean) => Promise<Inverse<TextPrimsState>>}
  */
-export async function insertString(st, s, glpk, advancePoint) {
-    if(advancePoint === undefined) {
-        advancePoint = true;
+export const insertString = state.withDefaultInverse(
+    async (/** @type {TextPrimsState} */ st, /** @type {string} */ s, /** @type {any} */ glpk, /** @type {boolean | undefined} */ advancePoint) => {
+        if(advancePoint === undefined) {
+            advancePoint = true;
+        }
+
+        if(s.length === 0) return;
+
+        const row    = st.selection.pt.y;
+        const col    = st.selection.pt.x;
+        const line   = st.selection.leaf.data.lines[row];
+        const before = line.slice(0, col);
+        const after  = line.slice(col);
+        st.selection.leaf.data.lines[row] = before + s + after;
+
+        if(advancePoint) {
+            // Advance the cursor by the length of the string.
+            st.selection.pt.x += s.length;
+            _updateLastGlobalCol(st);
+        }
+
+        await _expandLeafWidthIfNecessary(st.grid, st.selection.leaf, glpk);
     }
-
-    if(s.length === 0) {
-        return false;
-    }
-
-    const row    = st.selection.pt.y;
-    const col    = st.selection.pt.x;
-    const line   = st.selection.leaf.data.lines[row];
-    const before = line.slice(0, col);
-    const after  = line.slice(col);
-    st.selection.leaf.data.lines[row] = before + s + after;
-
-    if(advancePoint) {
-        // Advance the cursor by the length of the string.
-        st.selection.pt.x += s.length;
-        _updateLastGlobalCol(st);
-    }
-
-    await _expandLeafWidthIfNecessary(st.grid, st.selection.leaf, glpk);
-    return true;
-}
+);
 
 /**
  * Given an iterator which yields text, and a global row and column,
@@ -791,18 +806,41 @@ export async function _spreadTextOnGlobalRow(st, row, col, textIter, glpk) {
 }
 
 /**
- * @param { CommonState } st
- * @returns { TextPrimsState }
+ * @template {CommonState} S
+ * @param { S } st
+ * @returns { [ TextPrimsState, Inverse<S> ] }
  */
 export function editText(st) {
+    const snapshot = st.clone();
     const firstLeaf = grid.allLeaves(st.grid).next().value;
-    return {
+
+    return [ {
         type: "TextPrimsState",
         grid: st.grid,
         selection: {
             pt: point.mkP2(0, 0),
             leaf: firstLeaf,
             lastGlobalCol: 0
+        },
+        clone() {
+            const globalPt = findGlobalPoint(this);
+            const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+            /** @type {TextPrimsState} */
+            const result = {
+                type: "TextPrimsState",
+                grid: g,
+                clone: this.clone,
+                selection: {
+                    pt: point.mkP2(0, 0),
+                    leaf: grid.allLeaves(g).next().value,
+                    lastGlobalCol: 0
+                }
+            };
+            putPointOnGlobalPosition(result, globalPt, true);
+            result.selection.lastGlobalCol = this.selection.lastGlobalCol;
+            return result;
         }
-    };
+    }, async (s) => {
+        Object.assign(s, snapshot);
+    } ];
 }

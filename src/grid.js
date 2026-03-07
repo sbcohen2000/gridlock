@@ -61,14 +61,20 @@ export function mk(width, height, data) {
  *
  * @template A
  * @param {Grid<A>} g The grid to copy.
+ * @param {(a: A) => A} [cloneData] How to clone the data at each leaf.
  * @returns {Grid<A>} A new `Grid`, identical to `g`, but sharing no
  *                    pointers with it.
  */
-export function clone(g) {
+export function clone(g, cloneData = (a) => a) {
     switch(g.type) {
     case "Vert":
-    case "Horz": return { ...g, left: clone(g.left), right: clone(g.right) }
-    case "Leaf": return { ...g }
+    case "Horz": return {
+        ...g,
+        dims: { ...g.dims },
+        left: clone(g.left, cloneData),
+        right: clone(g.right, cloneData)
+    }
+    case "Leaf": return { ...g, dims: { ...g.dims }, data: cloneData(g.data) }
     }
 }
 
@@ -660,6 +666,31 @@ export function modifyHeightOfLeaves(g, n, leaves) {
  */
 
 /**
+ * Deep-clone a forest of dependency trees, preserving leaf references.
+ *
+ * @template A
+ * @param {Tree<A>[]} trees
+ * @returns {Tree<A>[]}
+ */
+function cloneForest(trees) {
+    return trees.map(t => cloneTree(t));
+}
+
+/**
+ * Deep-clone a dependency tree, preserving the leaf reference.
+ *
+ * @template A
+ * @param {Tree<A>} tree
+ * @returns {Tree<A>}
+ */
+function cloneTree(tree) {
+    return {
+        children: tree.children.map(c => cloneTree(c)),
+        leaf: tree.leaf
+    };
+}
+
+/**
  * Attach the `leaves` at every leaf of `tree`.
  *
  * @template A
@@ -692,9 +723,13 @@ export function constructDependencyTrees(g) {
         const lefts = constructDependencyTrees(g.left);
         const rights = constructDependencyTrees(g.right);
 
-        // Right children depend on left children.
+        // Right children depend on left children. Each left tree gets
+        // its own clone of the rights so that the trees don't share
+        // mutable structure. Otherwise, when we push to a leaf of one
+        // tree, we'll be pushing to a leaf in the next as well
+        // (causing a blowup).
         lefts.forEach(left => {
-            attachAtLeaves(left, rights);
+            attachAtLeaves(left, cloneForest(rights));
         });
         return lefts;
     }

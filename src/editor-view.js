@@ -286,7 +286,7 @@ export class EditorView extends View {
             // change to text-editing mode, setting the selection
             // to the point under the cursor.
 
-            const st = textPrims.editText(this.state);
+            const [st] = textPrims.editText(this.state);
             textPrims.putPointOnGlobalPosition(st, ctx.flooredGridPt, true);
 
             this.requestReplaceEditorView(this.createTextEditingView(this.parent, st));
@@ -330,10 +330,11 @@ export class EditorView extends View {
 
         if(minD <= EDGE_HALO_THICK / 2) {
             // Move to edge selection mode and select the edge.
-            const st = edgePrims.editEdge(this.state);
-            if(!edgePrims.selectEdgeUnderPoint(st, ctx.leafPosition, edge)) {
+            const [st] = edgePrims.editEdge(this.state);
+            if(!edgePrims.canSelectEdgeUnderPoint(st, ctx.leafPosition, edge)) {
                 return false;
             }
+            edgePrims.selectEdgeUnderPoint(st, ctx.leafPosition, edge);
 
             // Capture the pointer of the root element so that the
             // user can drag outside of the current bounds of the

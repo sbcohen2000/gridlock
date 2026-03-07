@@ -6,7 +6,9 @@
 
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
+import * as state from "../state-utils.js";
 
+/** @import { Inverse } from "../common-state.d.ts" */
 /** @import { EdgePrimsState, EdgeLocation, Cell, CommonState } from "./state.d.ts" */
 
 /**
@@ -16,13 +18,12 @@ import * as point from "../../point.js";
  * @param {EdgePrimsState} st
  * @param {point.P2} pt
  * @param {EdgeLocation} edge
- * @returns {boolean} `true` if the selection was changed, `false` otherwise.
  */
-export function selectEdgeUnderPoint(st, pt, edge) {
+function _selectEdgeUnderPoint(st, pt, edge) {
     /** @type {grid.Leaf<Cell>} */
     let leaf = grid.leafUnderPoint(st.grid, pt);
     if(!leaf) {
-        return false;
+        return;
     }
 
     switch(edge) {
@@ -33,7 +34,25 @@ export function selectEdgeUnderPoint(st, pt, edge) {
     }
 
     st.selection = { edge, leaf };
-    return true;
+}
+
+/**
+ * Select an edge of the leaf under the given global point.
+ *
+ * @type {(st: EdgePrimsState, pt: point.P2, edge: EdgeLocation) => Promise<Inverse<EdgePrimsState>>}
+ */
+export const selectEdgeUnderPoint = state.withDefaultInverse(_selectEdgeUnderPoint);
+
+/**
+ * Test whether an edge can be selected under the given global point.
+ *
+ * @param {EdgePrimsState} st
+ * @param {point.P2} pt
+ * @param {EdgeLocation} edge
+ * @returns {boolean} `true` if an edge exists at the given point, `false` otherwise.
+ */
+export function canSelectEdgeUnderPoint(st, pt, edge) {
+    return grid.leafUnderPoint(st.grid, pt) !== undefined;
 }
 
 /**
@@ -62,12 +81,10 @@ function _countTrailingBlankLines(leaf) {
  * @param {number} n
  * @param {any} glpk
  * @param {grid.SolveSettings<Cell>} [settings]
- * @returns {Promise<boolean>} `true` if the edge position was
- *     changed, and false otherwise.
  */
-export async function modifyVerticalEdge(st, n, glpk, settings) {
+async function _modifyVerticalEdge(st, n, glpk, settings) {
     if(st.selection.edge === "Below") {
-        return false;
+        return;
     }
 
     settings.measure = (leaf) => leaf.data.lines.reduce((maxLen, line) =>
@@ -76,11 +93,15 @@ export async function modifyVerticalEdge(st, n, glpk, settings) {
     const g = await grid.modifyWidth(st.grid, n, st.selection.leaf, glpk, settings);
     if(g !== null) {
         st.grid = g;
-        return true;
-    } else {
-        return false;
     }
 }
+
+/**
+ * Shift the selected vertical edge by the given number of columns.
+ *
+ * @type {(st: EdgePrimsState, n: number, glpk: any, settings?: grid.SolveSettings<Cell>) => Promise<Inverse<EdgePrimsState>>}
+ */
+export const modifyVerticalEdge = state.withDefaultInverse(_modifyVerticalEdge);
 
 /**
  * Shift the selected horizontal edge by the given number of rows. If
@@ -89,12 +110,10 @@ export async function modifyVerticalEdge(st, n, glpk, settings) {
  *
  * @param {EdgePrimsState} st
  * @param {number} n
- * @returns {boolean} `true` if the edge position was changed, and
- *     false otherwise.
  */
-export function modifyHorizontalEdge(st, n) {
+function _modifyHorizontalEdge(st, n) {
     if(st.selection.edge === "Right") {
-        return false;
+        return;
     }
 
     // TODO: how to shift text between cells?
@@ -111,7 +130,7 @@ export function modifyHorizontalEdge(st, n) {
     }, Infinity);
     n = Math.max(-spaceAbove, n);
     if(n === 0) {
-        return false;
+        return;
     }
 
     st.grid = grid.modifyHeightOfLeaves(st.grid, n, leaves);
@@ -129,19 +148,42 @@ export function modifyHorizontalEdge(st, n) {
             leaf.data.lines = leaf.data.lines.slice(0, h);
         }
     }
-
-    return true;
 }
 
 /**
- * @param { CommonState } st
- * @returns { EdgePrimsState }
+ * Shift the selected horizontal edge by the given number of rows.
+ *
+ * @type {(st: EdgePrimsState, n: number) => Promise<Inverse<EdgePrimsState>>}
+ */
+export const modifyHorizontalEdge = state.withDefaultInverse(_modifyHorizontalEdge);
+
+/**
+ * @template {CommonState} S
+ * @param { S } st
+ * @returns { [ EdgePrimsState, Inverse<S> ] }
  */
 export function editEdge(st) {
+    const snapshot = st.clone();
     const firstLeaf = grid.allLeaves(st.grid).next().value;
-    return {
+
+    return [ {
         type: "EdgePrimsState",
         grid: st.grid,
-        selection: { edge: "Right", leaf: firstLeaf }
-    };
+        selection: { edge: "Right", leaf: firstLeaf },
+        clone() {
+            const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+            const leafPos = grid.posOfLeaf(this.grid, this.selection.leaf);
+            const newLeaf = grid.leafUnderPoint(g, leafPos);
+            /** @type {EdgePrimsState} */
+            const result = {
+                type: "EdgePrimsState",
+                grid: g,
+                clone: this.clone,
+                selection: { edge: this.selection.edge, leaf: newLeaf }
+            };
+            return result;
+        }
+    }, async (s) => {
+        Object.assign(s, snapshot);
+    } ];
 }

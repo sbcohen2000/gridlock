@@ -11,12 +11,12 @@ import { expect } from "chai";
  * @returns {import("../../src/editor/edge-prims/state.d.ts").EdgePrimsState}
  */
 function mkEdgeState(src) {
-    return edgePrims.editEdge(serialize.commonStateFromString(src));
+    return edgePrims.editEdge(serialize.commonStateFromString(src))[0];
 }
 
 describe("edge-prims", () => {
     describe("modifyHorizontalEdge", () => {
-        it("Moves a horizontal edge down by 1", () => {
+        it("Moves a horizontal edge down by 1", async () => {
             const st = mkEdgeState(
                 "top\n" +
                     "bot\n" +
@@ -25,10 +25,9 @@ describe("edge-prims", () => {
                     "+---+---+"
             );
 
-            edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-            const result = edgePrims.modifyHorizontalEdge(st, 1);
+            await edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
+            await edgePrims.modifyHorizontalEdge(st, 1);
 
-            expect(result).to.be.true;
             expect(grid.printASCII(st.grid)).to.equal(
                 "+---+---+\n" +
                     "|   |   |\n" +
@@ -37,7 +36,7 @@ describe("edge-prims", () => {
             );
         });
 
-        it("Moves a horizontal edge up by 1", () => {
+        it("Moves a horizontal edge up by 1", async () => {
             const st = mkEdgeState(
                 "top\n" +
                     "\n" +
@@ -48,10 +47,9 @@ describe("edge-prims", () => {
                     "+---+---+"
             );
 
-            edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-            const result = edgePrims.modifyHorizontalEdge(st, -1);
+            await edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
+            await edgePrims.modifyHorizontalEdge(st, -1);
 
-            expect(result).to.be.true;
             expect(grid.printASCII(st.grid)).to.equal(
                 "+---+---+\n" +
                     "+---+   |\n" +
@@ -59,7 +57,7 @@ describe("edge-prims", () => {
             );
         });
 
-        it("Does not shrink a leaf below height 1", () => {
+        it("Does not shrink a leaf below height 1", async () => {
             const st = mkEdgeState(
                 "top\n" +
                     "bot\n" +
@@ -68,11 +66,12 @@ describe("edge-prims", () => {
                     "+---+"
             );
 
-            edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-            const result = edgePrims.modifyHorizontalEdge(st, -1);
+            await edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
+            const gridBefore = grid.printASCII(st.grid);
+            await edgePrims.modifyHorizontalEdge(st, -1);
 
             // Top leaf is already height 1, can't shrink further
-            expect(result).to.be.false;
+            expect(grid.printASCII(st.grid)).to.equal(gridBefore);
         });
     });
 });

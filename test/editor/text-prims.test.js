@@ -15,7 +15,7 @@ describe("text-prims", () => {
                   "+-----+\n" +
                   "+-----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             await textPrims.insertString(st, "hello ", glpk);
 
             const exp =
@@ -32,7 +32,7 @@ describe("text-prims", () => {
                   "+-----+\n" +
                   "+-----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             await textPrims.insertString(st, " ", glpk);
             await textPrims.insertString(st, " ", glpk);
             await textPrims.insertString(st, " ", glpk);
@@ -52,7 +52,7 @@ describe("text-prims", () => {
                   "+-----+\n" +
                   "+-----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Update the selection to point past the last letter in
             // `hello`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
@@ -74,7 +74,7 @@ describe("text-prims", () => {
                   "|     |\n" +
                   "+-----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Update the selection to point underneath the `h`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
             await textPrims.insertString(st, "world", glpk);
@@ -115,7 +115,7 @@ describe("text-prims", () => {
                   "|     |     |\n" +
                   "+-----+-----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Update the selection to point underneath the `h`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
             await textPrims.insertString(st, "A long second line", glpk);
@@ -138,7 +138,7 @@ describe("text-prims", () => {
                   "+-----+\n" +
                   "+-----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Point starts at (0, 0).
             textPrims.putPointAtEndOfGlobalLine(st);
 
@@ -152,7 +152,7 @@ describe("text-prims", () => {
                   "+----+----+\n" +
                   "+----+----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Point starts at (0, 0) in the left leaf.
             textPrims.putPointAtEndOfGlobalLine(st);
 
@@ -171,7 +171,7 @@ describe("text-prims", () => {
                   "|     |   |\n" +
                   "+-----+---+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Move to second row in the left leaf.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
 
@@ -192,7 +192,7 @@ describe("text-prims", () => {
                   "+-----+\n" +
                   "+-----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Update the selection to point past the last letter in
             // `hello`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
@@ -214,7 +214,7 @@ describe("text-prims", () => {
                   "+----+----+\n" +
                   "+----+----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Update the selection to point past the last letter in
             // `hello`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
@@ -236,7 +236,7 @@ describe("text-prims", () => {
                   "+----+----+\n" +
                   "+----+----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
             await textPrims.insertGlobalNewline(st, glpk);
 
@@ -258,7 +258,7 @@ describe("text-prims", () => {
                   "|    |    |    |\n" +
                   "+----+----+----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Update the selection to point to the first letter in
             // the top `two`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
@@ -284,7 +284,7 @@ describe("text-prims", () => {
                   "|    |    |    |\n" +
                   "+----+----+----+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Update the selection to point past the last letter in the
             // top `one`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
@@ -312,7 +312,7 @@ describe("text-prims", () => {
                   "|||\n" +
                   "+++"
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             // Put the cursor at the bottom left.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
             // Remove the line.
@@ -358,7 +358,7 @@ describe("text-prims", () => {
                   "|                     |       |        +-+       |\n"+
                   "+---------------------+-------+--------+-+-------+";
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
 
             // Put point on the end of the first line.
             textPrims.putPointOnGlobalPosition(st, point.mkOrigin(), true);
@@ -368,8 +368,8 @@ describe("text-prims", () => {
             let fuel = 1000;
             do {
                 await textPrims.insertString(st, "X", glpk, false);
-                ++fuel;
-            } while(textPrims.putPointOnNextGlobalLine(st) && fuel > 0);
+                --fuel;
+            } while(textPrims.putPointOnNextGlobalLine(st) !== textPrims.id && fuel > 0);
 
             expect(fuel).to.be.greaterThan(0);
 
@@ -435,7 +435,7 @@ describe("text-prims", () => {
                   "+----+\n" +
                   "+----+"
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             await textPrims._spreadTextOnGlobalRow(
                 st, 0, 0, textOnGlobalLineIterFromStringsIter([].values()), glpk);
 
@@ -448,7 +448,7 @@ describe("text-prims", () => {
                   "+-+\n" +
                   "+-+"
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             await textPrims._spreadTextOnGlobalRow(
                 st, 0, 0, textOnGlobalLineIterFromStringsIter(["hello"].values()), glpk);
 
@@ -466,7 +466,7 @@ describe("text-prims", () => {
                   "+-+\n" +
                   "+-+"
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             await textPrims._spreadTextOnGlobalRow(
                 st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
 
@@ -484,7 +484,7 @@ describe("text-prims", () => {
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             await textPrims._spreadTextOnGlobalRow(
                 st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
 
@@ -502,7 +502,7 @@ describe("text-prims", () => {
                   "+-+-+\n" +
                   "+-+-+"
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             await textPrims._spreadTextOnGlobalRow(
                 st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
 
@@ -520,7 +520,7 @@ describe("text-prims", () => {
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             await textPrims._spreadTextOnGlobalRow(
                 st, 0, 0, textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
 
@@ -538,7 +538,7 @@ describe("text-prims", () => {
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             await textPrims._spreadTextOnGlobalRow(
                 st, 0, 2, textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
 
@@ -551,14 +551,14 @@ describe("text-prims", () => {
         });
     });
 
-    describe("removeGlobalNewline", () => {
+    describe("removeGlobalNewline", async () => {
         it("Does nothing on the first line of the document", async () => {
             const src =
                   "foo bar\n"   +
                   "+---+---+\n" +
                   "+---+---+"
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             textPrims.putPointOnGlobalPosition(st, point.mkOrigin(), false);
             await textPrims.removeGlobalNewline(st, glpk);
 
@@ -574,7 +574,7 @@ describe("text-prims", () => {
                   "|   |   |\n" +
                   "+---+---+"
 
-            const st = textPrims.editText(serialize.commonStateFromString(src));
+            const st = textPrims.editText(serialize.commonStateFromString(src))[0];
             textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1), false);
             await textPrims.removeGlobalNewline(st, glpk);
 

@@ -98,10 +98,8 @@ export class EdgeEditingView extends EditorView {
                 };
 
                 if(this.#dragState.lastArg !== dw && dw !== 0) {
-                    edgePrims.modifyVerticalEdge(this.#eeState, dw, theGLPKInstance.glpk, settings).then(didUpdate => {
-                        if(didUpdate) {
-                            this.requestRedraw();
-                        }
+                    edgePrims.modifyVerticalEdge(this.#eeState, dw, theGLPKInstance.glpk, settings).then(() => {
+                        this.requestRedraw();
                     });
                 }
                 this.#dragState.lastArg = dw;
@@ -114,9 +112,9 @@ export class EdgeEditingView extends EditorView {
                 const dh = targetEdgeY - currentEdgeY;
 
                 if(this.#dragState.lastArg !== dh && dh !== 0) {
-                    if(edgePrims.modifyHorizontalEdge(this.#eeState, dh)) {
+                    edgePrims.modifyHorizontalEdge(this.#eeState, dh).then(() => {
                         this.requestRedraw();
-                    }
+                    });
                 }
                 this.#dragState.lastArg = dh;
             }
@@ -126,7 +124,7 @@ export class EdgeEditingView extends EditorView {
             if(this.#dragState) {
                 this.#dragState = null;
                 root.releasePointerCapture(e.pointerId);
-                this.requestReplaceEditorView(new TextEditingView(this.parent, textPrims.editText(this.state)));
+                this.requestReplaceEditorView(new TextEditingView(this.parent, textPrims.editText(this.state)[0]));
             }
         };
 

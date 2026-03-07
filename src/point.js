@@ -65,6 +65,16 @@ export function floorP2(p) {
 }
 
 /**
+ * Clone a point.
+ *
+ * @param {P2} p
+ * @returns {P2}
+ */
+export function cloneP2(p) {
+    return { x: p.x, y: p.y };
+}
+
+/**
  * Construct a new vector from its components.
  *
  * @param {number} dx
@@ -72,6 +82,16 @@ export function floorP2(p) {
  */
 export function mkV2(dx, dy) {
     return { dx, dy };
+}
+
+/**
+ * Clone a vector.
+ *
+ * @param {V2} v
+ * @returns {V2}
+ */
+export function cloneV2(v) {
+    return { dx: v.dx, dy: v.dy };
 }
 
 /**

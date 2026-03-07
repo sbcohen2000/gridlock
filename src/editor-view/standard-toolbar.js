@@ -40,7 +40,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         ...maybeEnabled("edit text"),
         onclick: () => {
             editorView.requestReplaceEditorView(
-                new TextEditingView(editorView.parent, textPrims.editText(editorView.state)));
+                new TextEditingView(editorView.parent, textPrims.editText(editorView.state)[0]));
         }
     }, {
         type: "button",
@@ -49,7 +49,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         ...maybeEnabled("select cells"),
         onclick: () => {
             editorView.requestReplaceEditorView(
-                new CellEditingView(editorView.parent, cellPrims.editCells(editorView.state)));
+                new CellEditingView(editorView.parent, cellPrims.editCells(editorView.state)[0]));
         }
     }, {
         type: "button",
@@ -74,7 +74,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         ...maybeEnabled("split vertically"),
         onclick: () => {
             editorView.requestReplaceEditorView(
-                new VerticalCellSlicingView(editorView.parent, slicePrims.editSlice(editorView.state, "Vertical")));
+                new VerticalCellSlicingView(editorView.parent, slicePrims.editSlice(editorView.state, "Vertical")[0]));
         }
     }, {
         type: "button",
@@ -83,7 +83,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         ...maybeEnabled("split horizontally"),
         onclick: () => {
             editorView.requestReplaceEditorView(
-                new HorizontalCellSlicingView(editorView.parent, slicePrims.editSlice(editorView.state, "Horizontal")));
+                new HorizontalCellSlicingView(editorView.parent, slicePrims.editSlice(editorView.state, "Horizontal")[0]));
         }
     }, {
         type: "spacer",

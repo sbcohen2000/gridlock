@@ -45,7 +45,7 @@ export class TextEditingView extends EditorView {
             // transition to a cell-editing state where the two
             // cells are selected.
 
-            const st = cellPrims.editCells(this.state);
+            const [st] = cellPrims.editCells(this.state);
             st.selection.leaves.add(this.#teState.selection.leaf);
             st.selection.leaves.add(ctx.leaf);
             this.requestReplaceEditorView(new CellEditingView(this.parent, st));

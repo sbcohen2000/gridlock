@@ -42,8 +42,9 @@ export class CellEditingView extends EditorView {
             return;
         }
 
-        cellPrims.selectLeafUnderPoint(this.#ceState, ctx.leafPosition, !ctx.event.shiftKey);
-        this.requestRedraw();
+        cellPrims.selectLeafUnderPoint(this.#ceState, ctx.leafPosition, !ctx.event.shiftKey).then(() => {
+            this.requestRedraw();
+        });
     }
 
     /**

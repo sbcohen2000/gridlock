@@ -11,8 +11,7 @@ export const PRIMITIVES = [
     {
         function: prims.selectLeafUnderPoint,
         args: ["point", "boolean"],
-        retty: "boolean",
-        async: false,
+        async: true,
         const: false,
         description: "Select the leaf under a global point"
     },

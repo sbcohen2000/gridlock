@@ -10,46 +10,45 @@ import { expect } from "chai";
  * @returns {import("../../src/editor/cell-prims/state.d.ts").CellPrimsState}
  */
 function mkCellState(src) {
-    return cellPrims.editCells(serialize.commonStateFromString(src));
+    return cellPrims.editCells(serialize.commonStateFromString(src))[0];
 }
 
 describe("cell-prims", () => {
     describe("selectLeafUnderPoint", () => {
-        it("Selects a leaf in a single-leaf grid", () => {
+        it("Selects a leaf in a single-leaf grid", async () => {
             const st = mkCellState(
                 "hello\n" +
                     "+-----+\n" +
                     "+-----+"
             );
 
-            const result = cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
+            await cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
 
-            expect(result).to.be.true;
             expect(st.selection.leaves.size).to.equal(1);
         });
 
-        it("Accumulates leaves when clear is false", () => {
+        it("Accumulates leaves when clear is false", async () => {
             const st = mkCellState(
                 "hello there\n" +
                     "+-----+-----+\n" +
                     "+-----+-----+"
             );
 
-            cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
-            cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), false);
+            await cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
+            await cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), false);
 
             expect(st.selection.leaves.size).to.equal(2);
         });
 
-        it("Replaces selection when clear is true", () => {
+        it("Replaces selection when clear is true", async () => {
             const st = mkCellState(
                 "hello there\n" +
                     "+-----+-----+\n" +
                     "+-----+-----+"
             );
 
-            cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
-            cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), true);
+            await cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
+            await cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), true);
 
             expect(st.selection.leaves.size).to.equal(1);
         });

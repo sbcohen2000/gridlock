@@ -2,12 +2,12 @@
  * The editor state for text-edit level primitive operations.
  */
 
-import { CommonState } from "../common-state";
 export { Cell, CommonState } from "../common-state";
-import * as point from "../../point.js";
+import * as commonState from "../common-state";
 import * as grid from "../../grid.js";
+import * as point from "../../point.js";
 
-export interface TextPrimsState extends CommonState {
+export interface TextPrimsState extends commonState.CommonState {
   type: "TextPrimsState";
   selection: {
     /**
@@ -27,3 +27,7 @@ export interface TextPrimsState extends CommonState {
     lastGlobalCol: number
   }
 }
+
+
+
+

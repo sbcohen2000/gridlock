@@ -3,6 +3,22 @@ import * as grid from "../grid.js";
 /** @import { CommonState, Cell } from "./common-state.d.ts" */
 
 /**
+ * Create a CommonState from a grid.
+ *
+ * @param {grid.Grid<Cell>} g
+ * @returns {CommonState}
+ */
+export function commonStateFromGrid(g) {
+    return {
+        grid: g,
+        clone() {
+            const newGrid = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+            return commonStateFromGrid(newGrid);
+        }
+    };
+}
+
+/**
  * Create a default CommonState with a single leaf containing one empty line.
  *
  * @returns {CommonState}
@@ -10,7 +26,7 @@ import * as grid from "../grid.js";
 export function mkCommonState() {
     /** @type {grid.Grid<Cell>} */
     const g = grid.mk(1, 1, { lines: [""] });
-    return { grid: g };
+    return commonStateFromGrid(g);
 }
 
 /**
@@ -55,7 +71,7 @@ export function printCommonState(st) {
  * @returns {grid.Grid<Cell>} The parsed cell grid.
  */
 export function parseCellGrid(src) {
-    const srcLines = src.split("\n");
+    const srcLines = src.trimEnd().split("\n");
     // The first half of the lines will contain the text portion,
     // while the second half will contain the grid portion. The grid
     // portion always has one additional line.
@@ -83,5 +99,5 @@ export function parseCellGrid(src) {
  */
 export function commonStateFromString(src) {
     const g = parseCellGrid(src);
-    return { grid: g };
+    return commonStateFromGrid(g);
 }

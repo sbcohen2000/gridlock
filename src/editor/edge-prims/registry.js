@@ -9,17 +9,23 @@ import * as prims from "./edge-prims.js";
  */
 export const PRIMITIVES = [
     {
-        function: prims.selectEdgeUnderPoint,
+        function: prims.canSelectEdgeUnderPoint,
         args: ["point", "string"],
         retty: "boolean",
         async: false,
+        const: true,
+        description: "Check if an edge can be selected under a global point"
+    },
+    {
+        function: prims.selectEdgeUnderPoint,
+        args: ["point", "string"],
+        async: true,
         const: false,
         description: "Select an edge of the leaf under a global point"
     },
     {
         function: prims.modifyVerticalEdge,
         args: ["number", "glpk"],
-        retty: "boolean",
         async: true,
         const: false,
         description: "Shift the selected vertical edge by n columns"
@@ -27,8 +33,7 @@ export const PRIMITIVES = [
     {
         function: prims.modifyHorizontalEdge,
         args: ["number"],
-        retty: "boolean",
-        async: false,
+        async: true,
         const: false,
         description: "Shift the selected horizontal edge by n rows"
     },

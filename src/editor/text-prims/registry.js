@@ -11,7 +11,6 @@ export const PRIMITIVES = [
     {
         function: prims.putPointAtStartOfGlobalLine,
         args: [],
-        retty: "boolean",
         async: false,
         const: false,
         description: "Move point to start of global line"
@@ -19,7 +18,6 @@ export const PRIMITIVES = [
     {
         function: prims.putPointAtEndOfGlobalLine,
         args: [],
-        retty: "boolean",
         async: false,
         const: false,
         description: "Move point to end of global line"
@@ -27,7 +25,6 @@ export const PRIMITIVES = [
     {
         function: prims.putPointOnNextGlobalLine,
         args: ["boolean"],
-        retty: "boolean",
         async: false,
         const: false,
         description: "Move point to next global line"
@@ -35,7 +32,6 @@ export const PRIMITIVES = [
     {
         function: prims.putPointOnPrevGlobalLine,
         args: ["boolean"],
-        retty: "boolean",
         async: false,
         const: false,
         description: "Move point to previous global line"
@@ -43,7 +39,6 @@ export const PRIMITIVES = [
     {
         function: prims.putPointOnNextGlobalCol,
         args: [],
-        retty: "boolean",
         async: false,
         const: false,
         description: "Move point to next global column"
@@ -51,7 +46,6 @@ export const PRIMITIVES = [
     {
         function: prims.putPointOnPrevGlobalCol,
         args: [],
-        retty: "boolean",
         async: false,
         const: false,
         description: "Move point to previous global column"
@@ -99,7 +93,6 @@ export const PRIMITIVES = [
     {
         function: prims.removeGlobalLine,
         args: [],
-        retty: "boolean",
         async: false,
         const: false,
         description: "Remove the current global line"
@@ -107,7 +100,6 @@ export const PRIMITIVES = [
     {
         function: prims.removeGlobalNewline,
         args: ["glpk"],
-        retty: "boolean",
         async: true,
         const: false,
         description: "Remove the newline before the current global line, joining it with the previous line"
@@ -115,7 +107,6 @@ export const PRIMITIVES = [
     {
         function: prims.removeString,
         args: ["number"],
-        retty: "boolean",
         async: false,
         const: false,
         description: "Remove n characters before point"
@@ -123,7 +114,6 @@ export const PRIMITIVES = [
     {
         function: prims.insertGlobalNewline,
         args: ["glpk"],
-        retty: "boolean",
         async: true,
         const: false,
         description: "Insert a newline at current point"
@@ -131,7 +121,6 @@ export const PRIMITIVES = [
     {
         function: prims.insertString,
         args: ["string", "glpk", "boolean"],
-        retty: "boolean",
         async: true,
         const: false,
         description: "Insert string at current point"
@@ -139,7 +128,6 @@ export const PRIMITIVES = [
     {
         function: prims.putPointOnGlobalPosition,
         args: ["point", "boolean"],
-        retty: "boolean",
         async: false,
         const: false,
         description: "Move point to a global position"
@@ -151,5 +139,13 @@ export const PRIMITIVES = [
         async: false,
         const: true,
         description: "Get text content of a global line"
+    },
+    {
+        function: prims.findGlobalPoint,
+        args: [],
+        retty: "point",
+        async: false,
+        const: true,
+        description: "Get the global position of the point"
     },
 ];

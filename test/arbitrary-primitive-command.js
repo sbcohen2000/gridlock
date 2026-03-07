@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import * as textPrims from "../src/editor/text-prims/text-prims.js";
+import * as util from "../src/util.js";
 import * as serialize from "../src/editor/serialize-common-state.js";
 import { PRIMITIVES as TEXT_PRIMS } from "../src/editor/text-prims/registry.js";
 
@@ -90,6 +90,7 @@ export function arbitraryPrimitiveCommand(glpk, settings) {
  *     along with a rendering of the initial and final states.
  */
 export async function summarizePrimitiveCommands(st, commands, glpk) {
+    const initialState = serialize.printCommonState(st);
     const commandSummary = [];
 
     for(const [fn, args] of commands) {
@@ -107,7 +108,7 @@ export async function summarizePrimitiveCommands(st, commands, glpk) {
     const errorMessage = [
         `Number of commands: ${commands.length}`,
         "\nInitial state:",
-        serialize.printCommonState(textPrims.editText(serialize.mkCommonState())),
+        util.showMultilineString(initialState),
         "\nCommands applied:",
         commandSummary.join("\n"),
         "\nFinal state:",
@@ -135,7 +136,7 @@ async function main() {
     );
 
     // Create empty editor state
-    const st = textPrims.editText(serialize.mkCommonState());
+    const [st] = textPrims.editText(serialize.mkCommonState());
 
     console.log("Initial state:");
     console.log(serialize.printCommonState(st));

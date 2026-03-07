@@ -112,9 +112,9 @@ async function main() {
     /** @type {EditorView} */
     let initialView;
     if(initialStateStr) {
-        initialView = new TextEditingView(null, textPrims.editText(serialize.commonStateFromString(initialStateStr)));
+        initialView = new TextEditingView(null, textPrims.editText(serialize.commonStateFromString(initialStateStr))[0]);
     } else {
-        initialView = new TextEditingView(null, textPrims.editText(serialize.mkCommonState()));
+        initialView = new TextEditingView(null, textPrims.editText(serialize.mkCommonState())[0]);
     }
 
     const topLevelView = new (class extends View {

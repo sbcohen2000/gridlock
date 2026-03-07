@@ -41,12 +41,11 @@ class CellSlicingView extends EditorView {
      * cell-editing mode.
      *
      * @abstract
-     * @param {grid.Grid<Cell>} g
      * @param {point.P2} globalPos
-     * @returns {grid.Grid<Cell>}
+     * @returns {Promise<void>}
      */
-    sliceAt(g, globalPos) {
-        void g; void globalPos;
+    async sliceAt(globalPos) {
+        void globalPos;
         throw new Error("Method not implemented");
     }
 
@@ -55,9 +54,9 @@ class CellSlicingView extends EditorView {
      *
      * @param {PointerEventContext} _ctx
      */
-    onPointerDownInLeaf(_ctx) {
+    async onPointerDownInLeaf(_ctx) {
         if(this.#hoveredPos === null) return;
-        this.#scState.grid = this.sliceAt(this.#scState.grid, this.#hoveredPos);
+        await this.sliceAt(this.#hoveredPos);
         this.requestRedraw();
     }
 
@@ -109,14 +108,10 @@ class CellSlicingView extends EditorView {
 
 export class VerticalCellSlicingView extends CellSlicingView {
     /**
-     * @param {grid.Grid<Cell>} g
      * @param {point.P2} globalPos
-     * @returns {grid.Grid<Cell>}
      */
-    sliceAt(g, globalPos) {
-        const st = slicePrims.editSlice({ grid: g }, "Vertical");
-        slicePrims.splitCellVerticallyAtGlobalRow(st, globalPos);
-        return st.grid;
+    async sliceAt(globalPos) {
+        await slicePrims.splitCellVerticallyAtGlobalRow(this.state, globalPos);
     }
 
     /**
@@ -151,14 +146,10 @@ export class VerticalCellSlicingView extends CellSlicingView {
 
 export class HorizontalCellSlicingView extends CellSlicingView {
     /**
-     * @param {grid.Grid<Cell>} g
      * @param {point.P2} globalPos
-     * @returns {grid.Grid<Cell>}
      */
-    sliceAt(g, globalPos) {
-        const st = slicePrims.editSlice({ grid: g }, "Horizontal");
-        slicePrims.splitCellHorizontallyAtGlobalCol(st, globalPos);
-        return st.grid;
+    async sliceAt(globalPos) {
+        await slicePrims.splitCellHorizontallyAtGlobalCol(this.state, globalPos);
     }
 
     /**
