@@ -1,10 +1,15 @@
 import * as fc from "fast-check";
-import { PRIMITIVES } from "../src/editor/text-prims/registry.js";
+import * as textPrims from "../src/editor/text-prims/text-prims.js";
+import * as serialize from "../src/editor/serialize-common-state.js";
+import { PRIMITIVES as TEXT_PRIMS } from "../src/editor/text-prims/registry.js";
+
+/** @import { Type } from "../src/editor/common-state.js" */
+/** @import { TextPrimsState } from "../src/editor/text-prims/state.d.ts" */
 
 /**
  * Generate an arbitrary value for a given primitive type.
  *
- * @param {"string" | "number" | "glpk" | "boolean"} type The type to generate.
+ * @param {Type} type The type to generate.
  * @param {any} glpk The glpk instance (used when type is "glpk").
  * @returns {fc.Arbitrary<any>}
  */
@@ -57,7 +62,7 @@ export function arbitraryPrimitiveCommand(glpk, settings) {
     settings = { ...defaultArbitraryPrimSettings, ...settings };
 
     /** @type {fc.Arbitrary<[Function, any[]]>[]} */
-    const primitiveArbitraries = PRIMITIVES
+    const primitiveArbitraries = TEXT_PRIMS
           .filter(prim => {
               return ( prim.const && settings.includeConstPrims)
                   || (!prim.const && settings.includeNonConstPrims);
@@ -74,6 +79,42 @@ export function arbitraryPrimitiveCommand(glpk, settings) {
     });
 
     return fc.oneof(...primitiveArbitraries);
+}
+
+/**
+ *
+ * @param {TextPrimsState} st The initial state.
+ * @param {[Function, any[]][]} commands A list of arbitrary commands.
+ * @param {any} glpk The GLPK instance.
+ * @returns {Promise<string>} A summary of the arbitrary commands,
+ *     along with a rendering of the initial and final states.
+ */
+export async function summarizePrimitiveCommands(st, commands, glpk) {
+    const commandSummary = [];
+
+    for(const [fn, args] of commands) {
+        const argStr = args.map(a =>
+            a === glpk ? "glpk" : JSON.stringify(a)
+        ).join(", ");
+        commandSummary.push(`  ${fn.name}(${argStr})`);
+        try {
+            fn(st, ...args);
+        } catch(e) {
+            // If command fails during replay, just note it
+        }
+    }
+
+    const errorMessage = [
+        `Number of commands: ${commands.length}`,
+        "\nInitial state:",
+        serialize.printCommonState(textPrims.editText(serialize.mkCommonState())),
+        "\nCommands applied:",
+        commandSummary.join("\n"),
+        "\nFinal state:",
+        serialize.printCommonState(st)
+    ].join("\n");
+
+    return errorMessage;
 }
 
 async function main() {

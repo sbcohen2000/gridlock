@@ -99,10 +99,18 @@ export const PRIMITIVES = [
     {
         function: prims.removeGlobalLine,
         args: [],
-        retty: "string",
+        retty: "boolean",
         async: false,
         const: false,
-        description: "Remove current global line and return its contents"
+        description: "Remove the current global line"
+    },
+    {
+        function: prims.removeGlobalNewline,
+        args: ["glpk"],
+        retty: "boolean",
+        async: true,
+        const: false,
+        description: "Remove the newline before the current global line, joining it with the previous line"
     },
     {
         function: prims.removeString,

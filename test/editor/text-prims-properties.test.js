@@ -2,35 +2,31 @@ import * as fc from "fast-check";
 import * as grid from "../../src/grid.js";
 import * as serialize from "../../src/editor/serialize-common-state.js";
 import * as textPrims from "../../src/editor/text-prims/text-prims.js";
-import { arbitraryPrimitiveCommand } from "../arbitrary-text-primitive-command.js";
 import GLPK from "glpk.js/node";
+import { arbCellGrid } from "../arbitrary-cell-grid.js";
+import { arbitraryPrimitiveCommand, summarizePrimitiveCommands } from "../arbitrary-primitive-command.js";
 import { expect } from "chai";
+
+/** @import { TextPrimsState } from "../../src/editor/text-prims/state.d.ts" */
 
 const glpk = await GLPK();
 
 /**
- * Generate an arbitrary starting state by applying non-const primitives
- * to an empty editor state.
+ * Generate an arbitrary starting state by generating a grid and then
+ * setting the point to an arbitrary position within the grid.
  *
- * @param {object} [options]
- * @param {number} [options.minCommands=0] Minimum number of commands to apply
- * @param {number} [options.maxCommands=50] Maximum number of commands to apply
- * @returns {fc.Arbitrary<Promise<import("../../src/editor/text-prims/state.d.ts").TextPrimsState>>} An arbitrary editor state
+ * @returns {fc.Arbitrary<TextPrimsState>} An arbitrary editor state
  */
-function arbitraryStartingState(options = {}) {
-    const minCommands = options.minCommands ?? 0;
-    const maxCommands = options.maxCommands ?? 50;
-
-    return fc.array(
-        arbitraryPrimitiveCommand(glpk, { includeConstPrims: false }),
-        { minLength: minCommands, maxLength: maxCommands }
-    ).map(async (commands) => {
-        const st = textPrims.editText(serialize.mkCommonState());
-        for(const [fn, args] of commands) {
-            await fn(st, ...args);
-        }
-        return st;
-    });
+function arbitraryStartingState() {
+    return arbCellGrid.chain(g =>
+        fc.record({
+            x: fc.integer({ min: 0, max: g.dims.width }),
+            y: fc.integer({ min: 0, max: g.dims.height })
+        }).chain(pt => {
+            const st = textPrims.editText({ grid: g });
+            textPrims.putPointOnGlobalPosition(st, pt, true);
+            return fc.constant(st);
+        }));
 }
 
 describe("Primitive command properties", () => {
@@ -55,37 +51,11 @@ describe("Primitive command properties", () => {
                 numRuns: 1000,
                 reporter(out) {
                     if(!out.failed) return;
-
                     const commands = out.counterexample[0];
-                    const genericErrorMessage = fc.defaultReportMessage(out);
-
-                    // Recreate the state to show the final result
                     const st = textPrims.editText(serialize.mkCommonState());
-                    const commandSummary = [];
 
-                    for(const [fn, args] of commands) {
-                        const argStr = args.map(a =>
-                            a === glpk ? "glpk" : JSON.stringify(a)
-                        ).join(", ");
-                        commandSummary.push(`  ${fn.name}(${argStr})`);
-                        try {
-                            fn(st, ...args);
-                        } catch(e) {
-                            // If command fails during replay, just note it
-                        }
-                    }
-
-                    const errorMessage = [
-                        genericErrorMessage,
-                        `\nNumber of commands: ${commands.length}`,
-                        "\nInitial state:",
-                        serialize.printCommonState(textPrims.editText(serialize.mkCommonState())),
-                        "\nCommands applied:",
-                        commandSummary.join("\n"),
-                        "\nFinal state:",
-                        serialize.printCommonState(st)
-                    ].join("\n");
-
+                    const summary = summarizePrimitiveCommands(st, commands, glpk);
+                    const errorMessage = `\nseed: ${out.seed}\nshrinks: ${out.numShrinks}\n${summary}`;
                     throw new Error(errorMessage);
                 }
             }
@@ -97,8 +67,7 @@ describe("Primitive command properties", () => {
             fc.asyncProperty(
                 arbitraryStartingState(),
                 arbitraryPrimitiveCommand(glpk, { includeConstPrims: true, includeNonConstPrims: false }),
-                async (stPromise, [fn, args]) => {
-                    const st = await stPromise;
+                async (st, [fn, args]) => {
                     const beforeSerialization = serialize.printCommonState(st);
                     await fn(st, ...args);
                     const afterSerialization = serialize.printCommonState(st);
@@ -106,7 +75,15 @@ describe("Primitive command properties", () => {
                 }
             ),
             {
-                numRuns: 1000
+                numRuns: 1000,
+                reporter(out) {
+                    if(!out.failed) return;
+                    const [st, command] = out.counterexample;
+
+                    const summary = summarizePrimitiveCommands(st, [command], glpk);
+                    const errorMessage = `\nseed: ${out.seed}\nshrinks: ${out.numShrinks}\n${summary}`;
+                    throw new Error(errorMessage);
+                }
             }
         );
     });

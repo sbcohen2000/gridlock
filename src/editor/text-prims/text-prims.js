@@ -506,7 +506,7 @@ export function textOnGlobalLine(st, row) {
  * @param {TextPrimsState} st
  * @returns {TextOnGlobalLineIterItem[]}
  */
-export function _killLine(st) {
+function _killLine(st) {
     // Find the location of the cursor in the global coordinate space.
     const globalPt  = _findGlobalPoint(st);
     const globalRow = globalPt.y;
@@ -594,6 +594,11 @@ export function removeGlobalLine(st) {
  *     otherwise.
  */
 export async function removeGlobalNewline(st, glpk) {
+    // There is no newline before the first line to remove.
+    if(pointOnFirstGlobalLine(st)) {
+        return false;
+    }
+
     // Find the text on the global line.
     const globalRow = _findGlobalPoint(st).y;
 
