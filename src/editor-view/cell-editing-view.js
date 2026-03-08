@@ -8,6 +8,7 @@ import { TextEditingView } from "./text-editing-view.js";
 import { View } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 
+/** @import { Recycler } from "../framework.js" */
 /** @import { CellPrimsState } from "../editor/cell-prims/state.d.ts" */
 /** @import { Cell } from "../editor/common-state.d.ts" */
 /** @import { HistoryItem } from "./history.d.ts" */
@@ -53,7 +54,7 @@ export class CellEditingView extends EditorView {
      * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {import("../framework.js").default} recycler
+     * @param {Recycler} recycler
      */
     viewLeafSelection(leaf, recycler) {
         super.viewLeafSelection(leaf, recycler);

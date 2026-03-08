@@ -1,3 +1,5 @@
+/** @import { Recycler } from "./framework.js" */
+
 export class ViewEvent {
     /**
      * The view which initiated the event
@@ -110,9 +112,9 @@ export class View {
     }
 
     /**
-     * @param {HTMLElement} _root The element to populate.
+     * @param {Recycler} _recycler The recycler to add to.
      */
-    view(_root) {
+    view(_recycler) {
     }
 
     /**

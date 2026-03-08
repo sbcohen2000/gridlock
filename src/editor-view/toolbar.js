@@ -1,4 +1,4 @@
-import Recycler from "../framework.js";
+import { CommittableRecycler } from "../framework.js";
 
 /**
  * @typedef {Object} ToolbarButtonDescription
@@ -32,7 +32,7 @@ function mkToolbarButton(descr, buttonElem) {
     }
 
     if(descr.iconSrc) {
-        new Recycler(buttonElem)
+        new CommittableRecycler(buttonElem)
             .elem("img", (iconImg) => {
                 iconImg.className = "editor-button-icon";
                 iconImg.src = descr.iconSrc;

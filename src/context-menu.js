@@ -1,5 +1,6 @@
 import * as point from "../src/point.js";
-import Recycler from "./framework.js";
+/** @import { Recycler } from "./framework.js" */
+import { CommittableRecycler } from "./framework.js";
 import { View, ViewEvent } from "./view.js";
 
 /**
@@ -165,12 +166,13 @@ export class ContextMenuView extends View {
     });
 
     /**
-     * View the context menu as an HTML element.
+     * View the context menu.
      *
-     * @param {HTMLElement} ctxMenuRoot The element to populate.
+     * @param {Recycler} recycler The recycler to add to.
      */
-    view(ctxMenuRoot) {
-        new Recycler(ctxMenuRoot)
+    view(recycler) {
+        recycler.elem("div", (ctxMenuRoot) => {
+            new CommittableRecycler(ctxMenuRoot)
             .elem("div", (screenElem) => {
                 // Construct an element to sit behind the context
                 // menu, filling the entire screen, whose purpose is
@@ -204,7 +206,7 @@ export class ContextMenuView extends View {
                     this.notify(new DismissContextMenu(this));
                 };
 
-                new Recycler(this.#menuElem)
+                new CommittableRecycler(this.#menuElem)
                     .elems(this.#menuDescr.menu, { tag: "div", clearAttributes: true } , (item, elem) => {
                         switch(item.type) {
                         case "button": {
@@ -227,5 +229,6 @@ export class ContextMenuView extends View {
                     .commit();
             })
             .commit();
+        });
     }
 }

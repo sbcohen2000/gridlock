@@ -10,12 +10,12 @@
  * `view`, loosing these precious references, some of which may need
  * to be retained between views (e.g. pointer captures).
  *
- * This module gives us a class, called `Recycler`, which acts like a
- * factory for DOM nodes, but transparently constructs a new node only
- * when it couldn't find a node in the _old_ DOM which it can re-use
- * for the current render. The `Recycler` is shallow; it only
- * constructs nodes corresponding to the _children_ of the parent node
- * it's given.
+ * This module gives us a class, called `CommittableRecycler`, which
+ * acts like a factory for DOM nodes, but transparently constructs a
+ * new node only when it couldn't find a node in the _old_ DOM which
+ * it can re-use for the current render. The `CommittableRecycler` is
+ * shallow; it only constructs nodes corresponding to the _children_
+ * of the parent node it's given.
  *
  * It's also designed, somewhat purposely, to not be very clever. This
  * is an attempt to make it predictable. The criteria for sharing
@@ -31,15 +31,15 @@
  * If two nodes aren't semantically equal (i.e. they can't be
  * interchanged, because, for example, one acts as a button and one
  * acts as a label), they must have either different tags or different
- * `key`s. Otherwise, there's no guarantee that the `Recycler` won't
- * choose the first node to play the role of a button in one view and
- * a label in the next.
+ * `key`s. Otherwise, there's no guarantee that the
+ * `CommittableRecycler` won't choose the first node to play the role
+ * of a button in one view and a label in the next.
  *
  * If this doesn't seem like a big deal, consider that once the
- * `Recycler` decides to recycle an element, it doesn't touch it at
- * all. (It doesn't, for example, remove the element's children). So,
- * if we don't differentiate between the label and the button, our
- * label could end up with a button's children.
+ * `CommittableRecycler` decides to recycle an element, it doesn't
+ * touch it at all. (It doesn't, for example, remove the element's
+ * children). So, if we don't differentiate between the label and the
+ * button, our label could end up with a button's children.
  *
  * @module framework
  */
@@ -74,7 +74,7 @@ import { diff } from "./framework/lcs.js";
  *
  * Usage:
  * ```
- * new Recycler(parent)
+ * new CommittableRecycler(parent)
  *   .elem("div",  e => ...)
  *   .elem("span", e => ...)
  *   .elems(ts, "div", (t, e) => ...)
@@ -92,7 +92,10 @@ import { diff } from "./framework/lcs.js";
  * particular element order, or to ensure that an element, will _not_
  * be re-used, even if it has the same tag.
  */
-export default class Recycler {
+/**
+ * @typedef {CommittableRecycler | UncommittableRecycler} Recycler
+ */
+export class CommittableRecycler {
     /**
      * @template {keyof HTMLElementTagNameMap} T
      * @template A
@@ -130,7 +133,7 @@ export default class Recycler {
      * @template {keyof HTMLElementTagNameMap} T
      * @param {ElemSettings<T>} settings
      * @param {(e: HTMLElementTagNameMap[T]) => void} render
-     * @returns {Recycler}
+     * @returns {CommittableRecycler}
      */
     elem(settings, render) {
         if(typeof settings === "string") {
@@ -138,6 +141,18 @@ export default class Recycler {
         }
 
         this.#spec.push({ ...settings, render: (_item, e) => render(e), item: null })
+        return this;
+    }
+
+    /**
+     * Pass the `Recycler` to a view function which adds additional
+     * elements.
+     *
+     * @param {(r: UncommittableRecycler) => void} f
+     * @returns {CommittableRecycler}
+     */
+    view(f) {
+        f(new UncommittableRecycler(this));
         return this;
     }
 
@@ -150,7 +165,7 @@ export default class Recycler {
      * @param {Iterable<A>} items
      * @param {ElemSettings<T>} settings
      * @param {(a: A, e: HTMLElementTagNameMap[T]) => void} render
-     * @returns {Recycler}
+     * @returns {CommittableRecycler}
      */
     elems(items, settings, render) {
         if(typeof settings === "string") {
@@ -264,6 +279,58 @@ export default class Recycler {
 }
 
 /**
+ * A `CommittableRecycler` without a `commit` method.
+ */
+export class UncommittableRecycler {
+    /** @type {CommittableRecycler} */
+    #recycler;
+
+    /** @param {CommittableRecycler} recycler */
+    constructor(recycler) {
+        this.#recycler = recycler;
+    }
+
+    /**
+     * Construct a single element of the given tag type.
+     *
+     * @template {keyof HTMLElementTagNameMap} T
+     * @param {ElemSettings<T>} settings
+     * @param {(e: HTMLElementTagNameMap[T]) => void} render
+     * @returns {UncommittableRecycler}
+     */
+    elem(settings, render) {
+        this.#recycler.elem(settings, render);
+        return this;
+    }
+
+    /**
+     * @template {keyof HTMLElementTagNameMap} T
+     * @template A
+     * @param {Iterable<A>} items
+     * @param {ElemSettings<T>} settings
+     * @param {(a: A, e: HTMLElementTagNameMap[T]) => void} render
+     * @returns {UncommittableRecycler}
+     */
+    elems(items, settings, render) {
+        this.#recycler.elems(items, settings, render);
+        return this;
+    }
+
+    /**
+     * Pass the recycler to a view function which adds additional
+     * elements.
+     *
+     * @param {(r: UncommittableRecycler) => void} f
+     * @returns {UncommittableRecycler}
+     */
+    view(f) {
+        this.#recycler.view(f);
+        return this;
+    }
+}
+
+
+/**
  * Global singleton tracking how many DOM elements are recycled vs
  * created during a draw cycle.
  */
@@ -305,6 +372,6 @@ export const RecycleStatistics = new class {
      */
     report() {
         return `recycled: ${this.recycled}, created: ${this.created}, removed: ${this.removed}, ` +
-               `total: ${this.total}, reuse: ${(this.recycledPct * 100).toFixed(1)}%`;
+            `total: ${this.total}, reuse: ${(this.recycledPct * 100).toFixed(1)}%`;
     }
 };

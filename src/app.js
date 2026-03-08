@@ -2,7 +2,8 @@ import * as cmenu from "./context-menu.js";
 import * as serialize from "./editor/serialize-common-state.js";
 import * as textPrims from "./editor/text-prims/text-prims.js";
 import GLPK from "glpk.js";
-import Recycler, { RecycleStatistics } from "./framework.js";
+/** @import { Recycler } from "./framework.js" */
+import { CommittableRecycler, RecycleStatistics } from "./framework.js";
 import { EditorView, ReplaceEditorViewEvent } from "./editor-view.js";
 import { TextEditingView } from "./editor-view/text-editing-view.js";
 import { View, RedrawViewEvent, RequestFocusViewEvent, KeyViewEvent, ViewDeletedViewEvent } from "./view.js";
@@ -51,27 +52,31 @@ class AppView extends View {
     /**
      * View the editor's toolbar.
      *
-     * @param {HTMLElement} toolbarElem The element to populate.
+     * @param {Recycler} recycler The recycler to add to.
      */
-    #viewToolbar(toolbarElem) {
-        toolbarElem.className = "editor-toolbar";
+    #viewToolbar(recycler) {
+        recycler.elem("div", (toolbarElem) => {
+            toolbarElem.className = "editor-toolbar";
 
-        const descriptions = this.#editorView.describeToolbarItems();
-        new Recycler(toolbarElem)
-            .elems(descriptions, "span", (descr, e) => mkToolbarItem(descr, e))
-            .commit();
+            const descriptions = this.#editorView.describeToolbarItems();
+            new CommittableRecycler(toolbarElem)
+                .elems(descriptions, "span", (descr, e) => mkToolbarItem(descr, e))
+                .commit();
+        });
     }
 
     /**
-     * View the application rooted at the element `root`.
+     * View the application.
      *
-     * @param {HTMLElement} root The root element to populate.
+     * @param {Recycler} recycler The recycler to add to.
      */
-    view(root) {
-        new Recycler(root)
-            .elem("div", (e) => this.#viewToolbar(e))
-            .elem("div", (e) => this.#editorView.view(e))
-            .commit();
+    view(recycler) {
+        recycler.elem("div", (root) => {
+            new CommittableRecycler(root)
+                .view(r => this.#viewToolbar(r))
+                .view(r => this.#editorView.view(r))
+                .commit();
+        });
     }
 
     /**
@@ -217,11 +222,11 @@ async function main() {
         view() {
             RecycleStatistics.reset();
 
-            const r = new Recycler(editorRoot)
-                .elem("div", (e) => this.#appView.view(e));
+            const r = new CommittableRecycler(editorRoot);
+            this.#appView.view(r);
 
             if(this.#currentContextMenu) {
-                r.elem("div", (e) => this.#currentContextMenu.view(e));
+                this.#currentContextMenu.view(r);
             } else {
                 r.elem({ tag: "div", key: "empty-context-menu" }, (_e) => {});
             }

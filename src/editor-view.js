@@ -2,7 +2,8 @@ import * as edgePrims from "./editor/edge-prims/edge-prims.js";
 import * as grid from "./grid.js";
 import * as point from "./point.js";
 import * as textPrims from "./editor/text-prims/text-prims.js";
-import Recycler from "./framework.js";
+/** @import { Recycler } from "./framework.js" */
+import { CommittableRecycler } from "./framework.js";
 import { KeyViewEvent, View, ViewEvent } from "./view.js";
 
 import binder_ring_center_url from "../assets/binder-ring-center.png";
@@ -314,14 +315,16 @@ export class EditorView extends View {
      * @param {number} rowNo The index of the line to view.
      * @param {grid.Leaf<Cell>} leaf The line's parent leaf.
      * @param {point.P2} p The position of the upper-left corner of the leaf.
-     * @param {HTMLElement} lineElem The element to populate.
+     * @param {Recycler} recycler The recycler to add to.
      */
-    viewLine(rowNo, leaf, p, lineElem) {
+    viewLine(rowNo, leaf, p, recycler) {
         void p;
 
         const line = leaf.data.lines[rowNo];
-        lineElem.className = "editor-line";
-        this.#buildLineFragments(lineElem, line);
+        recycler.elem({ tag: "div", clearChildren: true }, (lineElem) => {
+            lineElem.className = "editor-line";
+            this.#buildLineFragments(lineElem, line);
+        });
     }
 
     /**
@@ -383,49 +386,61 @@ export class EditorView extends View {
      *
      * @param {grid.Leaf<Cell>} leaf The leaf to view.
      * @param {point.P2} leafUl The position of the upper-left corner of the leaf.
-     * @param {HTMLElement} leafElem The element to populate.
+     * @param {Recycler} recycler The recycler to add to.
      */
-    viewLeaf(leaf, leafUl, leafElem) {
-        const sz = leaf.dims;
-        const gridSpec = `${leafUl.y + 1}/${leafUl.x + 1}/span ${sz.height}/span ${sz.width}`;
+    viewLeaf(leaf, leafUl, recycler) {
+        recycler.elem("div", (leafElem) => {
+            const sz = leaf.dims;
+            const gridSpec = `${leafUl.y + 1}/${leafUl.x + 1}/span ${sz.height}/span ${sz.width}`;
 
-        leafElem.className      = "editor-leaf";
-        leafElem.style.width    = `${sz.width}ch`;
-        leafElem.style.position = "relative";
-        leafElem.style.gridArea = gridSpec;
+            leafElem.className      = "editor-leaf";
+            leafElem.style.width    = `${sz.width}ch`;
+            leafElem.style.position = "relative";
+            leafElem.style.gridArea = gridSpec;
 
-        leafElem.onpointermove = (e) => {
-            const ctx = new PointerEventContext(e, this, leaf, leafElem);
-            this.onPointerMoveInLeaf(ctx);
-        };
+            leafElem.onpointermove = (e) => {
+                const ctx = new PointerEventContext(e, this, leaf, leafElem);
+                this.onPointerMoveInLeaf(ctx);
+            };
 
-        leafElem.onpointerdown = (e) => {
-            const ctx = new PointerEventContext(e, this, leaf, leafElem);
-            this.onPointerDownInLeaf(ctx);
-        }
+            leafElem.onpointerdown = (e) => {
+                const ctx = new PointerEventContext(e, this, leaf, leafElem);
+                this.onPointerDownInLeaf(ctx);
+            }
 
-        const lineIndices = leaf.data.lines.map((_, i) => i);
-        const recycler = new Recycler(leafElem)
-              .elems(lineIndices,
-                     { tag: "div", clearChildren: true },
-                     (rowNo, lineElem) => this.viewLine(rowNo, leaf, leafUl, lineElem)
-                    );
-        this.viewLeafSelection(leaf, recycler);
-        recycler.commit();
+            new CommittableRecycler(leafElem)
+                .view(r => {
+                    for(const rowNo of leaf.data.lines.map((_, i) => i)) {
+                        this.viewLine(rowNo, leaf, leafUl, r);
+                    }
+                })
+                .view(r => this.viewLeafSelection(leaf, r))
+                .commit();
+        });
     }
 
     /**
-     * View the editor state as an HTML object rooted at `root`.
+     * Add the editor to the given recycler.
      *
-     * @param {HTMLElement} root The root element to populate.
+     * @param {Recycler} recycler The recycler to add to.
      */
-    view(root) {
+    view(recycler) {
+        recycler.elem("div", (root) => this._viewRoot(root));
+    }
+
+    /**
+     * Populate the root element of the editor view. Subclasses may
+     * override this to attach additional behaviour to the root element.
+     *
+     * @param {HTMLElement} root
+     */
+    _viewRoot(root) {
         root.className = "editor-root";
         this.#rootElemResizeObserver.disconnect();
 
-        const r = new Recycler(root)
-            .elem("div", (e) => this.#viewBinding(e))
-            .elem("div", (e) => this.#viewLineNumbers(e))
+        new CommittableRecycler(root)
+            .view(r => this.#viewBinding(r))
+            .view(r => this.#viewLineNumbers(r))
             .elem("div", (gridRoot) => {
                 gridRoot.style.display = "inline-grid";
                 gridRoot.style.gridTemplateColumns = "1ch";
@@ -433,14 +448,16 @@ export class EditorView extends View {
                 this._root = gridRoot;
                 this.#rootElemResizeObserver.observe(this._root);
 
-                const leaves = [...grid.allLeavesWithPosition(this.state.grid)];
-                new Recycler(gridRoot)
-                    .elems(leaves, "div", ([leaf, p], leafElem) => this.viewLeaf(leaf, p, leafElem))
+                new CommittableRecycler(gridRoot)
+                    .view(r => {
+                        for(const [leaf, p] of grid.allLeavesWithPosition(this.state.grid)) {
+                            this.viewLeaf(leaf, p, r);
+                        }
+                    })
                     .commit();
             })
-
-        HistoryView(r, this.#history);
-        r.commit();
+            .view(r => HistoryView(r, this.#history))
+            .commit();
     }
 
     /*************************************************************************/
@@ -716,7 +733,7 @@ export class EditorView extends View {
         const nCenters = Math.round(height / imgScreenHeight) - 1;
 
         const indices = Array.from({ length: nCenters + 1 }, (_, i) => i);
-        new Recycler(this.#bindingElem)
+        new CommittableRecycler(this.#bindingElem)
             .elems(indices, "img", (idx, image) => {
                 const img = /** @type {HTMLImageElement} */ (image);
                 img.width = TOTAL_IMG_WIDTH * imagePxToScreenPx;
@@ -748,31 +765,35 @@ export class EditorView extends View {
     /**
      * View the spiral-ring binding to the left of the editor.
      *
-     * @param {HTMLElement} bindingElem The element to populate.
+     * @param {Recycler} recycler The recycler to add to.
      */
-    #viewBinding(bindingElem) {
-        this.#bindingElem = bindingElem;
-        this.#bindingElem.className = "editor-binding";
-        this.#bindingElem.style.width = `${BINDING_WIDTH}px`;
+    #viewBinding(recycler) {
+        recycler.elem("div", (bindingElem) => {
+            this.#bindingElem = bindingElem;
+            this.#bindingElem.className = "editor-binding";
+            this.#bindingElem.style.width = `${BINDING_WIDTH}px`;
+        });
     }
 
     /**
      * View a strip of line numbers to the left of the editor.
      *
-     * @param {HTMLElement} lineNumsElem The element to populate.
+     * @param {Recycler} recycler The recycler to add to.
      */
-    #viewLineNumbers(lineNumsElem) {
-        lineNumsElem.className = "editor-line-nums-margin";
+    #viewLineNumbers(recycler) {
+        recycler.elem("div", (lineNumsElem) => {
+            lineNumsElem.className = "editor-line-nums-margin";
 
-        const nLines = this.state.grid.dims.height
-        const lineNos = Array.from({ length: nLines }, (_, i) => i + 1);
+            const nLines = this.state.grid.dims.height
+            const lineNos = Array.from({ length: nLines }, (_, i) => i + 1);
 
-        new Recycler(lineNumsElem)
-            .elems(lineNos, "span", (lineNo, label) => {
-                label.className = "editor-line-num";
-                label.innerText = padLeftToLength(lineNo.toString(), 2);
-            })
-            .commit();
+            new CommittableRecycler(lineNumsElem)
+                .elems(lineNos, "span", (lineNo, label) => {
+                    label.className = "editor-line-num";
+                    label.innerText = padLeftToLength(lineNo.toString(), 2);
+                })
+                .commit();
+        });
     }
 }
 

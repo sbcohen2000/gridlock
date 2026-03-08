@@ -10,6 +10,7 @@ import { TextEditingView } from "./text-editing-view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 import { theGLPKInstance } from "../glpk.js";
 
+/** @import { Recycler } from "../framework.js" */
 /** @import { EdgePrimsState, Cell } from "../editor/edge-prims/state.d.ts" */
 /** @import { HistoryItem } from "./history.d.ts" */
 
@@ -64,10 +65,10 @@ export class EdgeEditingView extends EditorView {
     #GLPKAbortController = null;
 
     /**
-     * @param {HTMLElement} root The root element to populate.
+     * @param {HTMLElement} root
      */
-    view(root) {
-        super.view(root);
+    _viewRoot(root) {
+        super._viewRoot(root);
 
         root.onpointermove = (e) => {
             if(!this.#dragState) return;
@@ -159,7 +160,7 @@ export class EdgeEditingView extends EditorView {
      * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {import("../framework.js").default} recycler
+     * @param {Recycler} recycler
      */
     viewLeafSelection(leaf, recycler) {
         if(leaf === this.#eeState.selection.leaf) {

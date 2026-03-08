@@ -9,6 +9,7 @@ import { View, KeyViewEvent } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 import { theGLPKInstance } from "../glpk.js";
 
+/** @import { Recycler } from "../framework.js" */
 /** @import { TextPrimsState, Cell } from "../editor/text-prims/state.d.ts" */
 /** @import { HistoryItem } from "./history.d.ts" */
 
@@ -65,7 +66,7 @@ export class TextEditingView extends EditorView {
      * recycler.
      *
      * @param {grid.Leaf<Cell>} leaf
-     * @param {import("../framework.js").default} recycler
+     * @param {Recycler} recycler
      */
     viewLeafSelection(leaf, recycler) {
         super.viewLeafSelection(leaf, recycler);

@@ -8,6 +8,7 @@ import { TextEditingView } from "./text-editing-view.js";
 import { View } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 
+/** @import { Recycler } from "../framework.js" */
 /** @import { SlicePrimsState } from "../editor/slice-prims/state.d.ts" */
 /** @import { Cell } from "../editor/common-state.d.ts" */
 /** @import { HistoryItem } from "./history.d.ts" */
@@ -83,7 +84,7 @@ class CellSlicingView extends EditorView {
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
-     * @param {import("../framework.js").default} recycler
+     * @param {Recycler} recycler
      */
     makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
         void leaf; void leafPos; void hoverGlobalPos; void recycler;
@@ -92,7 +93,7 @@ class CellSlicingView extends EditorView {
 
     /**
      * @param {grid.Leaf<Cell>} leaf
-     * @param {import("../framework.js").default} recycler
+     * @param {Recycler} recycler
      */
     viewLeafSelection(leaf, recycler) {
         super.viewLeafSelection(leaf, recycler);
@@ -124,7 +125,7 @@ export class VerticalCellSlicingView extends CellSlicingView {
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
-     * @param {import("../framework.js").default} recycler
+     * @param {Recycler} recycler
      */
     makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
         // Check if hover is within this leaf's column range
@@ -164,7 +165,7 @@ export class HorizontalCellSlicingView extends CellSlicingView {
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
-     * @param {import("../framework.js").default} recycler
+     * @param {Recycler} recycler
      */
     makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
         // Check if hover is within this leaf's range

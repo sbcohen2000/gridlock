@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { JSDOM } from "jsdom";
-import Recycler from "../src/framework.js";
+import { CommittableRecycler } from "../src/framework.js";
 
 /**
  * Construct a new JSDOM document for testing purposes.
@@ -12,12 +12,12 @@ function freshDoc() {
     return document;
 }
 
-describe("Recycler", () => {
+describe("CommittableRecycler", () => {
     it("Can recycle a single node", () => {
         const document = freshDoc();
         const d = document.createElement("div");
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elem("span", e => e.innerText = "hello")
             .commit();
 
@@ -26,7 +26,7 @@ describe("Recycler", () => {
         expect(theSpan.tagName).to.be.equal("SPAN", "the div's child is a span");
         expect(theSpan.innerText).to.be.equal("hello", "the span has inner text 'hello'");
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elem("span", e => e.innerText = "hello")
             .commit();
 
@@ -37,7 +37,7 @@ describe("Recycler", () => {
         const document = freshDoc();
         const d = document.createElement("div");
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elems(Array.from({ length: 100 }, (_, i) => i),
                    "div",
                    (i, e) => e.innerText = i.toString())
@@ -46,7 +46,7 @@ describe("Recycler", () => {
         expect(d.childElementCount).to.be.equal(100);
         const children = d.children;
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elems(Array.from({ length: 100 }, (_, i) => i),
                    "div",
                    (i, e) => e.innerText = i.toString())
@@ -59,7 +59,7 @@ describe("Recycler", () => {
         const document = freshDoc();
         const d = document.createElement("div");
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elem("span", _e => {})
             .elem("div", _e => {})
             .commit();
@@ -67,7 +67,7 @@ describe("Recycler", () => {
         const theSpan = /** @type{HTMLElement} */ (d.firstElementChild);
         const theDiv  = /** @type{HTMLElement} */ (d.lastElementChild);
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elem("p", _e => {})
             .elem("div", _e => {})
             .commit();
@@ -81,7 +81,7 @@ describe("Recycler", () => {
         const document = freshDoc();
         const d = document.createElement("div");
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elem({ tag: "div", key: "a" }, _e => {})
             .elem({ tag: "div"           }, _e => {})
             .commit();
@@ -89,7 +89,7 @@ describe("Recycler", () => {
         const div1 = /** @type{HTMLElement} */ (d.firstElementChild);
         const div2 = /** @type{HTMLElement} */ (d.lastElementChild);
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elem({ tag: "div", key: "b" }, _e => {})
             .elem({ tag: "div"           }, _e => {})
             .commit();
@@ -102,7 +102,7 @@ describe("Recycler", () => {
         const document = freshDoc();
         const d = document.createElement("div");
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elem({ tag: "div"           }, _e => {})
             .elem({ tag: "div", key: "a" }, _e => {})
             .elem({ tag: "div"           }, _e => {})
@@ -111,7 +111,7 @@ describe("Recycler", () => {
         const div2 = /** @type{HTMLElement} */ (d.firstElementChild.nextElementSibling);
         const div3 = /** @type{HTMLElement} */ (d.lastElementChild);
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elem({ tag: "div", key: "a" }, _e => {})
             .elem({ tag: "div"           }, _e => {})
             .commit();
@@ -124,13 +124,13 @@ describe("Recycler", () => {
         const document = freshDoc();
         const d = document.createElement("div");
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elem({ tag: "div", key: "a" }, _e => {})
             .commit();
 
         const div1 = /** @type{HTMLElement} */ (d.firstElementChild);
 
-        new Recycler(d)
+        new CommittableRecycler(d)
             .elem({ tag: "div"           }, _e => {})
             .elem({ tag: "div", key: "a" }, _e => {})
             .elem({ tag: "div"           }, _e => {})
