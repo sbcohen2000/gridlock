@@ -7,6 +7,7 @@ import { View, ViewEvent } from "./view.js";
 
 import binder_ring_center_url from "../assets/binder-ring-center.png";
 import binder_ring_end_url from "../assets/binder-ring-end.png";
+import { padLeftToLength } from "./util.js";
 
 /** @import { CommonState, Cell } from "./editor/common-state.d.ts" */
 /** @import { EdgeLocation } from "./editor/edge-prims/state.d.ts" */
@@ -550,7 +551,7 @@ export class EditorView extends View {
         new Recycler(lineNumsElem)
             .elems(lineNos, "span", (lineNo, label) => {
                 label.className = "editor-line-num";
-                label.innerText = lineNo.toString();
+                label.innerText = padLeftToLength(lineNo.toString(), 2);
             })
             .commit();
     }

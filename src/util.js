@@ -44,8 +44,9 @@ export function assert(cond, msg) {
 }
 
 /**
- * Pad a string to the right with spaces so that, if it was shorter
- * than `len`, its width is equal to `len`.
+ * Pad a string to the right with spaces so that it's length is equal
+ * to `len`. If the input string's length is greater than `len`, this
+ * function returns the input unchanged.
  *
  * @param {string} str The string to pad
  * @param {number} len The desired length of the string
@@ -55,6 +56,21 @@ export function padRightToLength(str, len) {
     let out = str;
     for(let i = str.length; i < len; ++i) {
         out += " ";
+    }
+    return out;
+}
+
+/**
+ * @see padRightToLength
+ *
+ * @param {string} str The string to pad
+ * @param {number} len The desired length of the string
+ * @returns {string}
+ */
+export function padLeftToLength(str, len) {
+    let out = str;
+    for(let i = str.length; i < len; ++i) {
+        out = " " + out;
     }
     return out;
 }
