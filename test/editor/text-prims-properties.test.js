@@ -40,7 +40,7 @@ function arbitraryStartingState() {
  */
 function cloneState(st) {
     const serialized = serialize.printCommonState(st);
-    const [clone] = textPrims.editText(serialize.commonStateFromString(serialized));
+    const [clone] = textPrims.editText(serialize.textEditingStateFromString(serialized));
 
     // Restore cursor position.
     const leafPos = grid.posOfLeaf(st.grid, st.selection.leaf);
@@ -58,7 +58,7 @@ describe("Primitive command properties", () => {
                 fc.array(arbitraryPrimitiveCommand(glpk, { includeConstPrims: false }), { minLength: 0, maxLength: 1000 }),
                 async (commands) => {
                     // Start with a fresh editor state
-                    const [st] = textPrims.editText(serialize.mkCommonState());
+                    const [st] = textPrims.editText(serialize.emptyTextEditingState());
 
                     // Apply each command
                     for(const [fn, args] of commands) {
@@ -74,7 +74,7 @@ describe("Primitive command properties", () => {
                 reporter(out) {
                     if(!out.failed) return;
                     const commands = out.counterexample[0];
-                    const [st] = textPrims.editText(serialize.mkCommonState());
+                    const [st] = textPrims.editText(serialize.emptyTextEditingState());
 
                     const summary = summarizePrimitiveCommands(st, commands, glpk);
                     const errorMessage = `\nseed: ${out.seed}\nshrinks: ${out.numShrinks}\n${summary}`;

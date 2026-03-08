@@ -3,12 +3,14 @@ import * as textPrims from "../editor/text-prims/text-prims.js";
 import * as cellPrims from "../editor/cell-prims/cell-prims.js";
 import { CellEditingView } from "./cell-editing-view.js";
 import { EdgeEditingView } from "./edge-editing-view.js";
+import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slicing-view.js";
 import { EditorView, PointerEventContext } from "../editor-view.js";
 import { View, KeyViewEvent } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 import { theGLPKInstance } from "../glpk.js";
 
 /** @import { TextPrimsState, Cell } from "../editor/text-prims/state.d.ts" */
+/** @import { HistoryItem } from "./history.d.ts" */
 
 export class TextEditingView extends EditorView {
     /** @type {TextPrimsState} */
@@ -16,10 +18,11 @@ export class TextEditingView extends EditorView {
 
     /**
      * @param {View} parent
+     * @param {HistoryItem[]} history
      * @param {TextPrimsState} [st] The initial editor state.
      */
-    constructor(parent, st) {
-        super(parent);
+    constructor(parent, history, st) {
+        super(parent, history);
         this.#teState = st;
     }
 
@@ -45,15 +48,15 @@ export class TextEditingView extends EditorView {
             // transition to a cell-editing state where the two
             // cells are selected.
 
-            const [st] = cellPrims.editCells(this.state);
+            const [st, inv] = cellPrims.editCells(this.state);
+            this.commitUndoableItem(inv);
             st.selection.leaves.add(this.#teState.selection.leaf);
             st.selection.leaves.add(ctx.leaf);
-            this.requestReplaceEditorView(new CellEditingView(this.parent, st));
+            this.requestReplaceEditorView(new CellEditingView(this.parent, this.history, st));
         } else {
             // Move the point to `gridPt`.
-            textPrims.putPointOnGlobalPosition(this.state, gridPt);
+            this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnGlobalPosition, gridPt);
             this.requestFocus();
-            this.requestRedraw();
         }
     }
 
@@ -84,9 +87,11 @@ export class TextEditingView extends EditorView {
         return standardToolbarItems(this, "edit text");
     }
 
-    createTextEditingView(parent, st) { return new TextEditingView(parent, st); }
-    createEdgeEditingView(parent, dragState, st) { return new EdgeEditingView(parent, dragState, st); }
-    createCellEditingView(parent, st) { return new CellEditingView(parent, st); }
+    createTextEditingView(parent, st) { void parent; void st; return this; }
+    createEdgeEditingView(parent, st, dragState) { return new EdgeEditingView(parent, this.history, st, dragState); }
+    createCellEditingView(parent, st) { return new CellEditingView(parent, this.history, st); }
+    createVerticalCellSlicingView(parent, st) { return new VerticalCellSlicingView(parent, this.history, st); }
+    createHorizontalCellSlicingView(parent, st) { return new HorizontalCellSlicingView(parent, this.history, st); }
 
     /**
      * Handle a keyboard event.
@@ -98,17 +103,15 @@ export class TextEditingView extends EditorView {
         if(e.key.length === 1) {
             if(e.ctrlKey) {
                 switch(e.key) {
-                case "a": textPrims.putPointAtStartOfGlobalLine(this.#teState); this.requestRedraw(); break;
-                case "e": textPrims.putPointAtEndOfGlobalLine(this.#teState); this.requestRedraw(); break;
-                case "n": textPrims.putPointOnNextGlobalLine(this.#teState); this.requestRedraw(); break;
-                case "p": textPrims.putPointOnPrevGlobalLine(this.#teState); this.requestRedraw(); break;
-                case "b": textPrims.putPointOnPrevGlobalCol(this.#teState); this.requestRedraw(); break;
-                case "f": textPrims.putPointOnNextGlobalCol(this.#teState); this.requestRedraw(); break;
+                case "a": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointAtStartOfGlobalLine); break;
+                case "e": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointAtEndOfGlobalLine); break;
+                case "n": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnNextGlobalLine); break;
+                case "p": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnPrevGlobalLine); break;
+                case "b": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnPrevGlobalCol); break;
+                case "f": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnNextGlobalCol); break;
                 }
             } else {
-                textPrims.insertString(this.#teState, e.key, theGLPKInstance.glpk).then(() => {
-                    this.requestRedraw();
-                });
+                this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.insertString, e.key, theGLPKInstance.glpk);
             }
         } else {
             // Only if there's no command state do we allow the
@@ -117,18 +120,13 @@ export class TextEditingView extends EditorView {
             switch(e.key) {
             case "Backspace": {
                 if(textPrims.pointAtBeginningOfGlobalLine(this.#teState)) {
-                    textPrims.removeGlobalNewline(this.#teState, theGLPKInstance.glpk).then(() => {
-                        this.requestRedraw();
-                    });
+                    this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.removeGlobalNewline, theGLPKInstance.glpk);
                 } else {
-                    textPrims.removeString(this.#teState, 1);
-                    this.requestRedraw();
+                    this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.removeString, 1);
                 }
             } break;
             case "Enter": {
-                textPrims.insertGlobalNewline(this.#teState, theGLPKInstance.glpk).then(() => {
-                    this.requestRedraw();
-                });
+                this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.insertGlobalNewline, theGLPKInstance.glpk);
             } break;
             default: break;
             }
@@ -143,6 +141,10 @@ export class TextEditingView extends EditorView {
      * @returns {boolean}
      */
     handleEvent(e) {
+        if(this.handleUndoKey(e)) {
+            return true;
+        }
+
         if (e instanceof KeyViewEvent) {
             e.e.preventDefault();
             e.e.stopPropagation();

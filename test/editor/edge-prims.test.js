@@ -11,7 +11,7 @@ import { expect } from "chai";
  * @returns {import("../../src/editor/edge-prims/state.d.ts").EdgePrimsState}
  */
 function mkEdgeState(src) {
-    return edgePrims.editEdge(serialize.commonStateFromString(src))[0];
+    return edgePrims.editEdge(serialize.textEditingStateFromString(src))[0];
 }
 
 describe("edge-prims", () => {

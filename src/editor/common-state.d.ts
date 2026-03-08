@@ -13,6 +13,11 @@ interface Cell {
 
 export interface CommonState {
   /**
+   * The type of the state.
+   */
+  type: string;
+
+  /**
    * The current grid.
    */
   grid: Grid<Cell>;

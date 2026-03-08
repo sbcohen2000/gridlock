@@ -167,10 +167,13 @@
 }
 
 .editor-history-view {
+    display: flex;
+    flex-direction: column-reverse;
     position: absolute;
     right: 0;
     bottom: 0;
     height: 200px;
     width: 200px;
     border: 1px solid black;
+    overflow: auto;
 }

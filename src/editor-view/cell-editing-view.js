@@ -2,6 +2,7 @@ import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as cellPrims from "../editor/cell-prims/cell-prims.js";
 import { EdgeEditingView } from "./edge-editing-view.js";
+import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slicing-view.js";
 import { EditorView, PointerEventContext } from "../editor-view.js";
 import { TextEditingView } from "./text-editing-view.js";
 import { View } from "../view.js";
@@ -9,6 +10,7 @@ import { standardToolbarItems } from "./standard-toolbar.js";
 
 /** @import { CellPrimsState } from "../editor/cell-prims/state.d.ts" */
 /** @import { Cell } from "../editor/common-state.d.ts" */
+/** @import { HistoryItem } from "./history.d.ts" */
 
 export class CellEditingView extends EditorView {
     /** @type {CellPrimsState} */
@@ -16,10 +18,11 @@ export class CellEditingView extends EditorView {
 
     /**
      * @param {View} parent
+     * @param {HistoryItem[]} history
      * @param {CellPrimsState} st The initial edit state.
      */
-    constructor(parent, st) {
-        super(parent);
+    constructor(parent, history, st) {
+        super(parent, history);
         this.#ceState = st;
     }
 
@@ -42,9 +45,7 @@ export class CellEditingView extends EditorView {
             return;
         }
 
-        cellPrims.selectLeafUnderPoint(this.#ceState, ctx.leafPosition, !ctx.event.shiftKey).then(() => {
-            this.requestRedraw();
-        });
+        this.runPrimitiveWithUndoThenRedraw(this.#ceState, cellPrims.selectLeafUnderPoint, ctx.leafPosition, !ctx.event.shiftKey);
     }
 
     /**
@@ -68,7 +69,9 @@ export class CellEditingView extends EditorView {
         return standardToolbarItems(this, "select cells");
     }
 
-    createTextEditingView(parent, st) { return new TextEditingView(parent, st); }
-    createEdgeEditingView(parent, dragState, st) { return new EdgeEditingView(parent, dragState, st); }
-    createCellEditingView(parent, st) { return new CellEditingView(parent, st); }
+    createTextEditingView(parent, st) { return new TextEditingView(parent, this.history, st); }
+    createEdgeEditingView(parent, st, dragState) { return new EdgeEditingView(parent, this.history, st, dragState); }
+    createCellEditingView(parent, st) { void parent; void st; return this; }
+    createVerticalCellSlicingView(parent, st) { return new VerticalCellSlicingView(parent, this.history, st); }
+    createHorizontalCellSlicingView(parent, st) { return new HorizontalCellSlicingView(parent, this.history, st); }
 }

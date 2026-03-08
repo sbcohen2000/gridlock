@@ -39,8 +39,10 @@ export function standardToolbarItems(editorView, enabledLabel) {
         label: "edit text",
         ...maybeEnabled("edit text"),
         onclick: () => {
+            const [st, inv] = textPrims.editText(editorView.state);
+            editorView.commitUndoableItem(inv);
             editorView.requestReplaceEditorView(
-                new TextEditingView(editorView.parent, textPrims.editText(editorView.state)[0]));
+                new TextEditingView(editorView.parent, editorView.history, st));
         }
     }, {
         type: "button",
@@ -48,8 +50,10 @@ export function standardToolbarItems(editorView, enabledLabel) {
         label: "select cells",
         ...maybeEnabled("select cells"),
         onclick: () => {
+            const [st, inv] = cellPrims.editCells(editorView.state);
+            editorView.commitUndoableItem(inv);
             editorView.requestReplaceEditorView(
-                new CellEditingView(editorView.parent, cellPrims.editCells(editorView.state)[0]));
+                new CellEditingView(editorView.parent, editorView.history, st));
         }
     }, {
         type: "button",
@@ -73,8 +77,10 @@ export function standardToolbarItems(editorView, enabledLabel) {
         label: "split vertically",
         ...maybeEnabled("split vertically"),
         onclick: () => {
+            const [st, inv] = slicePrims.editSlice(editorView.state, "Vertical");
+            editorView.commitUndoableItem(inv);
             editorView.requestReplaceEditorView(
-                new VerticalCellSlicingView(editorView.parent, slicePrims.editSlice(editorView.state, "Vertical")[0]));
+                new VerticalCellSlicingView(editorView.parent, editorView.history, st));
         }
     }, {
         type: "button",
@@ -82,8 +88,10 @@ export function standardToolbarItems(editorView, enabledLabel) {
         label: "split horizontally",
         ...maybeEnabled("split horizontally"),
         onclick: () => {
+            const [st, inv] = slicePrims.editSlice(editorView.state, "Horizontal");
+            editorView.commitUndoableItem(inv);
             editorView.requestReplaceEditorView(
-                new HorizontalCellSlicingView(editorView.parent, slicePrims.editSlice(editorView.state, "Horizontal")[0]));
+                new HorizontalCellSlicingView(editorView.parent, editorView.history, st));
         }
     }, {
         type: "spacer",

@@ -10,6 +10,7 @@ import { standardToolbarItems } from "./standard-toolbar.js";
 
 /** @import { SlicePrimsState } from "../editor/slice-prims/state.d.ts" */
 /** @import { Cell } from "../editor/common-state.d.ts" */
+/** @import { HistoryItem } from "./history.d.ts" */
 
 /**
  * A base class for slice cell views. Subclasses provide the direction-
@@ -24,10 +25,11 @@ class CellSlicingView extends EditorView {
 
     /**
      * @param {View} parent
+     * @param {HistoryItem[]} history
      * @param {SlicePrimsState} st
      */
-    constructor(parent, st) {
-        super(parent);
+    constructor(parent, history, st) {
+        super(parent, history);
         this.#scState = st;
     }
 
@@ -101,17 +103,21 @@ class CellSlicingView extends EditorView {
         this.makePreviewElement(leaf, leafPos, this.#hoveredPos, recycler);
     }
 
-    createTextEditingView(parent, st) { return new TextEditingView(parent, st); }
-    createEdgeEditingView(parent, dragState, st) { return new EdgeEditingView(parent, dragState, st); }
-    createCellEditingView(parent, st) { return new CellEditingView(parent, st); }
+    createTextEditingView(parent, st) { return new TextEditingView(parent, this.history, st); }
+    createEdgeEditingView(parent, st, dragState) { return new EdgeEditingView(parent, this.history, st, dragState); }
+    createCellEditingView(parent, st) { return new CellEditingView(parent, this.history, st); }
+    createVerticalCellSlicingView(parent, st) { return new VerticalCellSlicingView(parent, this.history, st); }
+    createHorizontalCellSlicingView(parent, st) { return new HorizontalCellSlicingView(parent, this.history, st); }
 }
 
 export class VerticalCellSlicingView extends CellSlicingView {
+    createVerticalCellSlicingView(parent, st) { void parent; void st; return this; }
+
     /**
      * @param {point.P2} globalPos
      */
     async sliceAt(globalPos) {
-        await slicePrims.splitCellVerticallyAtGlobalRow(this.state, globalPos);
+        await this.runPrimitiveWithUndoThenRedraw(this.state, slicePrims.splitCellVerticallyAtGlobalRow, globalPos);
     }
 
     /**
@@ -145,11 +151,13 @@ export class VerticalCellSlicingView extends CellSlicingView {
 }
 
 export class HorizontalCellSlicingView extends CellSlicingView {
+    createHorizontalCellSlicingView(parent, st) { void parent; void st; return this; }
+
     /**
      * @param {point.P2} globalPos
      */
     async sliceAt(globalPos) {
-        await slicePrims.splitCellHorizontallyAtGlobalCol(this.state, globalPos);
+        await this.runPrimitiveWithUndoThenRedraw(this.state, slicePrims.splitCellHorizontallyAtGlobalCol, globalPos);
     }
 
     /**

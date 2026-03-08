@@ -10,7 +10,7 @@ import { expect } from "chai";
  * @returns {import("../../src/editor/cell-prims/state.d.ts").CellPrimsState}
  */
 function mkCellState(src) {
-    return cellPrims.editCells(serialize.commonStateFromString(src))[0];
+    return cellPrims.editCells(serialize.textEditingStateFromString(src))[0];
 }
 
 describe("cell-prims", () => {

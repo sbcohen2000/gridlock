@@ -3,15 +3,18 @@ import * as grid from "./grid.js";
 import * as point from "./point.js";
 import * as textPrims from "./editor/text-prims/text-prims.js";
 import Recycler from "./framework.js";
-import { View, ViewEvent } from "./view.js";
+import { KeyViewEvent, View, ViewEvent } from "./view.js";
 
 import binder_ring_center_url from "../assets/binder-ring-center.png";
 import binder_ring_end_url from "../assets/binder-ring-end.png";
 import { padLeftToLength } from "./util.js";
 import HistoryView from "./editor-view/history-view.js";
 
-/** @import { CommonState, Cell } from "./editor/common-state.d.ts" */
-/** @import { EdgeLocation } from "./editor/edge-prims/state.d.ts" */
+/** @import { CommonState, Cell, Inverse } from "./editor/common-state.d.ts" */
+/** @import { TextPrimsState } from "./editor/text-prims/state.d.ts" */
+/** @import { EdgePrimsState, EdgeLocation } from "./editor/edge-prims/state.d.ts" */
+/** @import { CellPrimsState } from "./editor/cell-prims/state.d.ts" */
+/** @import { SlicePrimsState } from "./editor/slice-prims/state.d.ts" */
 /** @import { ToolbarDescription } from "./editor-view/toolbar.js" */
 /** @import { HistoryItem } from "./editor-view/history.d.ts" */
 
@@ -46,10 +49,15 @@ const BINDING_WIDTH = 24; //px;
 export class EditorView extends View {
     /**
      * @param {View} parent
+     * @param {HistoryItem[]} history
      */
-    constructor(parent) {
+    constructor(parent, history) {
         super(parent);
+        this.#history = history;
     }
+
+    /** @returns {HistoryItem[]} */
+    get history() { return this.#history; }
 
     /**
      * @abstract
@@ -112,9 +120,9 @@ export class EditorView extends View {
             // change to text-editing mode, setting the selection
             // to the point under the cursor.
 
-            const [st] = textPrims.editText(this.state);
-            textPrims.putPointOnGlobalPosition(st, ctx.flooredGridPt, true);
-
+            const [st, inv] = textPrims.editText(this.state);
+            this.commitUndoableItem(inv);
+            this.runPrimitiveWithUndo(st, textPrims.putPointOnGlobalPosition, ctx.flooredGridPt, true);
             this.requestReplaceEditorView(this.createTextEditingView(this.parent, st));
             return true;
         } else {
@@ -234,9 +242,11 @@ export class EditorView extends View {
 
         if(minD <= EDGE_HALO_THICK / 2) {
             // Move to edge selection mode and select the edge.
-            const [st] = edgePrims.editEdge(this.state);
+            const [st, inv] = edgePrims.editEdge(this.state);
             if(!edgePrims.canSelectEdgeUnderPoint(st, ctx.leafPosition, edge)) {
                 return false;
+            } else {
+                this.commitUndoableItem(inv);
             }
             edgePrims.selectEdgeUnderPoint(st, ctx.leafPosition, edge);
 
@@ -253,7 +263,7 @@ export class EditorView extends View {
                 lastArg: 0
             };
 
-            this.requestReplaceEditorView(this.createEdgeEditingView(this.parent, dragState, st));
+            this.requestReplaceEditorView(this.createEdgeEditingView(this.parent, st, dragState));
             return true;
         } else {
             return false;
@@ -459,19 +469,36 @@ export class EditorView extends View {
     }
 
     /**
-     * Update the state in response to a keyboard event.
-     *
-     * @param {KeyboardEvent} e The keyboard event.
-     */
-    async handleKeyEvent(e) {
-        void e;
-    }
-
-    /**
      * @param {EditorView} newView
      */
     requestReplaceEditorView(newView) {
         this.notify(new ReplaceEditorViewEvent(this, newView));
+    }
+
+    /**
+     * If the event is a key event, and the key event matches the key
+     * for undo, issue an undo.
+     *
+     * @param {ViewEvent} e
+     * @returns {boolean} `true` if the event was handled, and `false`
+     *     otherwise.
+     */
+    handleUndoKey(e) {
+        if(e instanceof KeyViewEvent) {
+            if(e.e.ctrlKey && e.e.key === "/") {
+                this.undo();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param {ViewEvent} e
+     * @returns {boolean}
+     */
+    handleEvent(e) {
+        return this.handleUndoKey(e);
     }
 
     /*************************************************************************/
@@ -479,6 +506,61 @@ export class EditorView extends View {
 
     /** @type {HistoryItem[]} */
     #history = [];
+
+    /**
+     * @param {Inverse<CommonState>} inverse
+     */
+    commitUndoableItem(inverse) {
+        this.#history.push({
+            inverse
+        });
+        this.requestRedraw();
+    }
+
+    /**
+     * Run a primitive operation, saving its inverse to the undo
+     * history.
+     *
+     * @template {CommonState} S
+     * @template {any[]} A
+     * @param {S} st The current state.
+     * @param {(st: S, ...args: A) => Promise<Inverse<S>> | Inverse<S>} prim The primitive operation to wrap.
+     * @param {A} args The arguments to the primitive function
+     */
+    async runPrimitiveWithUndo(st, prim, ...args) {
+        const inverse = await prim(st, ...args);
+        this.commitUndoableItem(inverse);
+    }
+
+    /**
+     * @see runPrimitiveWithUndo
+     *
+     * This is a helper for the common case where we want to run a
+     * primitive operation and then immediately request that the
+     * editor re-draw itself.
+     *
+     * @template {CommonState} S
+     * @template {any[]} A
+     * @param {S} st The current state.
+     * @param {(st: S, ...args: A) => Promise<Inverse<S>> | Inverse<S>} prim The primitive operation to wrap.
+     * @param {A} args The arguments to the primitive function
+     */
+    async runPrimitiveWithUndoThenRedraw(st, prim, ...args) {
+        await this.runPrimitiveWithUndo(st, prim, ...args);
+        this.requestRedraw();
+    }
+
+    undo() {
+        if(this.#history.length === 0) {
+            return;
+        }
+
+        const top = this.#history.pop();
+        top.inverse(this.state);
+
+        // Replace the view with one which can view the current state.
+        this.requestReplaceEditorView(this.createViewForState(this.parent, this.state));
+    }
 
     /*************************************************************************/
     /** Toolbar                                                             **/
@@ -494,7 +576,34 @@ export class EditorView extends View {
     }
 
     /**
-     * Create a text editing view. Subclasses must implement this.
+     * Create a new view appropriate for viewing the given state,
+     * by discriminating on `st.type`.
+     *
+     * @param {View} parent
+     * @param {CommonState} st
+     * @returns {EditorView}
+     */
+    createViewForState(parent, st) {
+        if(st.type === "TextPrimsState") {
+            return this.createTextEditingView(parent, /** @type {TextPrimsState} */ (st));
+        } else if(st.type === "EdgePrimsState") {
+            return this.createEdgeEditingView(parent, /** @type {EdgePrimsState} */ (st));
+        } else if(st.type === "CellPrimsState") {
+            return this.createCellEditingView(parent, /** @type {CellPrimsState} */ (st));
+        } else if(st.type === "SlicePrimsState") {
+            const sliceSt = /** @type {SlicePrimsState} */ (st);
+            if(sliceSt.direction === "Vertical") {
+                return this.createVerticalCellSlicingView(parent, sliceSt);
+            } else {
+                return this.createHorizontalCellSlicingView(parent, sliceSt);
+            }
+        } else {
+            throw new Error(`createViewForState: unknown state type '${st.type}'`);
+        }
+    }
+
+    /**
+     * implemented a text editing view. Subclasses must implement this.
      *
      * @abstract
      * @param {View} parent
@@ -511,11 +620,11 @@ export class EditorView extends View {
      *
      * @abstract
      * @param {View} parent
-     * @param {import("./editor-view/edge-editing-view.js").DragState} dragState
      * @param {import("./editor/edge-prims/state.d.ts").EdgePrimsState} st
+     * @param {import("./editor-view/edge-editing-view.js").DragState} [dragState]
      * @returns {EditorView}
      */
-    createEdgeEditingView(parent, dragState, st) {
+    createEdgeEditingView(parent, st, dragState) {
         void parent; void dragState; void st;
         throw new Error("Method not implemented");
     }
@@ -529,6 +638,32 @@ export class EditorView extends View {
      * @returns {EditorView}
      */
     createCellEditingView(parent, st) {
+        void parent; void st;
+        throw new Error("Method not implemented");
+    }
+
+    /**
+     * Create a vertical cell slicing view. Subclasses must implement this.
+     *
+     * @abstract
+     * @param {View} parent
+     * @param {import("./editor/slice-prims/state.d.ts").SlicePrimsState} st
+     * @returns {EditorView}
+     */
+    createVerticalCellSlicingView(parent, st) {
+        void parent; void st;
+        throw new Error("Method not implemented");
+    }
+
+    /**
+     * Create a horizontal cell slicing view. Subclasses must implement this.
+     *
+     * @abstract
+     * @param {View} parent
+     * @param {import("./editor/slice-prims/state.d.ts").SlicePrimsState} st
+     * @returns {EditorView}
+     */
+    createHorizontalCellSlicingView(parent, st) {
         void parent; void st;
         throw new Error("Method not implemented");
     }

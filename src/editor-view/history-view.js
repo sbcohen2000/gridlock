@@ -13,5 +13,6 @@ export default function HistoryView(recycler, history) {
             .elems(history, "div", (_item, elem) => {
                 elem.innerText = "item";
             })
+            .commit();
     });
 }

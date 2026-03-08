@@ -94,6 +94,7 @@ class AppView extends View {
     handleEvent(e) {
         if (e instanceof ReplaceEditorViewEvent) {
             this.#replaceViewFromState(e.newView);
+            e.newView.requestFocus();
             return true;
         }
         return false;
@@ -112,9 +113,9 @@ async function main() {
     /** @type {EditorView} */
     let initialView;
     if(initialStateStr) {
-        initialView = new TextEditingView(null, textPrims.editText(serialize.commonStateFromString(initialStateStr))[0]);
+        initialView = new TextEditingView(null, [], serialize.textEditingStateFromString(initialStateStr));
     } else {
-        initialView = new TextEditingView(null, textPrims.editText(serialize.mkCommonState())[0]);
+        initialView = new TextEditingView(null, [], serialize.emptyTextEditingState());
     }
 
     const topLevelView = new (class extends View {

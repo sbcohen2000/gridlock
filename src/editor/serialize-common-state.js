@@ -1,29 +1,34 @@
 import * as grid from "../grid.js";
+import { editText } from "./text-prims/text-prims.js";
 
 /** @import { CommonState, Cell } from "./common-state.d.ts" */
+/** @import { TextPrimsState } from "./text-prims/state.d.ts" */
 
 /**
- * Create a CommonState from a grid.
+ * Create a `TextPrimsState` from a grid.
  *
  * @param {grid.Grid<Cell>} g
- * @returns {CommonState}
+ * @returns {TextPrimsState}
  */
 export function commonStateFromGrid(g) {
-    return {
+    return editText({
+        type: "TextPrimsState",
         grid: g,
         clone() {
-            const newGrid = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-            return commonStateFromGrid(newGrid);
+            /**
+             * This initial state has no inverse.
+             */
+            return null;
         }
-    };
+    })[0];
 }
 
 /**
  * Create a default CommonState with a single leaf containing one empty line.
  *
- * @returns {CommonState}
+ * @returns {TextPrimsState}
  */
-export function mkCommonState() {
+export function emptyTextEditingState() {
     /** @type {grid.Grid<Cell>} */
     const g = grid.mk(1, 1, { lines: [""] });
     return commonStateFromGrid(g);
@@ -95,9 +100,9 @@ export function parseCellGrid(src) {
  * editor state.
  *
  * @param {string} src The source to parse as a cell grid.
- * @returns {CommonState}
+ * @returns {TextPrimsState}
  */
-export function commonStateFromString(src) {
+export function textEditingStateFromString(src) {
     const g = parseCellGrid(src);
     return commonStateFromGrid(g);
 }

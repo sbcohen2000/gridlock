@@ -4,12 +4,14 @@ import * as point from "../point.js";
 import * as textPrims from "../editor/text-prims/text-prims.js";
 import * as view from "../view.js";
 import { CellEditingView } from "./cell-editing-view.js";
+import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slicing-view.js";
 import { EditorView } from "../editor-view.js";
 import { TextEditingView } from "./text-editing-view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 import { theGLPKInstance } from "../glpk.js";
 
 /** @import { EdgePrimsState, Cell } from "../editor/edge-prims/state.d.ts" */
+/** @import { HistoryItem } from "./history.d.ts" */
 
 /**
  * @typedef {Object} DragState
@@ -32,18 +34,19 @@ export class EdgeEditingView extends EditorView {
     /** @type {EdgePrimsState} */
     #eeState;
 
-    /** @type {DragState} */
+    /** @type {DragState | null} */
     #dragState;
 
     /**
      * @param {view.View} parent
-     * @param {DragState} dragState
+     * @param {HistoryItem[]} history
      * @param {EdgePrimsState} eeState
+     * @param {DragState} [dragState]
      */
-    constructor(parent, dragState, eeState) {
-        super(parent);
-        this.#dragState = dragState;
+    constructor(parent, history, eeState, dragState) {
+        super(parent, history);
         this.#eeState = eeState;
+        this.#dragState = dragState ?? null;
     }
 
     /** @returns {EdgePrimsState} */
@@ -98,9 +101,7 @@ export class EdgeEditingView extends EditorView {
                 };
 
                 if(this.#dragState.lastArg !== dw && dw !== 0) {
-                    edgePrims.modifyVerticalEdge(this.#eeState, dw, theGLPKInstance.glpk, settings).then(() => {
-                        this.requestRedraw();
-                    });
+                    this.runPrimitiveWithUndoThenRedraw(this.#eeState, edgePrims.modifyVerticalEdge, dw, theGLPKInstance.glpk, settings);
                 }
                 this.#dragState.lastArg = dw;
             } else {
@@ -112,9 +113,7 @@ export class EdgeEditingView extends EditorView {
                 const dh = targetEdgeY - currentEdgeY;
 
                 if(this.#dragState.lastArg !== dh && dh !== 0) {
-                    edgePrims.modifyHorizontalEdge(this.#eeState, dh).then(() => {
-                        this.requestRedraw();
-                    });
+                    this.runPrimitiveWithUndoThenRedraw(this.#eeState, edgePrims.modifyHorizontalEdge, dh);
                 }
                 this.#dragState.lastArg = dh;
             }
@@ -124,7 +123,7 @@ export class EdgeEditingView extends EditorView {
             if(this.#dragState) {
                 this.#dragState = null;
                 root.releasePointerCapture(e.pointerId);
-                this.requestReplaceEditorView(new TextEditingView(this.parent, textPrims.editText(this.state)[0]));
+                this.requestReplaceEditorView(new TextEditingView(this.parent, this.history, textPrims.editText(this.state)[0]));
             }
         };
 
@@ -175,7 +174,9 @@ export class EdgeEditingView extends EditorView {
         return standardToolbarItems(this);
     }
 
-    createTextEditingView(parent, st) { return new TextEditingView(parent, st); }
-    createEdgeEditingView(parent, dragState, st) { return new EdgeEditingView(parent, dragState, st); }
-    createCellEditingView(parent, st) { return new CellEditingView(parent, st); }
+    createTextEditingView(parent, st) { return new TextEditingView(parent, this.history, st); }
+    createEdgeEditingView(parent, st, dragState) { void parent; void st; void dragState; return this; }
+    createCellEditingView(parent, st) { return new CellEditingView(parent, this.history, st); }
+    createVerticalCellSlicingView(parent, st) { return new VerticalCellSlicingView(parent, this.history, st); }
+    createHorizontalCellSlicingView(parent, st) { return new HorizontalCellSlicingView(parent, this.history, st); }
 }
