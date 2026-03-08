@@ -34,9 +34,27 @@ export interface CommonState {
 export type Type = "string" | "number" | "point" | "glpk" | "boolean";
 
 /**
- * The inverse operation, or `null` if the operation has no inverse,
+ * The inverse operation.
  */
-export type Inverse<S> = (st: S) => Promise<void>;
+export interface Inverse<S> {
+  /**
+   * A description of the forward operation to which this is an
+   * inverse operation.
+   */
+  fwdDescription?: string;
+  /**
+   * A function which tries to compose this inverse with another
+   * inverse. It is applied to an inverse that occured _before_ this
+   * inverse. It returns a new `Inverse` if the inverses could be
+   * composed, or `null` if they couldn't.
+   */
+  compose?(i: Inverse<any>): Inverse<S> | null;
+  /**
+   * A function which, when applied to the state, will mutate it
+   * undoing the forward operation.
+   */
+  apply(st: S): Promise<void>;
+}
 
 interface PrimitiveSignatureBase {
   /** The function */

@@ -7,16 +7,11 @@
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as state from "../state-utils.js";
+import { id } from "../state-utils.js";
 import * as util from "../../util.js";
 
 /** @import { Inverse } from "../common-state.d.ts" */
 /** @import { TextPrimsState, CommonState, Cell } from "./state.d.ts"; */
-
-/**
- * The identity inverse.
- * @type {Inverse<TextPrimsState>}
- */
-export const id = async (_st) => {};
 
 /**
  * Update the last global column to the currently selected column.
@@ -63,6 +58,58 @@ function _putPointOnLocalPosition(st, leaf, pt, newGlobalCol) {
     }
 
     return true;
+}
+
+/**
+ * An object representing the inverse of an operation which only moves
+ * the location of the global point.
+ *
+ * @implements {Inverse<TextPrimsState>}
+ */
+class PutPointOnGlobalPositionInverse  {
+    /** @type {point.P2} */
+    #newPos
+
+    /** @type {point.P2} */
+    #oldPos
+
+    /** @type {number} */
+    #oldGlobalCol
+
+    /**
+     * @param {point.P2} newPos The new global position.
+     * @param {point.P2} oldPos The old global position.
+     * @param {number} oldGlobalCol The old global column.
+     */
+    constructor(newPos, oldPos, oldGlobalCol) {
+        this.#newPos = point.cloneP2(newPos);
+        this.#oldPos = point.cloneP2(oldPos);
+        this.#oldGlobalCol = oldGlobalCol;
+    }
+
+    /**
+     * @param {TextPrimsState} st
+     */
+    async apply(st) {
+        putPointOnGlobalPosition(st, this.#oldPos, false);
+        st.selection.lastGlobalCol = this.#oldGlobalCol;
+    }
+
+    /**
+     * @param {Inverse<any>} i
+     * @returns {Inverse<TextPrimsState> | null};
+     */
+    compose(i) {
+        if(i instanceof PutPointOnGlobalPositionInverse) {
+            return this;
+        } else {
+            return null;
+        }
+    }
+
+    get fwdDescription() {
+        return `moved point from (${this.#newPos.y}, ${this.#newPos.x}) to (${this.#oldPos.y}, ${this.#oldPos.x})`;
+    }
 }
 
 /**
@@ -118,10 +165,7 @@ export function putPointOnGlobalPosition(st, pt, updateGlobalCol) {
     const didMove    = _putPointOnLocalPosition(st, theLeaf, relLeafPos, updateGlobalCol ? pt.x : undefined);
 
     if(didMove) {
-        return async (st) => {
-            putPointOnGlobalPosition(st, oldGlobalPt, false);
-            st.selection.lastGlobalCol = oldGlobalCol;
-        };
+        return new PutPointOnGlobalPositionInverse(pt, oldGlobalPt, oldGlobalCol);
     } else {
         return id;
     }
@@ -311,36 +355,9 @@ export function putPointOnNextGlobalCol(st) {
         return putPointOnGlobalPosition(st, globalPt);
     } else {
         // Advance the point locally.
-        return _putPointOnNextCol(st);
+        const globalPt = findGlobalPoint(st);
+        return putPointOnGlobalPosition(st, point.offset(globalPt, point.mkV2(1, 0)));
     }
-
-}
-
-/**
- * Put the point directly to the right of the current point, but not
- * leaving the current leaf.
- *
- * @param {TextPrimsState} st
- * @returns {Inverse<TextPrimsState>}
- */
-function _putPointOnNextCol(st) {
-    const localRow = st.selection.pt.y;
-    const localCol = st.selection.pt.x;
-    const line     = st.selection.leaf.data.lines[localRow];
-
-    if(localCol === line.length) {
-        return id;
-    }
-
-    st.selection.pt.x += 1;
-
-    const originalGlobalCol = st.selection.lastGlobalCol;
-    _updateLastGlobalCol(st);
-
-    return async (st) => {
-        st.selection.pt.x -= 1;
-        st.selection.lastGlobalCol = originalGlobalCol;
-    };
 }
 
 /**
@@ -620,7 +637,8 @@ function _removeGlobalLine(st) {
  * @type {(st: TextPrimsState) => Promise<Inverse<TextPrimsState>>}
  */
 export const removeGlobalLine = state.withDefaultInverse(
-    (/** @type {TextPrimsState} */ st) => { _removeGlobalLine(st); }
+    (/** @type {TextPrimsState} */ st) => { _removeGlobalLine(st); },
+    "remove line"
 );
 
 /**
@@ -652,7 +670,8 @@ export const removeGlobalNewline = state.withDefaultInverse(
         putPointAtEndOfGlobalLine(st);
         const globalCol = _lastColumnOnGlobalLine(st, globalRow - 1);
         await _spreadTextOnGlobalRow(st, globalRow - 1, globalCol, textOnLine.values(), glpk);
-    }
+    },
+    "remove newline"
 );
 
 /**
@@ -682,7 +701,8 @@ export const removeString = state.withDefaultInverse(
         // Move the cursor left by the number of characters removed.
         sel.pt.x -= n;
         _updateLastGlobalCol(st);
-    }
+    },
+    "remove string"
 );
 
 /*****************************************************************************/
@@ -718,7 +738,8 @@ export const insertGlobalNewline = state.withDefaultInverse(
         await _spreadTextOnGlobalRow(st, newRow, 0, afterPointer.values(), glpk);
 
         putPointOnGlobalPosition(st, point.mkP2(0, newRow), false);
-    }
+    },
+    "insert newline"
 );
 
 /**
@@ -750,7 +771,8 @@ export const insertString = state.withDefaultInverse(
         }
 
         await _expandLeafWidthIfNecessary(st.grid, st.selection.leaf, glpk);
-    }
+    },
+    "insert string"
 );
 
 /**
@@ -840,7 +862,10 @@ export function editText(st) {
             result.selection.lastGlobalCol = this.selection.lastGlobalCol;
             return result;
         }
-    }, async (s) => {
-        Object.assign(s, snapshot);
+    }, {
+        apply: async (s) => {
+            Object.assign(s, snapshot);
+        },
+        fwdDescription: "start editing text"
     } ];
 }

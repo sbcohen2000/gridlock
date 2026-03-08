@@ -26,7 +26,8 @@ function _splitCellVerticallyAtGlobalRow(st, globalPt) {
 /**
  * @type {(st: SlicePrimsState, globalPt: point.P2) => Promise<Inverse<SlicePrimsState>>}
  */
-export const splitCellVerticallyAtGlobalRow = state.withDefaultInverse(_splitCellVerticallyAtGlobalRow);
+export const splitCellVerticallyAtGlobalRow =
+    state.withDefaultInverse(_splitCellVerticallyAtGlobalRow, "split cell vertically");
 
 /**
  * @param {SlicePrimsState} st
@@ -50,7 +51,8 @@ function _splitCellHorizontallyAtGlobalCol(st, globalPt) {
 /**
  * @type {(st: SlicePrimsState, globalPt: point.P2) => Promise<Inverse<SlicePrimsState>>}
  */
-export const splitCellHorizontallyAtGlobalCol = state.withDefaultInverse(_splitCellHorizontallyAtGlobalCol);
+export const splitCellHorizontallyAtGlobalCol =
+    state.withDefaultInverse(_splitCellHorizontallyAtGlobalCol, "split cell horizontally");
 
 /**
  * @template {CommonState} S
@@ -76,7 +78,10 @@ export function editSlice(st, direction) {
             };
             return result;
         }
-    }, async (s) => {
-        Object.assign(s, snapshot);
+    }, {
+        apply: async (s) => {
+            Object.assign(s, snapshot);
+        },
+        fwdDescription: "start slicing cells"
     } ];
 }

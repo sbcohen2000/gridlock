@@ -66,7 +66,10 @@ export function editCells(st) {
             }
             return result;
         }
-    }, async (s) => {
-        Object.assign(s, snapshot);
+    }, {
+        apply: async (s) => {
+            Object.assign(s, snapshot);
+        },
+        fwdDescription: "start editing cells"
     } ];
 }

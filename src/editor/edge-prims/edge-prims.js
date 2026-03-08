@@ -183,7 +183,10 @@ export function editEdge(st) {
             };
             return result;
         }
-    }, async (s) => {
-        Object.assign(s, snapshot);
+    }, {
+        apply: async (s) => {
+            Object.assign(s, snapshot);
+        },
+        fwdDescription: "start editing edge"
     } ];
 }

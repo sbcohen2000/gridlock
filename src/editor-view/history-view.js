@@ -10,8 +10,9 @@ export default function HistoryView(recycler, history) {
     recycler.elem({ tag: "div", key: "editor-history-view" }, e => {
         e.className = "editor-history-view";
         new Recycler(e)
-            .elems(history, "div", (_item, elem) => {
-                elem.innerText = "item";
+            .elems(history.toReversed(), "div", (item, elem) => {
+                const descr = item.fwdDescription ?? "<unknown operation>";
+                elem.innerText = descr;
             })
             .commit();
     });

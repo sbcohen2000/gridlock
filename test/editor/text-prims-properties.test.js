@@ -127,7 +127,7 @@ describe("Primitive command properties", () => {
                     const beforeGlobalPt = textPrims.findGlobalPoint(clone);
                     const beforeLastGlobalCol = clone.selection.lastGlobalCol;
                     const inv = await fn(clone, ...args);
-                    await inv(clone);
+                    await inv.apply(clone);
                     const afterSerialization = serialize.printCommonState(clone);
                     const afterGlobalPt = textPrims.findGlobalPoint(clone);
                     expect(afterSerialization).to.equal(beforeSerialization);
@@ -152,8 +152,8 @@ describe("Primitive command properties", () => {
                     const afterCommand = serialize.printCommonState(st);
 
                     const afterInverse =
-                          typeof inv === "function"
-                          ? (await inv(st), serialize.printCommonState(st))
+                          typeof inv === "object"
+                          ? (await inv.apply(st), serialize.printCommonState(st))
                           : "<no inverse>";
 
                     const errorMessage = [

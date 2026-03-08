@@ -511,9 +511,23 @@ export class EditorView extends View {
      * @param {Inverse<CommonState>} inverse
      */
     commitUndoableItem(inverse) {
-        this.#history.push({
-            inverse
-        });
+        // Try to compact the history by composing inverses.
+        while(this.#history.length > 0) {
+            const top = this.#history.at(-1);
+            if(!inverse.compose) {
+                break;
+            }
+
+            const newTop = inverse.compose(top);
+            if(!newTop) {
+                break;
+            }
+
+            this.#history.pop();
+            inverse = newTop;
+        }
+
+        this.#history.push(inverse);
         this.requestRedraw();
     }
 
@@ -556,7 +570,7 @@ export class EditorView extends View {
         }
 
         const top = this.#history.pop();
-        top.inverse(this.state);
+        top.apply(this.state);
 
         // Replace the view with one which can view the current state.
         this.requestReplaceEditorView(this.createViewForState(this.parent, this.state));
