@@ -2,7 +2,7 @@ import * as grid from "../grid.js";
 import { editText } from "./text-prims/text-prims.js";
 
 /** @import { CommonState, Cell } from "./common-state.d.ts" */
-/** @import { TextPrimsState } from "./text-prims/state.d.ts" */
+/** @import { TextPrimsState } from "./text-prims/state.js" */
 
 /**
  * Create a `TextPrimsState` from a grid.
@@ -12,7 +12,6 @@ import { editText } from "./text-prims/text-prims.js";
  */
 export function commonStateFromGrid(g) {
     return editText({
-        type: "TextPrimsState",
         grid: g,
         clone() {
             /**

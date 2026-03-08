@@ -13,11 +13,6 @@ interface Cell {
 
 export interface CommonState {
   /**
-   * The type of the state.
-   */
-  type: string;
-
-  /**
    * The current grid.
    */
   grid: Grid<Cell>;
@@ -53,7 +48,7 @@ export interface Inverse<S> {
    * A function which, when applied to the state, will mutate it
    * undoing the forward operation.
    */
-  apply(st: S): Promise<void>;
+  apply(st: S): Promise<S>;
 }
 
 interface PrimitiveSignatureBase {

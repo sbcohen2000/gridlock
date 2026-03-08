@@ -7,7 +7,7 @@ import { expect } from "chai";
  * Create a CellPrimsState from a cell-grid string.
  *
  * @param {string} src
- * @returns {import("../../src/editor/cell-prims/state.d.ts").CellPrimsState}
+ * @returns {import("../../src/editor/cell-prims/state.js").CellPrimsState}
  */
 function mkCellState(src) {
     return cellPrims.editCells(serialize.textEditingStateFromString(src))[0];

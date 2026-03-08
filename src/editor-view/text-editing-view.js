@@ -10,7 +10,8 @@ import { standardToolbarItems } from "./standard-toolbar.js";
 import { theGLPKInstance } from "../glpk.js";
 
 /** @import { Recycler } from "../framework.js" */
-/** @import { TextPrimsState, Cell } from "../editor/text-prims/state.d.ts" */
+/** @import { TextPrimsState } from "../editor/text-prims/state.js" */
+/** @import { Cell } from "../editor/common-state.d.ts" */
 /** @import { HistoryItem } from "./history.d.ts" */
 
 export class TextEditingView extends EditorView {

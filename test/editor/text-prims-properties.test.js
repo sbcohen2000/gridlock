@@ -9,7 +9,7 @@ import { arbCellGrid } from "../arbitrary-cell-grid.js";
 import { arbitraryPrimitiveCommand, summarizePrimitiveCommands } from "../arbitrary-primitive-command.js";
 import { expect } from "chai";
 
-/** @import { TextPrimsState } from "../../src/editor/text-prims/state.d.ts" */
+/** @import { TextPrimsState } from "../../src/editor/text-prims/state.js" */
 
 const glpk = await GLPK();
 

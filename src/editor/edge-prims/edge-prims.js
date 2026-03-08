@@ -7,9 +7,10 @@
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as state from "../state-utils.js";
+import { EdgePrimsState } from "./state.js";
 
-/** @import { Inverse } from "../common-state.d.ts" */
-/** @import { EdgePrimsState, EdgeLocation, Cell, CommonState } from "./state.d.ts" */
+/** @import { Inverse, CommonState, Cell } from "../common-state.d.ts" */
+/** @import { EdgeLocation } from "./state.js" */
 
 /**
  * Select an edge of the leaf under the given global point. Edge is one
@@ -166,26 +167,9 @@ export function editEdge(st) {
     const snapshot = st.clone();
     const firstLeaf = grid.allLeaves(st.grid).next().value;
 
-    return [ {
-        type: "EdgePrimsState",
-        grid: st.grid,
-        selection: { edge: "Right", leaf: firstLeaf },
-        clone() {
-            const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-            const leafPos = grid.posOfLeaf(this.grid, this.selection.leaf);
-            const newLeaf = grid.leafUnderPoint(g, leafPos);
-            /** @type {EdgePrimsState} */
-            const result = {
-                type: "EdgePrimsState",
-                grid: g,
-                clone: this.clone,
-                selection: { edge: this.selection.edge, leaf: newLeaf }
-            };
-            return result;
-        }
-    }, {
-        apply: async (s) => {
-            Object.assign(s, snapshot);
+    return [ new EdgePrimsState(st.grid, { edge: "Right", leaf: firstLeaf }), {
+        apply: async (_s) => {
+            return snapshot;
         },
         fwdDescription: "start editing edge"
     } ];

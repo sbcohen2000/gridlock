@@ -8,7 +8,7 @@ import { expect } from "chai";
  * Create an EdgePrimsState from a cell-grid string.
  *
  * @param {string} src
- * @returns {import("../../src/editor/edge-prims/state.d.ts").EdgePrimsState}
+ * @returns {import("../../src/editor/edge-prims/state.js").EdgePrimsState}
  */
 function mkEdgeState(src) {
     return edgePrims.editEdge(serialize.textEditingStateFromString(src))[0];

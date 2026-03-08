@@ -5,6 +5,10 @@ import * as textPrims from "./editor/text-prims/text-prims.js";
 /** @import { Recycler } from "./framework.js" */
 import { CommittableRecycler } from "./framework.js";
 import { KeyViewEvent, View, ViewEvent } from "./view.js";
+import { TextPrimsState } from "./editor/text-prims/state.js";
+import { EdgePrimsState } from "./editor/edge-prims/state.js";
+import { CellPrimsState } from "./editor/cell-prims/state.js";
+import { SlicePrimsState } from "./editor/slice-prims/state.js";
 
 import binder_ring_center_url from "../assets/binder-ring-center.png";
 import binder_ring_end_url from "../assets/binder-ring-end.png";
@@ -12,10 +16,7 @@ import { padLeftToLength } from "./util.js";
 import HistoryView from "./editor-view/history-view.js";
 
 /** @import { CommonState, Cell, Inverse } from "./editor/common-state.d.ts" */
-/** @import { TextPrimsState } from "./editor/text-prims/state.d.ts" */
-/** @import { EdgePrimsState, EdgeLocation } from "./editor/edge-prims/state.d.ts" */
-/** @import { CellPrimsState } from "./editor/cell-prims/state.d.ts" */
-/** @import { SlicePrimsState } from "./editor/slice-prims/state.d.ts" */
+/** @import { EdgeLocation } from "./editor/edge-prims/state.js" */
 /** @import { ToolbarDescription } from "./editor-view/toolbar.js" */
 /** @import { HistoryItem } from "./editor-view/history.d.ts" */
 
@@ -581,16 +582,16 @@ export class EditorView extends View {
         this.requestRedraw();
     }
 
-    undo() {
+    async undo() {
         if(this.#history.length === 0) {
             return;
         }
 
         const top = this.#history.pop();
-        top.apply(this.state);
+        const newState = await top.apply(this.state);
 
         // Replace the view with one which can view the current state.
-        this.requestReplaceEditorView(this.createViewForState(this.parent, this.state));
+        this.requestReplaceEditorView(this.createViewForState(this.parent, newState));
     }
 
     /*************************************************************************/
@@ -608,28 +609,27 @@ export class EditorView extends View {
 
     /**
      * Create a new view appropriate for viewing the given state,
-     * by discriminating on `st.type`.
+     * by discriminating on the class of `st`.
      *
      * @param {View} parent
      * @param {CommonState} st
      * @returns {EditorView}
      */
     createViewForState(parent, st) {
-        if(st.type === "TextPrimsState") {
-            return this.createTextEditingView(parent, /** @type {TextPrimsState} */ (st));
-        } else if(st.type === "EdgePrimsState") {
-            return this.createEdgeEditingView(parent, /** @type {EdgePrimsState} */ (st));
-        } else if(st.type === "CellPrimsState") {
-            return this.createCellEditingView(parent, /** @type {CellPrimsState} */ (st));
-        } else if(st.type === "SlicePrimsState") {
-            const sliceSt = /** @type {SlicePrimsState} */ (st);
-            if(sliceSt.direction === "Vertical") {
-                return this.createVerticalCellSlicingView(parent, sliceSt);
+        if(st instanceof TextPrimsState) {
+            return this.createTextEditingView(parent, st);
+        } else if(st instanceof EdgePrimsState) {
+            return this.createEdgeEditingView(parent, st);
+        } else if(st instanceof CellPrimsState) {
+            return this.createCellEditingView(parent, st);
+        } else if(st instanceof SlicePrimsState) {
+            if(st.direction === "Vertical") {
+                return this.createVerticalCellSlicingView(parent, st);
             } else {
-                return this.createHorizontalCellSlicingView(parent, sliceSt);
+                return this.createHorizontalCellSlicingView(parent, st);
             }
         } else {
-            throw new Error(`createViewForState: unknown state type '${st.type}'`);
+            throw new Error(`createViewForState: unknown state type '${st.constructor.name}'`);
         }
     }
 
@@ -638,7 +638,7 @@ export class EditorView extends View {
      *
      * @abstract
      * @param {View} parent
-     * @param {import("./editor/text-prims/state.d.ts").TextPrimsState} st
+     * @param {TextPrimsState} st
      * @returns {EditorView}
      */
     createTextEditingView(parent, st) {
@@ -651,7 +651,7 @@ export class EditorView extends View {
      *
      * @abstract
      * @param {View} parent
-     * @param {import("./editor/edge-prims/state.d.ts").EdgePrimsState} st
+     * @param {EdgePrimsState} st
      * @param {import("./editor-view/edge-editing-view.js").DragState} [dragState]
      * @returns {EditorView}
      */
@@ -665,7 +665,7 @@ export class EditorView extends View {
      *
      * @abstract
      * @param {View} parent
-     * @param {import("./editor/cell-prims/state.d.ts").CellPrimsState} st
+     * @param {CellPrimsState} st
      * @returns {EditorView}
      */
     createCellEditingView(parent, st) {
@@ -678,7 +678,7 @@ export class EditorView extends View {
      *
      * @abstract
      * @param {View} parent
-     * @param {import("./editor/slice-prims/state.d.ts").SlicePrimsState} st
+     * @param {SlicePrimsState} st
      * @returns {EditorView}
      */
     createVerticalCellSlicingView(parent, st) {
@@ -691,7 +691,7 @@ export class EditorView extends View {
      *
      * @abstract
      * @param {View} parent
-     * @param {import("./editor/slice-prims/state.d.ts").SlicePrimsState} st
+     * @param {SlicePrimsState} st
      * @returns {EditorView}
      */
     createHorizontalCellSlicingView(parent, st) {

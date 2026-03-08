@@ -9,7 +9,7 @@ import { View } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 
 /** @import { Recycler } from "../framework.js" */
-/** @import { CellPrimsState } from "../editor/cell-prims/state.d.ts" */
+/** @import { CellPrimsState } from "../editor/cell-prims/state.js" */
 /** @import { Cell } from "../editor/common-state.d.ts" */
 /** @import { HistoryItem } from "./history.d.ts" */
 

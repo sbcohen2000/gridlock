@@ -11,7 +11,8 @@ import { standardToolbarItems } from "./standard-toolbar.js";
 import { theGLPKInstance } from "../glpk.js";
 
 /** @import { Recycler } from "../framework.js" */
-/** @import { EdgePrimsState, Cell } from "../editor/edge-prims/state.d.ts" */
+/** @import { EdgePrimsState } from "../editor/edge-prims/state.js" */
+/** @import { Cell } from "../editor/common-state.d.ts" */
 /** @import { HistoryItem } from "./history.d.ts" */
 
 /**

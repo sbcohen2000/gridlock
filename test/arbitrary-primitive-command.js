@@ -4,7 +4,7 @@ import * as serialize from "../src/editor/serialize-common-state.js";
 import { PRIMITIVES as TEXT_PRIMS } from "../src/editor/text-prims/registry.js";
 
 /** @import { Type } from "../src/editor/common-state.js" */
-/** @import { TextPrimsState } from "../src/editor/text-prims/state.d.ts" */
+/** @import { TextPrimsState } from "../src/editor/text-prims/state.js" */
 
 /**
  * Generate an arbitrary value for a given primitive type.

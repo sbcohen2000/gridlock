@@ -7,9 +7,9 @@
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as state from "../state-utils.js";
+import { CellPrimsState } from "./state.js";
 
-/** @import { Inverse } from "../common-state.d.ts" */
-/** @import { CellPrimsState, CommonState } from "./state.d.ts" */
+/** @import { Inverse, CommonState } from "../common-state.d.ts" */
 
 /**
  * Add the leaf under the given `pt` to the selection.
@@ -47,28 +47,9 @@ export const selectLeafUnderPoint = state.withDefaultInverse(_selectLeafUnderPoi
 export function editCells(st) {
     const snapshot = st.clone();
 
-    return [ {
-        type: "CellPrimsState",
-        grid: st.grid,
-        selection: { leaves: new Set() },
-        clone() {
-            const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-            /** @type {CellPrimsState} */
-            const result = {
-                type: "CellPrimsState",
-                grid: g,
-                clone: this.clone,
-                selection: { leaves: new Set() }
-            };
-            for(const leaf of this.selection.leaves.values()) {
-                const leafUl = grid.posOfLeaf(this.grid, leaf);
-                _selectLeafUnderPoint(result, leafUl, false);
-            }
-            return result;
-        }
-    }, {
-        apply: async (s) => {
-            Object.assign(s, snapshot);
+    return [ new CellPrimsState(st.grid, { leaves: new Set() }), {
+        apply: async (_s) => {
+            return snapshot;
         },
         fwdDescription: "start editing cells"
     } ];

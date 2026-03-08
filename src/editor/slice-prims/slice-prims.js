@@ -1,9 +1,9 @@
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as state from "../state-utils.js";
+import { SlicePrimsState } from "./state.js";
 
-/** @import { Inverse } from "../common-state.d.ts" */
-/** @import { SlicePrimsState, CommonState } from "./state.d.ts" */
+/** @import { Inverse, CommonState } from "../common-state.d.ts" */
 
 /**
  * @param {SlicePrimsState} st
@@ -63,24 +63,9 @@ export const splitCellHorizontallyAtGlobalCol =
 export function editSlice(st, direction) {
     const snapshot = st.clone();
 
-    return [ {
-        type: "SlicePrimsState",
-        grid: st.grid,
-        direction,
-        clone() {
-            const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-            /** @type {SlicePrimsState} */
-            const result = {
-                type: "SlicePrimsState",
-                grid: g,
-                clone: this.clone,
-                direction: this.direction
-            };
-            return result;
-        }
-    }, {
-        apply: async (s) => {
-            Object.assign(s, snapshot);
+    return [ new SlicePrimsState(st.grid, direction), {
+        apply: async (_s) => {
+            return snapshot;
         },
         fwdDescription: "start slicing cells"
     } ];

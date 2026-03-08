@@ -27,6 +27,7 @@ export class SnapshotInverse {
      */
     async apply(st) {
         Object.assign(st, this.#snapshot);
+        return st;
     }
 
     get fwdDescription() {
@@ -61,9 +62,9 @@ export function withDefaultInverse(fn, fwdDescription) {
  */
 export class IdInverse {
     /**
-     * @param {CommonState} _st
+     * @param {CommonState} st
      */
-    async apply(_st) {}
+    async apply(st) { return st; }
 
     /**
      * @param {Inverse<any>} i
@@ -79,4 +80,4 @@ export class IdInverse {
     }
 }
 
-export const id = new IdInverse();
+export const id = /** @type {Inverse<any>} */ (new IdInverse());

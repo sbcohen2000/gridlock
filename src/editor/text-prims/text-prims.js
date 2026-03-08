@@ -10,9 +10,9 @@ import * as state from "../state-utils.js";
 import { id, IdInverse } from "../state-utils.js";
 export { IdInverse };
 import * as util from "../../util.js";
+import { TextPrimsState } from "./state.js";
 
-/** @import { Inverse } from "../common-state.d.ts" */
-/** @import { TextPrimsState, CommonState, Cell } from "./state.d.ts"; */
+/** @import { Inverse, CommonState, Cell } from "../common-state.d.ts" */
 
 /**
  * Update the last global column to the currently selected column.
@@ -94,6 +94,7 @@ class PutPointOnGlobalPositionInverse  {
     async apply(st) {
         putPointOnGlobalPosition(st, this.#oldPos, false);
         st.selection.lastGlobalCol = this.#oldGlobalCol;
+        return st;
     }
 
     /**
@@ -837,35 +838,13 @@ export function editText(st) {
     const snapshot = st.clone();
     const firstLeaf = grid.allLeaves(st.grid).next().value;
 
-    return [ {
-        type: "TextPrimsState",
-        grid: st.grid,
-        selection: {
-            pt: point.mkP2(0, 0),
-            leaf: firstLeaf,
-            lastGlobalCol: 0
-        },
-        clone() {
-            const globalPt = findGlobalPoint(this);
-            const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-            /** @type {TextPrimsState} */
-            const result = {
-                type: "TextPrimsState",
-                grid: g,
-                clone: this.clone,
-                selection: {
-                    pt: point.mkP2(0, 0),
-                    leaf: grid.allLeaves(g).next().value,
-                    lastGlobalCol: 0
-                }
-            };
-            putPointOnGlobalPosition(result, globalPt, true);
-            result.selection.lastGlobalCol = this.selection.lastGlobalCol;
-            return result;
-        }
-    }, {
-        apply: async (s) => {
-            Object.assign(s, snapshot);
+    return [ new TextPrimsState(st.grid, {
+        pt: point.mkP2(0, 0),
+        leaf: firstLeaf,
+        lastGlobalCol: 0
+    }), {
+        apply: async (_s) => {
+            return snapshot;
         },
         fwdDescription: "start editing text"
     } ];
