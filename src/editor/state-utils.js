@@ -1,6 +1,40 @@
 /** @import { CommonState, Inverse } from "./common-state.d.ts"; */
 
 /**
+ * An inverse which snapshots the edit state.
+ *
+ * @template {CommonState} S
+ * @implements {Inverse<S>}
+ */
+export class SnapshotInverse {
+    /** @type {S} */
+    #snapshot
+
+    /** @type {string | undefined} */
+    #fwdDescription
+
+    /**
+     * @param {S} snapshot The snapshot of the state before the operation.
+     * @param {string} [fwdDescription] A description of the forward operation.
+     */
+    constructor(snapshot, fwdDescription) {
+        this.#snapshot = snapshot;
+        this.#fwdDescription = fwdDescription;
+    }
+
+    /**
+     * @param {S} st
+     */
+    async apply(st) {
+        Object.assign(st, this.#snapshot);
+    }
+
+    get fwdDescription() {
+        return this.#fwdDescription;
+    }
+}
+
+/**
  * Wrap a primitive operation so that it snapshots the state before
  * the operation and returns an inverse that restores from the
  * snapshot.
@@ -16,9 +50,7 @@ export function withDefaultInverse(fn, fwdDescription) {
     return async (/** @type {S} */ st, /** @type {A} */ ...args) => {
         const snapshot = st.clone();
         await fn(st, ...args);
-        return { apply: async (/** @type {S} */ st) => {
-            Object.assign(st, snapshot);
-        }, fwdDescription };
+        return new SnapshotInverse(snapshot, fwdDescription);
     };
 }
 
