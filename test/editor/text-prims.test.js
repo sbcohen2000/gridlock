@@ -369,7 +369,7 @@ describe("text-prims", () => {
             do {
                 await textPrims.insertString(st, "X", glpk, false);
                 --fuel;
-            } while(textPrims.putPointOnNextGlobalLine(st) !== textPrims.id && fuel > 0);
+            } while(!(textPrims.putPointOnNextGlobalLine(st) instanceof textPrims.IdInverse) && fuel > 0);
 
             expect(fuel).to.be.greaterThan(0);
 

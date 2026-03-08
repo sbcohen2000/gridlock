@@ -24,13 +24,27 @@ export function withDefaultInverse(fn, fwdDescription) {
 
 /**
  * The identity inverse.
- * @type {Inverse<CommonState>}
+ *
+ * @implements {Inverse<CommonState>}
  */
-export const id = {
-    apply: async (/** @type {CommonState} */ _st) => {},
+export class IdInverse {
+    /**
+     * @param {CommonState} _st
+     */
+    async apply(_st) {}
+
+    /**
+     * @param {Inverse<any>} i
+     * @returns {Inverse<CommonState>}
+     */
     compose(i) {
         // Identity composes with everything.
         return i;
-    },
-    fwdDescription: "no change"
-};
+    }
+
+    get fwdDescription() {
+        return "no change";
+    }
+}
+
+export const id = new IdInverse();

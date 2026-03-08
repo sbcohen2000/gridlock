@@ -7,7 +7,8 @@
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as state from "../state-utils.js";
-import { id } from "../state-utils.js";
+import { id, IdInverse } from "../state-utils.js";
+export { IdInverse };
 import * as util from "../../util.js";
 
 /** @import { Inverse } from "../common-state.d.ts" */
