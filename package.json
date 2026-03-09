@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "build": "scripts/build.sh /",
-        "watch": "esbuild src/app.js src/app.css --loader:.png=file --public-path=dist --bundle --outdir=www/dist --watch --servedir=www",
+        "watch": "esbuild src/app.js src/app.css --loader:.png=file --public-path=dist --sourcemap=inline --bundle --outdir=www/dist --watch --servedir=www",
         "clean": "rm -rf www/dist",
         "test": "mocha --recursive",
         "typecheck": "tsc -p jsconfig.typecheck.json"

@@ -125,7 +125,9 @@ export class EdgeEditingView extends EditorView {
             if(this.#dragState) {
                 this.#dragState = null;
                 root.releasePointerCapture(e.pointerId);
-                this.requestReplaceEditorView(new TextEditingView(this.parent, this.history, textPrims.editText(this.state)[0]));
+                const [st, inv] = textPrims.editText(this.state);
+                this.commitUndoableItem(inv);
+                this.requestReplaceEditorView(new TextEditingView(this.parent, this.history, st));
             }
         };
 
