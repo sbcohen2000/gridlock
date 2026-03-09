@@ -15,7 +15,12 @@ import { CommittableRecycler } from "../framework.js";
  */
 
 /**
- * @typedef {ToolbarButtonDescription | ToolbarSpacerDescription} ToolbarDescription
+ * @typedef {Object} ToolbarDividerDescription
+ * @property {"divider"} type The type of description.
+ */
+
+/**
+ * @typedef {ToolbarButtonDescription | ToolbarSpacerDescription | ToolbarDividerDescription} ToolbarDescription
  */
 
 /**
@@ -48,14 +53,25 @@ function mkToolbarButton(descr, buttonElem) {
 }
 
 /**
- * Construct or update an HTML element suitable for putting in the view toolbar.
+ * Construct or update an HTML element suitable for putting in the
+ * view toolbar.
  *
  * @param {ToolbarSpacerDescription} _descr
  * @param {HTMLSpanElement} spacerElem
  */
 function mkToolbarSpacer(_descr, spacerElem) {
-
     spacerElem.className = "editor-toolbar-spacer";
+}
+
+/**
+ * Construct or update an HTML element suitable for putting in the
+ * view toolbar.
+ *
+ * @param {ToolbarDividerDescription} _descr
+ * @param {HTMLSpanElement} dividerElem
+ */
+function mkToolbarDivider(_descr, dividerElem) {
+    dividerElem.className = "editor-toolbar-divider";
 }
 
 /**
@@ -66,7 +82,8 @@ function mkToolbarSpacer(_descr, spacerElem) {
  */
 export function mkToolbarItem(descr, elem) {
     switch(descr.type) {
-    case "button": return mkToolbarButton(descr, elem);
-    case "spacer": return mkToolbarSpacer(descr, elem);
+    case "button":  return mkToolbarButton(descr, elem);
+    case "spacer":  return mkToolbarSpacer(descr, elem);
+    case "divider": return mkToolbarDivider(descr, elem);
     }
 }

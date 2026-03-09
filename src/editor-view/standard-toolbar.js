@@ -126,6 +126,8 @@ export function standardToolbarItems(editorView, enabledLabel) {
             editorView.notify(new cmenu.OpenContextMenu(editorView, menuDescr));
         },
     }, {
+        type: "divider"
+    }, {
         type: "button",
         label: "about",
         iconSrc: info_icon_url,
