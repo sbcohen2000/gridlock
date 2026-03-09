@@ -5,8 +5,8 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-        "build": "esbuild src/app.js src/**/*.css --loader:.png=file --public-path=/dist --bundle --outdir=www/dist --minify",
-        "watch": "esbuild src/app.js src/**/*.css --loader:.png=file --public-path=/dist --bundle --outdir=www/dist --watch --servedir=www",
+        "build": "esbuild src/app.js src/**/*.css --loader:.png=file --public-path=dist --bundle --outdir=www/dist --minify",
+        "watch": "esbuild src/app.js src/**/*.css --loader:.png=file --public-path=dist --bundle --outdir=www/dist --watch --servedir=www",
         "clean": "rm -rf www/dist",
         "test": "mocha --recursive",
         "typecheck": "tsc -p jsconfig.typecheck.json"

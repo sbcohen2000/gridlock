@@ -24,7 +24,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build
+      - run: npx esbuild src/app.js 'src/**/*.css' --loader:.png=file --public-path=/${{ github.event.repository.name }}/dist/ --bundle --outdir=www/dist --minify
 
       - uses: actions/configure-pages@v5
 
