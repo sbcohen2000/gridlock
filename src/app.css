@@ -32,6 +32,8 @@
 .editor-line-nums-margin {
     display: flex;
     flex-direction: column;
+    margin-left: 4px;
+    margin-right: 4px;
 }
 
 .editor-line-num {
