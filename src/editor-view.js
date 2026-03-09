@@ -394,7 +394,7 @@ export class EditorView extends View {
             const sz = leaf.dims;
             const gridSpec = `${leafUl.y + 1}/${leafUl.x + 1}/span ${sz.height}/span ${sz.width}`;
 
-            leafElem.className      = "editor-leaf";
+            leafElem.className      = "editor-cell";
             leafElem.style.width    = `${sz.width}ch`;
             leafElem.style.position = "relative";
             leafElem.style.gridArea = gridSpec;
@@ -409,14 +409,27 @@ export class EditorView extends View {
                 this.onPointerDownInLeaf(ctx);
             }
 
-            new CommittableRecycler(leafElem)
-                .view(r => {
-                    for(const rowNo of leaf.data.lines.map((_, i) => i)) {
-                        this.viewLine(rowNo, leaf, leafUl, r);
-                    }
+            const r = new CommittableRecycler(leafElem)
+                  .view(r => {
+                      for(const rowNo of leaf.data.lines.map((_, i) => i)) {
+                          this.viewLine(rowNo, leaf, leafUl, r);
+                      }
+                  })
+                  .view(r => this.viewLeafSelection(leaf, r));
+
+            if(grid.leafToRightOf(this.state.grid, leaf)) {
+                r.elem({ tag: "div", key: "leaf-right-edge" }, (rightEdgeElem) => {
+                    rightEdgeElem.className = "editor-leaf-right-edge";
+                });
+            }
+
+            if(grid.leafBelow(this.state.grid, leaf)) {
+                r.elem({ tag: "div", key: "leaf-bottom-edge" }, (bottomEdgeElem) => {
+                    bottomEdgeElem.className = "editor-leaf-bottom-edge";
                 })
-                .view(r => this.viewLeafSelection(leaf, r))
-                .commit();
+            }
+
+            r.commit();
         });
     }
 
