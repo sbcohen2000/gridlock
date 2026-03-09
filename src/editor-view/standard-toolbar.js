@@ -17,8 +17,10 @@ import edit_text_icon_url from "../../www/assets/edit-text-icon.png"
 import info_icon_url from "../../www/assets/info-icon.png"
 import load_icon_url from "../../www/assets/load-icon.png";
 import merge_cells_icon_url from "../../www/assets/merge-cells-icon.png"
+import move_guide_icon_url from "../../www/assets/move-guide-icon.png"
 import save_icon_url from "../../www/assets/save-icon.png";
 import select_cells_icon_url from "../../www/assets/select-cells-icon.png";
+import slide_guide_icon_url from "../../www/assets/slide-guide-icon.png"
 import split_horizontally_icon_url from "../../www/assets/split-horizontally-icon.png";
 import split_vertically_icon_url from "../../www/assets/split-vertically-icon.png";
 import trim_edge_icon_url from "../../www/assets/trim-edge-icon.png";
@@ -95,6 +97,26 @@ export function standardToolbarItems(editorView, enabledLabel) {
             editorView.requestReplaceEditorView(
                 new HorizontalCellSlicingView(editorView.parent, editorView.history, st));
         }
+    }, {
+        type: "divider",
+    }, {
+        type: "button",
+        iconSrc: move_guide_icon_url,
+        label: "move guides",
+        enabled: true,
+        onclick: () => {
+            console.log("TODO (move guides)");
+        }
+    }, {
+        type: "button",
+        iconSrc: slide_guide_icon_url,
+        label: "slide guides",
+        enabled: false,
+        onclick: () => {
+            console.log("TODO (slide guides)");
+        }
+    }, {
+        type: "divider",
     }, {
         type: "spacer",
     }, {
