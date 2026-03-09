@@ -10,8 +10,8 @@ import { EdgePrimsState } from "./editor/edge-prims/state.js";
 import { CellPrimsState } from "./editor/cell-prims/state.js";
 import { SlicePrimsState } from "./editor/slice-prims/state.js";
 
-import binder_ring_center_url from "../assets/binder-ring-center.png";
-import binder_ring_end_url from "../assets/binder-ring-end.png";
+import binder_ring_center_url from "../www/assets/binder-ring-center.png";
+import binder_ring_end_url from "../www/assets/binder-ring-end.png";
 import { padLeftToLength } from "./util.js";
 import HistoryView from "./editor-view/history-view.js";
 

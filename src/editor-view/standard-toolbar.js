@@ -12,14 +12,14 @@ import { TextEditingView } from "./text-editing-view.js";
 /** @import { EditorView } from "../editor-view.js" */
 /** @import { ToolbarDescription } from "./toolbar.js" */
 
-import edit_text_icon_url from "../../assets/edit-text-icon.png"
-import load_icon_url from "../../assets/load-icon.png";
-import merge_cells_icon_url from "../../assets/merge-cells-icon.png"
-import save_icon_url from "../../assets/save-icon.png";
-import select_cells_icon_url from "../../assets/select-cells-icon.png";
-import split_horizontally_icon_url from "../../assets/split-horizontally-icon.png";
-import split_vertically_icon_url from "../../assets/split-vertically-icon.png";
-import trim_edge_icon_url from "../../assets/trim-edge-icon.png";
+import edit_text_icon_url from "../../www/assets/edit-text-icon.png"
+import load_icon_url from "../../www/assets/load-icon.png";
+import merge_cells_icon_url from "../../www/assets/merge-cells-icon.png"
+import save_icon_url from "../../www/assets/save-icon.png";
+import select_cells_icon_url from "../../www/assets/select-cells-icon.png";
+import split_horizontally_icon_url from "../../www/assets/split-horizontally-icon.png";
+import split_vertically_icon_url from "../../www/assets/split-vertically-icon.png";
+import trim_edge_icon_url from "../../www/assets/trim-edge-icon.png";
 
 /**
  * Build the standard set of toolbar items for an editor view.
