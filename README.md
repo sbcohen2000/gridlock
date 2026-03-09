@@ -35,37 +35,22 @@ This will run the test called "Can parse a leaf".
 ## TODO
 - [ ] Example palette
 - [ ] Command palette
-- [x] Visualize spaces in the editor with a dot.
-- [x] Ctrl-f should skip over the end/beginning of a leaf if there is
-      nothing in the way.
-- [x] Dragging a rule resizes the leaf to the left of it.
-    - [x] Need to introduce a new selection mode whose atomic selections
-            are leaves rather than points. The dragging should operate
-            on this kind of selection.
-    - [x] Change the selection type for edge selections so that they reference
-            a single leaf and a direction, rather than a parent node (this will
-            permit selecting more kinds of edges).
-        - [x] Restrict left-right drags so that they don't intersect
-              the text.
-        - [ ] Allow the leftmost and bottom-most edges to be selected
-              and moved
 - [ ] Other leaf-level tools:
     - [ ] Trimming a guide (merges the cells to the left and right)
-    - [ ] Introducing a new rule inside a cell (maybe it gets put in the
-            middle).
     - [ ] Dragging a rule without resizing the cell to the left (it
             shifts contents between two cells, effectively only changing
             the position of the rule).
 - [ ] Usability
-  - [ ] It should be possible to enter select/cell/edge mode by
-      clicking on an edge while in text mode.
-  - [ ] Select edges/cells should be split into two separate modes
-  - [ ] It should be possible to enter cell selection mode from text
-      mode by double-clicking. (Maybe double-clicking explicitly on a
-      non-text portion of the cell?)
+  - [ ] It should be possible to induce a vertical guide by selecting
+      the characters to left align (and vertical/horizontal guides are
+      synthesized).
   - [ ] A cell should be designated with a "fill" character other than
         space.
 - [ ] Aesthetics
+  - [ ] Trailing spaces should look more paper-like
+  - [ ] Cell halo should be more subtle
+  - [ ] Give stuff a little more breathing room (especially around
+        spiral binding)
   - [ ] It should be possible to hide a guide (how will the user show
         it again? Is hover sufficient?)
 - [ ] Align-right/align left?
@@ -75,10 +60,7 @@ This will run the test called "Can parse a leaf".
       the special case where we want a table).
       - [ ] Automatic delimiters for tables (e.g. adding a column to a
             CSV)
-- [ ] Persistent multi-caret interaction style. i.e. select multiple
-      elements and then induce guide.
-- [ ] Can we scope rules based on parsing?
-- [ ] Would be nice if everything is happening in one mode
+- [ ] Would be nice if more things are happening one mode
 
 ## Long-Term TODOs
 - [ ] Per-cell types
@@ -113,9 +95,12 @@ algorithm to ensure consistency in the other grid cells:
 10. Traverse the tree, and correct the dimensions of each `Split` node
     so that it agrees with its children.
 
-## Examples
+## Example Ideas
 
 - C-style macros slashes at the end of the line (line continuations)
-- multi-line strings for langauges which don't support them (plusses
+- multi-line strings for languages which don't support them (plusses
   at the end of the line).
 - https://cs50.harvard.edu/college/2023/fall/notes/8/cs50Week8Slide014.png
+- Replicate some features from notebooks?
+- Plugins for e.g. Obsidian which add some structure? Can we reproduce
+  some of those behaviors?
