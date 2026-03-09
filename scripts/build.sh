@@ -9,3 +9,11 @@ npx esbuild src/app.js src/app.css \
     --bundle \
     --outdir=www/dist \
     --minify
+
+COMMIT_HASH=$(git rev-parse HEAD)
+SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
+
+sed -i \
+    -e "s/REPLACE_WITH_SHORT_COMMIT_HASH/${SHORT_COMMIT_HASH}/g" \
+    -e "s/REPLACE_WITH_COMMIT_HASH/${COMMIT_HASH}/g" \
+    www/dist/app.js

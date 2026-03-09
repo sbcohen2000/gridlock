@@ -1,5 +1,7 @@
 # Gridlock
 
+[[live demo][https://sbcohen2000.github.io/gridlock/]]
+
 ## Building (Development)
 
 To run the development server, run:

@@ -173,62 +173,62 @@ export class ContextMenuView extends View {
     view(recycler) {
         recycler.elem("div", (ctxMenuRoot) => {
             new CommittableRecycler(ctxMenuRoot)
-            .elem("div", (screenElem) => {
-                // Construct an element to sit behind the context
-                // menu, filling the entire screen, whose purpose is
-                // to detect mouse down events outside of the context
-                // menu, so that the user can close the menu by
-                // clicking outside of it.
-                screenElem.className = "editor-context-menu-screen";
-                screenElem.onpointerdown = () => {
-                    this.notify(new DismissContextMenu(this));
-                };
-            })
-            .elem("div", (menuElem) => {
-                this.#menuElem = menuElem;
-                this.#menuElemResizeObserver.disconnect();
-                this.#menuElemResizeObserver.observe(this.#menuElem);
+                .elem("div", (screenElem) => {
+                    // Construct an element to sit behind the context
+                    // menu, filling the entire screen, whose purpose is
+                    // to detect mouse down events outside of the context
+                    // menu, so that the user can close the menu by
+                    // clicking outside of it.
+                    screenElem.className = "editor-context-menu-screen";
+                    screenElem.onclick = () => {
+                        this.notify(new DismissContextMenu(this));
+                    };
+                })
+                .elem("div", (menuElem) => {
+                    this.#menuElem = menuElem;
+                    this.#menuElemResizeObserver.disconnect();
+                    this.#menuElemResizeObserver.observe(this.#menuElem);
 
-                // Note that positioning of the element is deferred until we
-                // know the rendered size of the context menu, which will be
-                // reported to this class via the above `ResizeObserver`.
-                this.#menuElem.className = "editor-context-menu";
+                    // Note that positioning of the element is deferred until we
+                    // know the rendered size of the context menu, which will be
+                    // reported to this class via the above `ResizeObserver`.
+                    this.#menuElem.className = "editor-context-menu";
 
-                // We always create the element with `overflow:
-                // scroll` so that the element is measured with scroll
-                // bars. This means we'll allocate room for them if
-                // they turn out to be necessary.
-                this.#menuElem.style.overflow = "scroll";
+                    // We always create the element with `overflow:
+                    // scroll` so that the element is measured with scroll
+                    // bars. This means we'll allocate room for them if
+                    // they turn out to be necessary.
+                    this.#menuElem.style.overflow = "scroll";
 
-                // This handler applies to buttons with no click
-                // handlers, or labels or dividers.
-                this.#menuElem.onpointerdown = () => {
-                    this.notify(new DismissContextMenu(this));
-                };
+                    // This handler applies to buttons with no click
+                    // handlers, or labels or dividers.
+                    this.#menuElem.onclick = () => {
+                        this.notify(new DismissContextMenu(this));
+                    };
 
-                new CommittableRecycler(this.#menuElem)
-                    .elems(this.#menuDescr.menu, { tag: "div", clearAttributes: true } , (item, elem) => {
-                        switch(item.type) {
-                        case "button": {
-                            elem.className = "editor-context-menu-button";
-                            elem.onclick = item.onclick;
-                            elem.innerText = item.label;
-                            break;
-                        }
-                        case "label": {
-                            elem.className = "editor-context-menu-label";
-                            elem.innerText = item.label;
-                            break;
-                        }
-                        case "divider": {
-                            elem.className = "editor-context-menu-divider";
-                            break;
-                        }
-                        }
-                    })
-                    .commit();
-            })
-            .commit();
+                    new CommittableRecycler(this.#menuElem)
+                        .elems(this.#menuDescr.menu, { tag: "div", clearAttributes: true } , (item, elem) => {
+                            switch(item.type) {
+                            case "button": {
+                                elem.className = "editor-context-menu-button";
+                                elem.onclick = item.onclick;
+                                elem.innerText = item.label;
+                                break;
+                            }
+                            case "label": {
+                                elem.className = "editor-context-menu-label";
+                                elem.innerText = item.label;
+                                break;
+                            }
+                            case "divider": {
+                                elem.className = "editor-context-menu-divider";
+                                break;
+                            }
+                            }
+                        })
+                        .commit();
+                })
+                .commit();
         });
     }
 }

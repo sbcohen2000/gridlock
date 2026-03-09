@@ -5,6 +5,7 @@ import * as serialize from "../editor/serialize-common-state.js";
 import * as slicePrims from "../editor/slice-prims/slice-prims.js";
 import * as textPrims from "../editor/text-prims/text-prims.js";
 import * as util from "../util.js";
+import { SHORT_COMMIT_HASH, COMMIT_HASH } from "../commit-hash.js";
 import { CellEditingView } from "./cell-editing-view.js";
 import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slicing-view.js";
 import { TextEditingView } from "./text-editing-view.js";
@@ -13,6 +14,7 @@ import { TextEditingView } from "./text-editing-view.js";
 /** @import { ToolbarDescription } from "./toolbar.js" */
 
 import edit_text_icon_url from "../../www/assets/edit-text-icon.png"
+import info_icon_url from "../../www/assets/info-icon.png"
 import load_icon_url from "../../www/assets/load-icon.png";
 import merge_cells_icon_url from "../../www/assets/merge-cells-icon.png"
 import save_icon_url from "../../www/assets/save-icon.png";
@@ -123,5 +125,26 @@ export function standardToolbarItems(editorView, enabledLabel) {
             };
             editorView.notify(new cmenu.OpenContextMenu(editorView, menuDescr));
         },
+    }, {
+        type: "button",
+        label: "about",
+        iconSrc: info_icon_url,
+        ...maybeEnabled("about"),
+        onclick: (e) => {
+            /** @type {cmenu.ContextMenuDescription} */
+            const menuDescr = {
+                origin: point.mkP2(e.clientX, e.clientY),
+                menu: [
+                    cmenu.label("About"),
+                    cmenu.button("Fork me on GitHub", () => {
+                        window.open("https://github.com/sbcohen2000/gridlock", "_blank");
+                    }),
+                    cmenu.button(SHORT_COMMIT_HASH, () => {
+                        window.open(`https://github.com/sbcohen2000/gridlock/commit/${COMMIT_HASH}`, "_blank");
+                    }),
+                ]
+            };
+            editorView.notify(new cmenu.OpenContextMenu(editorView, menuDescr))
+        }
     }];
 }
