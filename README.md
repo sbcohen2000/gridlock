@@ -32,42 +32,6 @@ $  npx mocha -g "Can parse a leaf"
 ```
 This will run the test called "Can parse a leaf".
 
-## TODO
-- [ ] Example palette
-- [ ] Command palette
-- [ ] Other leaf-level tools:
-    - [ ] Trimming a guide (merges the cells to the left and right)
-    - [ ] Dragging a rule without resizing the cell to the left (it
-            shifts contents between two cells, effectively only changing
-            the position of the rule).
-- [ ] Usability
-  - [ ] It should be possible to induce a vertical guide by selecting
-      the characters to left align (and vertical/horizontal guides are
-      synthesized).
-  - [ ] A cell should be designated with a "fill" character other than
-        space.
-- [ ] Aesthetics
-  - [ ] Trailing spaces should look more paper-like
-  - [ ] Cell halo should be more subtle
-  - [ ] Give stuff a little more breathing room (especially around
-        spiral binding)
-  - [ ] It should be possible to hide a guide (how will the user show
-        it again? Is hover sufficient?)
-- [ ] Align-right/align left?
-
-## Dev's TODOs
-- [ ] Can we start with a table, which always stays constrained (for
-      the special case where we want a table).
-      - [ ] Automatic delimiters for tables (e.g. adding a column to a
-            CSV)
-- [ ] Would be nice if more things are happening one mode
-
-## Long-Term TODOs
-- [ ] Per-cell types
-  - [ ] Other kinds of content/style per cell (images, rich text, etc.)
-
-# Notes
-
 ## Constraint Solving
 
 When the user wants to expand a leaf in the grid, we use the following
