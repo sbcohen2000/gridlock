@@ -1,6 +1,6 @@
 # Gridlock
 
-[live demo](https://sbcohen2000.github.io/gridlock/])
+[live demo](https://sbcohen2000.github.io/gridlock/)
 
 ## Building (Development)
 
