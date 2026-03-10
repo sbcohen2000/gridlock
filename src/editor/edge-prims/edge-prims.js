@@ -191,7 +191,83 @@ export const moveHorizontalEdge = state.withDefaultInverse(_moveHorizontalEdge);
  * @param {number} n
  */
 function _slideHorizontalEdge(st, n) {
-    // TODO
+    if(st.selection.edge === "Right") {
+        return;
+    }
+
+    const [upper, lower] = grid.lowerNeighborhoodOfLeaf(st.grid, st.selection.leaf);
+    const outerRect =
+          rect.unions(
+              grid.outerRectangleOfLeaves(st.grid, upper.values()),
+              grid.outerRectangleOfLeaves(st.grid, lower.values())
+          );
+
+    // Clamp n so that no leaf shrinks below height 1.
+    for(const ul of upper) {
+        n = Math.max(n, -(ul.dims.height - 1));
+    }
+
+    for(const ll of lower) {
+        n = Math.min(n, ll.dims.height - 1);
+    }
+
+    /**
+     * Find the upper-left corner of a leaf in the grid, relative to
+     * `outerRect`.
+     *
+     * @param {grid.Leaf<Cell>} leaf
+     */
+    const relUpperLeft = (leaf) => {
+        return point.offset(
+            grid.posOfLeaf(st.grid, leaf),
+            point.mkV2(-outerRect.left, -outerRect.top)
+        );
+    }
+
+    // 1. Construct a rectangle of characters to hold the text of the
+    // leaves.
+    /** @type {(string | null)[][]} */
+    const text = Array.from({ length: rect.height(outerRect) }, () =>
+        Array.from({ length: rect.width(outerRect) }, () => null));
+
+    // 2. Project the leaf text onto `text`.
+    /** @param {grid.Leaf<Cell>} leaf */
+    const projOntoText = (leaf) => {
+        const upperLeft = relUpperLeft(leaf);
+        for(let i = 0; i < leaf.data.lines.length; ++i) {
+            const line = leaf.data.lines[i];
+            const row = i + upperLeft.y;
+            text[row].splice(upperLeft.x, line.length, ...Array.from(line));
+        }
+    }
+
+    upper.forEach(projOntoText);
+    lower.forEach(projOntoText);
+
+    // 3. Resize leaves.
+    upper.forEach(leaf => { leaf.dims.height += n });
+    lower.forEach(leaf => { leaf.dims.height -= n });
+    grid.recalculateSplitDimensions(st.grid);
+
+    // 4. Project the `text` onto the leaves.
+    /** @param {grid.Leaf<Cell>} leaf */
+    const projOntoLeaves = (leaf) => {
+        const upperLeft = relUpperLeft(leaf);
+
+        leaf.data.lines = [];
+        for(let i = 0; i < leaf.dims.height; ++i) {
+            const row = i + upperLeft.y;
+            const line = text[row].slice(upperLeft.x, upperLeft.x + leaf.dims.width)
+                  .map(c => c ?? " ")
+                  .join("")
+                  .trimEnd();
+
+            leaf.data.lines.push(line);
+        }
+    }
+
+    upper.forEach(projOntoLeaves);
+    lower.forEach(projOntoLeaves);
 }
 
 /**

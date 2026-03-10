@@ -178,7 +178,7 @@ describe("edge-prims", () => {
                   "+-+-----+---+\n"+
                   "| +--+--+   |\n"+
                   "| |  |  |   |\n"+
-                  "+-+--+--+---+\n";
+                  "+-+--+--+---+";
 
             const st = mkEdgeState(src);
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(9, 0), "Left");
@@ -218,6 +218,34 @@ describe("edge-prims", () => {
                   "| +---+-+   |\n"+
                   "| |   | |   |\n"+
                   "+-+---+-+---+";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+    });
+
+    describe("slideHorizontalEdge", () => {
+        it("Can shift an edge in a more complex grid (1)", () => {
+            const src =
+                  "hellothere\n"   +
+                  "     abc\n"     +
+                  "     abc\n"     +
+                  "+-+-----+---+\n"+
+                  "| +--+--+   |\n"+
+                  "| |  |  |   |\n"+
+                  "+-+--+--+---+";
+
+            const st = mkEdgeState(src);
+            edgePrims.selectEdgeUnderPoint(st, point.mkP2(5, 1), "Above");
+            edgePrims.slideHorizontalEdge(st, 1);
+
+            const exp =
+                  "hellothere\n"   +
+                  "     abc\n"     +
+                  "     abc\n"     +
+                  "+-+-----+---+\n"+
+                  "| |     |   |\n"+
+                  "| +--+--+   |\n"+
+                  "+-+--+--+---+";
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
