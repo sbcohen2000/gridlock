@@ -1,4 +1,5 @@
 import * as point from "./point.js";
+import { iterFirst } from "./util.js";
 
 /**
  * @typedef {{
@@ -1020,6 +1021,29 @@ export function leafUnderPoint(g, p) {
 }
 
 /**
+ * Find all of the leaves to the left of `leaf` in `g`.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} leaf
+ * @returns {IteratorObject<Leaf<A>>} The leaves to the left of `leaf`.
+ */
+export function* leavesToLeftOf(g, leaf) {
+    let upperLeft = posOfLeaf(g, leaf);
+    let bottomY   = upperLeft.y + leaf.dims.height;
+    let query     = point.offset(upperLeft, point.mkV2(-1, 0));
+
+    while (query.y < bottomY) {
+        let left = leafUnderPoint(g, query);
+        if(!left) return;
+        yield left;
+
+        upperLeft = posOfLeaf(g, left);
+        query     = point.offset(upperLeft, point.mkV2(0, left.dims.height));
+    }
+}
+
+/**
  * Find the leaf to the left of `leaf` in `g`, if it exists.
  *
  * @template A
@@ -1029,9 +1053,30 @@ export function leafUnderPoint(g, p) {
  *     if there is no leaf to the left of `leaf`.
  */
 export function leafToLeftOf(g, leaf) {
-    const upperLeft = posOfLeaf(g, leaf);
-    const query = point.offset(upperLeft, point.mkV2(-1, 0));
-    return leafUnderPoint(g, query);
+    return iterFirst(leavesToLeftOf(g, leaf));
+}
+
+/**
+ * Find all of the leaves to the right of `leaf` in `g`.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} leaf
+ * @returns {IteratorObject<Leaf<A>>} The leaves to the right of `leaf`.
+ */
+export function* leavesToRightOf(g, leaf) {
+    let upperLeft = posOfLeaf(g, leaf);
+    let bottomY   = upperLeft.y + leaf.dims.height;
+    let query     = point.offset(upperLeft, point.mkV2(leaf.dims.width, 0));
+
+    while (query.y < bottomY) {
+        let right = leafUnderPoint(g, query);
+        if(!right) return;
+        yield right;
+
+        upperLeft = posOfLeaf(g, right);
+        query     = point.offset(upperLeft, point.mkV2(0, right.dims.height));
+    }
 }
 
 /**
@@ -1044,9 +1089,30 @@ export function leafToLeftOf(g, leaf) {
  *     if there is no leaf to the right of `leaf`.
  */
 export function leafToRightOf(g, leaf) {
-    const upperLeft = posOfLeaf(g, leaf);
-    const query = point.offset(upperLeft, point.mkV2(leaf.dims.width, 0));
-    return leafUnderPoint(g, query);
+    return iterFirst(leavesToRightOf(g, leaf));
+}
+
+/**
+ * Find all of the leaves above `leaf` in `g`.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} leaf
+ * @returns {IteratorObject<Leaf<A>>} The leaves above `leaf`.
+ */
+export function* leavesAbove(g, leaf) {
+    let upperLeft = posOfLeaf(g, leaf);
+    let rightX    = upperLeft.x + leaf.dims.width;
+    let query     = point.offset(upperLeft, point.mkV2(0, -1));
+
+    while (query.x < rightX) {
+        let above = leafUnderPoint(g, query);
+        if(!above) return;
+        yield above;
+
+        upperLeft = posOfLeaf(g, above);
+        query     = point.offset(upperLeft, point.mkV2(above.dims.width, 0));
+    }
 }
 
 /**
@@ -1059,9 +1125,30 @@ export function leafToRightOf(g, leaf) {
  *     if there is no leaf above `leaf`.
  */
 export function leafAbove(g, leaf) {
-    const upperLeft = posOfLeaf(g, leaf);
-    const query = point.offset(upperLeft, point.mkV2(0, -1));
-    return leafUnderPoint(g, query);
+    return iterFirst(leavesAbove(g, leaf));
+}
+
+/**
+ * Find all of the leaves below `leaf` in `g`.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} leaf
+ * @returns {IteratorObject<Leaf<A>>} The leaves below `leaf`.
+ */
+export function* leavesBelow(g, leaf) {
+    let upperLeft = posOfLeaf(g, leaf);
+    let rightX    = upperLeft.x + leaf.dims.width;
+    let query     = point.offset(upperLeft, point.mkV2(0, leaf.dims.height));
+
+    while (query.x < rightX) {
+        let below = leafUnderPoint(g, query);
+        if(!below) return;
+        yield below;
+
+        upperLeft = posOfLeaf(g, below);
+        query     = point.offset(upperLeft, point.mkV2(below.dims.width, 0));
+    }
 }
 
 /**
@@ -1074,9 +1161,7 @@ export function leafAbove(g, leaf) {
  *     if there is no leaf below `leaf`.
  */
 export function leafBelow(g, leaf) {
-    const upperLeft = posOfLeaf(g, leaf);
-    const query = point.offset(upperLeft, point.mkV2(0, leaf.dims.height));
-    return leafUnderPoint(g, query);
+    return iterFirst(leavesBelow(g, leaf));
 }
 
 /**
