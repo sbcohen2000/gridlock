@@ -1454,3 +1454,54 @@ describe("modifyHeightOfLeaves", () => {
         );
     });
 });
+
+describe("leftNeighborhoodOfLeaf", () => {
+    it("Works", () => {
+        let src =
+            "+--+--+--+\n" +
+            "|a |b |c |\n" +
+            "|  +--+--+\n" +
+            "|  |d |e |\n" +
+            "+--+--+--+\n" +
+            "|f    |g |\n" +
+            "+-----+--+";
+
+        const g = grid.parseASCII(src);
+
+        const a = grid.leafWithLabel(g, "a");
+        const b = grid.leafWithLabel(g, "b");
+        const d = grid.leafWithLabel(g, "d");
+        const e = grid.leafWithLabel(g, "e");
+        const f = grid.leafWithLabel(g, "f");
+
+        {
+            const [l, r] = grid.leftNeighborhoodOfLeaf(g, a);
+            expect(l).to.be.empty
+            expect(r).to.contain(a);
+        }
+
+        {
+            const [l, r] = grid.leftNeighborhoodOfLeaf(g, f);
+            expect(l).to.be.empty
+            expect(r).to.contain(f);
+        }
+
+
+        {
+            const [l, r] = grid.leftNeighborhoodOfLeaf(g, d);
+            expect(l).to.contain(a);
+            expect(l).to.have.lengthOf(1);
+            expect(r).to.contain(b);
+            expect(r).to.contain(d);
+            expect(r).to.have.lengthOf(2);
+        }
+
+        {
+            const [l, r] = grid.leftNeighborhoodOfLeaf(g, e);
+            expect(l).to.have.lengthOf(1);
+            expect(l).to.contain(d);
+            expect(r).to.have.lengthOf(1);
+            expect(r).to.contain(e);
+        }
+    });
+});

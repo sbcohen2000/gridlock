@@ -174,6 +174,46 @@ function _moveHorizontalEdge(st, n) {
 export const moveHorizontalEdge = state.withDefaultInverse(_moveHorizontalEdge);
 
 /**
+ * Slide the selected horizontal edge by the given number of rows. If
+ * the selected edge is not horizontal, or there is no selected edge,
+ * then this function does nothing.
+ *
+ * @param {EdgePrimsState} st
+ * @param {number} n
+ */
+function _slideHorizontalEdge(st, n) {
+    // TODO
+}
+
+/**
+ * Slide the selected horizontal edge by the given number of rows.
+ *
+ * @type {(st: EdgePrimsState, n: number) => Promise<Inverse<EdgePrimsState>>}
+ */
+export const slideHorizontalEdge = state.withDefaultInverse(_slideHorizontalEdge);
+
+/**
+ * Slide the selected vertical edge by the given number of columns. If
+ * the selected edge is not vertical, or there is no selected edge,
+ * then this function does nothing.
+ *
+ * @param {EdgePrimsState} st
+ * @param {number} n
+ * @param {any} glpk
+ * @param {grid.SolveSettings<Cell>} [settings]
+ */
+async function _slideVerticalEdge(st, n, glpk, settings) {
+    // TODO
+}
+
+/**
+ * Slide the selected vertical edge by the given number of columns.
+ *
+ * @type {(st: EdgePrimsState, n: number, glpk: any, settings?: grid.SolveSettings<Cell>) => Promise<Inverse<EdgePrimsState>>}
+ */
+export const slideVerticalEdge = state.withDefaultInverse(_slideVerticalEdge);
+
+/**
  * @template {CommonState} S
  * @param { S } st
  * @returns { [ EdgePrimsState, Inverse<S> ] }

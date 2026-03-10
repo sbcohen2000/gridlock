@@ -659,6 +659,48 @@ export function modifyHeightOfLeaves(g, n, leaves) {
 }
 
 /**
+ * Atomically modify the width of a list of leaves. The leaves
+ * provided must span the entire vertical height of the grid with no
+ * overlap.
+ *
+ * This property is checked for safety.
+ *
+ * @template A
+ * @param {Grid<A>} g The root node of the grid.
+ * @param {number}  n The amount to expand horizontally.
+ * @param {Leaf<A>[]} leaves The leaves whose width to modify.
+ * @returns {Grid<A>} The grid.
+ */
+export function modifyWidthOfLeaves(g, n, leaves) {
+    // Find the position of each leaf.
+    /** @type {[Leaf<A>, point.P2][]} */
+    const positioned = leaves.map(leaf => [leaf, posOfLeaf(g, leaf)]);
+
+    // Sort the leaves by increasing `y` position.
+    positioned.sort((a, b) => a[1].y - b[1].y);
+
+    // Ensure that there are no gaps, and that the leaves cover the
+    // entire height of the grid.
+    let y = 0;
+    for(const [leaf, p] of positioned) {
+        if(p.y < y) {
+            throw new Error("vertically overlapping leaves passed to modifyWidthOfLeaves");
+        }
+        y += leaf.dims.height;
+
+        leaf.dims.width += n;
+    }
+
+    if(y !== g.dims.height) {
+        throw new Error("the leaves passed to modifyWidthOfLeaves do not cover the grid");
+    }
+
+    // Now, re-calculate the grid dimensions and return the grid.
+    recalculateSplitDimensions(g);
+    return g;
+}
+
+/**
  * @template A
  * @typedef {{
  *   children: Tree<A>[]
@@ -986,6 +1028,32 @@ export function* leavesUnderRow(g, y) {
 }
 
 /**
+ * Find all of the leaves which are underneath column `x`. The leaves are
+ * returned in order of ascending `y`-position.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {number} x
+ * @returns {IteratorObject<Leaf<A>>}
+ */
+export function* leavesUnderCol(g, x) {
+    switch(g.type) {
+    case "Horz": {
+        if(x < g.left.dims.width) {
+            yield* leavesUnderCol(g.left, x);
+        } else {
+            yield* leavesUnderCol(g.right, x - g.left.dims.width);
+        }
+    } break;
+    case "Vert": {
+        yield* leavesUnderCol(g.left, x);
+        yield* leavesUnderCol(g.right, x);
+    } break;
+    case "Leaf": if(x < g.dims.width) yield g; break;
+    };
+}
+
+/**
  * Find the leaf node of the grid `g` under the point `p`, or
  * `undefined` if there is no leaf underneath `p`.
  *
@@ -1162,6 +1230,102 @@ export function* leavesBelow(g, leaf) {
  */
 export function leafBelow(g, leaf) {
     return iterFirst(leavesBelow(g, leaf));
+}
+
+/**
+ * Given a leaf of the grid, find two sets of leaves in its
+ * neighborhood whose dimensions must change if we change the
+ * width of the original leaf.
+ *
+ * Two sets are returned; those leaves to the left of the original
+ * leaf, whose dimension must change by the opposite as the original
+ * leaf, and those leaves above and below the target leaf whose
+ * dimension must change by an equal amount as the original leaf.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} focus
+ * @returns {[Set<Leaf<A>>, Set<Leaf<A>>]}
+ */
+export function leftNeighborhoodOfLeaf(g, focus) {
+    const leftSet = new Set();
+    const rightSet = new Set([focus]);
+
+    /** @type {boolean} */
+    let added = true;
+    while(added) {
+        added = false;
+
+        for(const rl of rightSet) {
+            const leftLeaves = leavesToLeftOf(g, rl);
+            for(const ll of leftLeaves) {
+                if(!leftSet.has(ll)) {
+                    added = true;
+                    leftSet.add(ll);
+                }
+            }
+        }
+
+        for(const ll of leftSet) {
+            const rightLeaves = leavesToRightOf(g, ll);
+            for(const rl of rightLeaves) {
+                if(!rightSet.has(rl)) {
+                    added = true;
+                    rightSet.add(rl);
+                }
+            }
+        }
+    }
+
+    return [leftSet, rightSet];
+}
+
+/**
+ * Given a leaf of the grid, find two sets of leaves in its
+ * neighborhood whose dimensions must change if we change the
+ * height of the original leaf.
+ *
+ * Two sets are returned; those leaves above the original leaf,
+ * whose dimension must change by the opposite as the original
+ * leaf, and those leaves to the left and right of the target leaf
+ * whose dimension must change by an equal amount as the original leaf.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} focus
+ * @returns {[Set<Leaf<A>>, Set<Leaf<A>>]}
+ */
+export function upperNeighborhoodOfLeaf(g, focus) {
+    const upperSet = new Set();
+    const lowerSet = new Set([focus]);
+
+    /** @type {boolean} */
+    let added = true;
+    while(added) {
+        added = false;
+
+        for(const ll of lowerSet) {
+            const aboveLeaves = leavesAbove(g, ll);
+            for(const ul of aboveLeaves) {
+                if(!upperSet.has(ul)) {
+                    added = true;
+                    upperSet.add(ul);
+                }
+            }
+        }
+
+        for(const ul of upperSet) {
+            const belowLeaves = leavesBelow(g, ul);
+            for(const ll of belowLeaves) {
+                if(!lowerSet.has(ll)) {
+                    added = true;
+                    lowerSet.add(ll);
+                }
+            }
+        }
+    }
+
+    return [upperSet, lowerSet];
 }
 
 /**

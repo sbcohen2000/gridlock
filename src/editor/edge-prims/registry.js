@@ -37,4 +37,18 @@ export const PRIMITIVES = [
         const: false,
         description: "Shift the selected horizontal edge by n rows"
     },
+    {
+        function: prims.slideVerticalEdge,
+        args: ["number", "glpk"],
+        async: true,
+        const: false,
+        description: "Slide the selected vertical edge by n columns"
+    },
+    {
+        function: prims.slideHorizontalEdge,
+        args: ["number"],
+        async: true,
+        const: false,
+        description: "Slide the selected horizontal edge by n rows"
+    },
 ];
