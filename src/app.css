@@ -67,7 +67,6 @@
     top: 2px;
     bottom: 2px;
     border-right: 1px solid gray;
-    z-index: 2;
 }
 
 .editor-horizontal-guide {
@@ -77,7 +76,6 @@
     bottom: -0.5px;
     border-bottom: 1px solid gray;
     background-color: red;
-    z-index: 2;
 }
 
 .editor-cell {
