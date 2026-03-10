@@ -103,7 +103,7 @@ export class EdgeEditingView extends EditorView {
                 };
 
                 if(this.#dragState.lastArg !== dw && dw !== 0) {
-                    this.runPrimitiveWithUndoThenRedraw(this.#eeState, edgePrims.modifyVerticalEdge, dw, theGLPKInstance.glpk, settings);
+                    this.runPrimitiveWithUndoThenRedraw(this.#eeState, edgePrims.moveVerticalEdge, dw, theGLPKInstance.glpk, settings);
                 }
                 this.#dragState.lastArg = dw;
             } else {
@@ -115,7 +115,7 @@ export class EdgeEditingView extends EditorView {
                 const dh = targetEdgeY - currentEdgeY;
 
                 if(this.#dragState.lastArg !== dh && dh !== 0) {
-                    this.runPrimitiveWithUndoThenRedraw(this.#eeState, edgePrims.modifyHorizontalEdge, dh);
+                    this.runPrimitiveWithUndoThenRedraw(this.#eeState, edgePrims.moveHorizontalEdge, dh);
                 }
                 this.#dragState.lastArg = dh;
             }

@@ -15,7 +15,7 @@ function mkEdgeState(src) {
 }
 
 describe("edge-prims", () => {
-    describe("modifyHorizontalEdge", () => {
+    describe("moveHorizontalEdge", () => {
         it("Moves a horizontal edge down by 1", async () => {
             const st = mkEdgeState(
                 "top\n" +
@@ -26,7 +26,7 @@ describe("edge-prims", () => {
             );
 
             await edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-            await edgePrims.modifyHorizontalEdge(st, 1);
+            await edgePrims.moveHorizontalEdge(st, 1);
 
             expect(grid.printASCII(st.grid)).to.equal(
                 "+---+---+\n" +
@@ -48,7 +48,7 @@ describe("edge-prims", () => {
             );
 
             await edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-            await edgePrims.modifyHorizontalEdge(st, -1);
+            await edgePrims.moveHorizontalEdge(st, -1);
 
             expect(grid.printASCII(st.grid)).to.equal(
                 "+---+---+\n" +
@@ -68,7 +68,7 @@ describe("edge-prims", () => {
 
             await edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
             const gridBefore = grid.printASCII(st.grid);
-            await edgePrims.modifyHorizontalEdge(st, -1);
+            await edgePrims.moveHorizontalEdge(st, -1);
 
             // Top leaf is already height 1, can't shrink further
             expect(grid.printASCII(st.grid)).to.equal(gridBefore);

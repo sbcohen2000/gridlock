@@ -24,14 +24,14 @@ export const PRIMITIVES = [
         description: "Select an edge of the leaf under a global point"
     },
     {
-        function: prims.modifyVerticalEdge,
+        function: prims.moveVerticalEdge,
         args: ["number", "glpk"],
         async: true,
         const: false,
         description: "Shift the selected vertical edge by n columns"
     },
     {
-        function: prims.modifyHorizontalEdge,
+        function: prims.moveHorizontalEdge,
         args: ["number"],
         async: true,
         const: false,

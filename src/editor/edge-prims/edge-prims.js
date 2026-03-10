@@ -91,7 +91,7 @@ function _countTrailingBlankLines(leaf) {
 }
 
 /**
- * Shift the selected vertical edge by the given number of rows. If
+ * Move the selected vertical edge by the given number of rows. If
  * the selected edge is not vertical, or there is no selected edge,
  * then this function does nothing.
  *
@@ -100,7 +100,7 @@ function _countTrailingBlankLines(leaf) {
  * @param {any} glpk
  * @param {grid.SolveSettings<Cell>} [settings]
  */
-async function _modifyVerticalEdge(st, n, glpk, settings) {
+async function _moveVerticalEdge(st, n, glpk, settings) {
     if(st.selection.edge === "Below") {
         return;
     }
@@ -115,26 +115,24 @@ async function _modifyVerticalEdge(st, n, glpk, settings) {
 }
 
 /**
- * Shift the selected vertical edge by the given number of columns.
+ * Move the selected vertical edge by the given number of columns.
  *
  * @type {(st: EdgePrimsState, n: number, glpk: any, settings?: grid.SolveSettings<Cell>) => Promise<Inverse<EdgePrimsState>>}
  */
-export const modifyVerticalEdge = state.withDefaultInverse(_modifyVerticalEdge);
+export const moveVerticalEdge = state.withDefaultInverse(_moveVerticalEdge);
 
 /**
- * Shift the selected horizontal edge by the given number of rows. If
+ * Move the selected horizontal edge by the given number of rows. If
  * the selected edge is not horizontal, or there is no selected edge,
  * then this function does nothing.
  *
  * @param {EdgePrimsState} st
  * @param {number} n
  */
-function _modifyHorizontalEdge(st, n) {
+function _moveHorizontalEdge(st, n) {
     if(st.selection.edge === "Right") {
         return;
     }
-
-    // TODO: how to shift text between cells?
 
     // Find the row just above the horizontal edge.
     const leftLeaf = st.selection.leaf;
@@ -169,11 +167,11 @@ function _modifyHorizontalEdge(st, n) {
 }
 
 /**
- * Shift the selected horizontal edge by the given number of rows.
+ * Move the selected horizontal edge by the given number of rows.
  *
  * @type {(st: EdgePrimsState, n: number) => Promise<Inverse<EdgePrimsState>>}
  */
-export const modifyHorizontalEdge = state.withDefaultInverse(_modifyHorizontalEdge);
+export const moveHorizontalEdge = state.withDefaultInverse(_moveHorizontalEdge);
 
 /**
  * @template {CommonState} S
