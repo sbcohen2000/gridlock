@@ -81,7 +81,7 @@ export class EdgeEditingView extends EditorView {
                 const dw = targetEdgeX - currentEdgeX;
 
                 if(this.#dragState.lastArg !== dw && dw !== 0) {
-                    this.runPrimitiveWithUndoThenRedraw(this.#eeState, edgePrims.moveVerticalEdge, dw);
+                    this.runPrimitiveWithUndoThenRedraw(this.#eeState, edgePrims.slideVerticalEdge, dw);
                 }
                 this.#dragState.lastArg = dw;
             } else {

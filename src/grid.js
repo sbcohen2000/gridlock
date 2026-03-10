@@ -1,4 +1,5 @@
 import * as point from "./point.js";
+import * as rect from "./rect.js";
 import { iterFirst } from "./util.js";
 
 /**
@@ -100,7 +101,7 @@ export function partition(s) {
  * @param {Grid<A>} g The grid whose intermediate dimensions to
  *     recalculate.
  */
-function recalculateSplitDimensions(g) {
+export function recalculateSplitDimensions(g) {
     switch(g.type) {
     case "Vert": {
         recalculateSplitDimensions(g.left);
@@ -935,34 +936,26 @@ export function leafBelow(g, leaf) {
  * neighborhood whose dimensions must change if we change the
  * width of the original leaf.
  *
- * Two sets are returned; those leaves to the left of the original
+ * Two sets are returned; those leaves to the right of the original
  * leaf, whose dimension must change by the opposite as the original
  * leaf, and those leaves above and below the target leaf whose
  * dimension must change by an equal amount as the original leaf.
+ *
+ * The focus leaf is placed in the right set.
  *
  * @template A
  * @param {Grid<A>} g
  * @param {Leaf<A>} focus
  * @returns {[Set<Leaf<A>>, Set<Leaf<A>>]}
  */
-export function leftNeighborhoodOfLeaf(g, focus) {
-    const leftSet = new Set();
-    const rightSet = new Set([focus]);
+export function rightNeighborhoodOfLeaf(g, focus) {
+    const leftSet = new Set([focus]);
+    const rightSet = new Set();
 
     /** @type {boolean} */
     let added = true;
     while(added) {
         added = false;
-
-        for(const rl of rightSet) {
-            const leftLeaves = leavesToLeftOf(g, rl);
-            for(const ll of leftLeaves) {
-                if(!leftSet.has(ll)) {
-                    added = true;
-                    leftSet.add(ll);
-                }
-            }
-        }
 
         for(const ll of leftSet) {
             const rightLeaves = leavesToRightOf(g, ll);
@@ -970,6 +963,16 @@ export function leftNeighborhoodOfLeaf(g, focus) {
                 if(!rightSet.has(rl)) {
                     added = true;
                     rightSet.add(rl);
+                }
+            }
+        }
+
+        for(const rl of rightSet) {
+            const leftLeaves = leavesToLeftOf(g, rl);
+            for(const ll of leftLeaves) {
+                if(!leftSet.has(ll)) {
+                    added = true;
+                    leftSet.add(ll);
                 }
             }
         }
@@ -983,34 +986,24 @@ export function leftNeighborhoodOfLeaf(g, focus) {
  * neighborhood whose dimensions must change if we change the
  * height of the original leaf.
  *
- * Two sets are returned; those leaves above the original leaf,
- * whose dimension must change by the opposite as the original
- * leaf, and those leaves to the left and right of the target leaf
- * whose dimension must change by an equal amount as the original leaf.
+ * Two sets are returned; those leaves below the original leaf, whose
+ * dimension must change by the opposite as the original leaf, and
+ * those leaves to the left and right of the target leaf whose
+ * dimension must change by an equal amount as the original leaf.
  *
  * @template A
  * @param {Grid<A>} g
  * @param {Leaf<A>} focus
  * @returns {[Set<Leaf<A>>, Set<Leaf<A>>]}
  */
-export function upperNeighborhoodOfLeaf(g, focus) {
-    const upperSet = new Set();
-    const lowerSet = new Set([focus]);
+export function lowerNeighborhoodOfLeaf(g, focus) {
+    const upperSet = new Set([focus]);
+    const lowerSet = new Set();
 
     /** @type {boolean} */
     let added = true;
     while(added) {
         added = false;
-
-        for(const ll of lowerSet) {
-            const aboveLeaves = leavesAbove(g, ll);
-            for(const ul of aboveLeaves) {
-                if(!upperSet.has(ul)) {
-                    added = true;
-                    upperSet.add(ul);
-                }
-            }
-        }
 
         for(const ul of upperSet) {
             const belowLeaves = leavesBelow(g, ul);
@@ -1021,9 +1014,71 @@ export function upperNeighborhoodOfLeaf(g, focus) {
                 }
             }
         }
+
+        for(const ll of lowerSet) {
+            const aboveLeaves = leavesAbove(g, ll);
+            for(const ul of aboveLeaves) {
+                if(!upperSet.has(ul)) {
+                    added = true;
+                    upperSet.add(ul);
+                }
+            }
+        }
     }
 
     return [upperSet, lowerSet];
+}
+
+/**
+ * Find a rectangle encoding the global position and size of a leaf in
+ * the grid.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {Leaf<A>} leaf
+ * @returns {rect.Rect}
+ */
+function rectOfLeaf(g, leaf) {
+    const pos = posOfLeaf(g, leaf);
+    return {
+        left: pos.x,
+        top: pos.y,
+        right: pos.x + leaf.dims.width,
+        bottom: pos.y + leaf.dims.height
+    };
+}
+
+/**
+ * Find a positioned rectangle which covers all of the leaves.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {IteratorObject<Leaf<A>>} leaves
+ * @returns {rect.Rect | undefined}
+ */
+export function outerRectangleOfLeaves(g, leaves) {
+    const rects = leaves.map(leaf => rectOfLeaf(g, leaf));
+    return rect.unions(...rects);
+}
+
+/**
+ * Check if the rectangle covers the given leaves with no gaps.
+ *
+ * Note that this  function doesn't check that the  given rectangle is
+ * over  top of  the  leaves. (Since  if you  got  the rectangle  with
+ * `outerRectangleOfLeaves`, then the rectangle  will have the correct
+ * position and dimension.)
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @param {IteratorObject<Leaf<A>>} leaves
+ * @param {rect.Rect} r
+ * @returns {boolean}
+ */
+export function rectangleCoversLeaves(g, leaves, r) {
+    const rects = leaves.map(leaf => rectOfLeaf(g, leaf));
+    const totalArea = rects.reduce((area, r) => area + rect.area(r), 0);
+    return rect.area(r) === totalArea;
 }
 
 /**

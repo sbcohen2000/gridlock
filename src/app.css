@@ -1,5 +1,15 @@
 :root {
+    /* space dots */
+    --space-dot-color: gainsboro;
+    --trailing-space-dot-color: #ebb7a0;
+
+    /* buttons */
+    --button-pressed-bg-color: #eee;
+
+    /* selections */
     --selection-color: #77a0ed;
+
+    /* shadows */
     --shadow-color: 0deg 0% 52%;
     --shadow-elevation-medium:
         -0.4px 0.2px 0.4px hsl(var(--shadow-color) / 0.66),
@@ -15,6 +25,8 @@
 }
 
 .editor-root {
+    background-color: white;
+
     display: inline-flex;
     flex-direction: row;
     box-shadow: var(--shadow-elevation-medium);
@@ -53,15 +65,15 @@
     position: absolute;
     right: -0.5px;
     top: 0;
+    bottom: 0;
     border-right: 1px solid gray;
-    height: 100%;
 }
 
 .editor-leaf-bottom-edge {
     position: absolute;
     left: 0;
+    right: 0;
     bottom: -0.5px;
-    width: 100%;
     border-bottom: 1px solid gray;
     background-color: red;
 }
@@ -76,9 +88,9 @@
 .editor-space-fragment {
     background-image: radial-gradient(
         circle at 50% 60%,
-        gainsboro   20%,
-        transparent 20%,
-        transparent 100%
+        var(--space-dot-color)  20%,
+        transparent             20%,
+        transparent            100%
     );
     background-attachment: local;
     background-size: 1ch 1em;
@@ -88,18 +100,25 @@
 .editor-trailing-space-fragment {
     background-image: radial-gradient(
         circle at 50% 60%,
-        orange      20%,
-        transparent 20%,
-        transparent 100%
+        var(--trailing-space-dot-color)  20%,
+        transparent                      20%,
+        transparent                     100%
     );
+}
+
+@keyframes blink {
+    0%, 45% { opacity: 1; }
+    55%, 100% { opacity: 0; }
 }
 
 .editor-cursor {
     pointer-events: none;
     width: 1ch;
     height: 1em;
-    border-bottom: 4px solid black;
     z-index: 2;
+    backdrop-filter: invert(100%) saturate(0%);
+
+    /* animation: blink 1s ease-in-out infinite; */
 }
 
 .editor-toolbar {
@@ -124,7 +143,7 @@
 .editor-button-enabled {
     border: 1px solid gray;
     box-shadow: inset 0 0 2px gray;
-    background-color: gainsboro;
+    background-color: var(--button-pressed-bg-color);
     border-radius: 2px;
 }
 

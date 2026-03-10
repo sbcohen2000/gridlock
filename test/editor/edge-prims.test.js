@@ -73,5 +73,127 @@ describe("edge-prims", () => {
             // Top leaf is already height 1, can't shrink further
             expect(grid.printASCII(st.grid)).to.equal(gridBefore);
         });
+
+    });
+
+    describe("slideVerticalEdge", () => {
+        it("Can shift two empty cells", () => {
+            const st = mkEdgeState(
+                "\n" +
+                "\n" +
+                "+---+-+\n" +
+                "|   | |\n" +
+                "+---+-+"
+            );
+
+            edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Right");
+            edgePrims.slideVerticalEdge(st, -2);
+
+            expect(grid.printASCII(st.grid)).to.equal(
+                "+-+---+\n" +
+                "| |   |\n" +
+                "+-+---+"
+            );
+        });
+
+        it("Won't cause a cell to have a width of zero", () => {
+            const st = mkEdgeState(
+                "\n" +
+                "\n" +
+                "+---+-+\n" +
+                "|   | |\n" +
+                "+---+-+"
+            );
+
+            edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Right");
+            edgePrims.slideVerticalEdge(st, -100);
+
+            expect(grid.printASCII(st.grid)).to.equal(
+                "++----+\n" +
+                "||    |\n" +
+                "++----+"
+            );
+        });
+
+
+        it("Can shift text between two cells", () => {
+            const st = mkEdgeState(
+                "foofoo\n"  +
+                "barbar\n"  +
+                "+--+--+\n" +
+                "|  |  |\n" +
+                "+--+--+"
+            );
+
+            edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Right");
+            edgePrims.slideVerticalEdge(st, -1);
+
+            expect(serialize.printCommonState(st)).to.equal(
+                "foofoo\n" +
+                "barbar\n" +
+                "+-+---+\n" +
+                "| |   |\n" +
+                "+-+---+"
+            );
+        });
+
+        it("Can shift text between multiple cells", () => {
+            const st = mkEdgeState(
+                "abcdef\n"  +
+                "abcdef\n"  +
+                "abcdef\n"  +
+                "abcdef\n"  +
+                "abcdef\n"  +
+                "+--+--+\n" +
+                "|  |  |\n" +
+                "+--+  |\n" +
+                "|  +--+\n" +
+                "|  |  |\n" +
+                "+--+--+"
+            );
+
+            edgePrims.selectEdgeUnderPoint(st, point.mkP2(3, 3), "Left");
+            edgePrims.slideVerticalEdge(st, 2);
+
+            expect(serialize.printCommonState(st)).to.equal(
+                "abcdef\n"  +
+                "abcdef\n"  +
+                "abcdef\n"  +
+                "abcdef\n"  +
+                "abcdef\n"  +
+                "+----++\n" +
+                "|    ||\n" +
+                "+----+|\n" +
+                "|    ++\n" +
+                "|    ||\n" +
+                "+----++"
+            );
+        });
+
+        it("Can shift an edge in a grid which requires restructuring", () => {
+            const src =
+                  "hellothere\n"   +
+                  "     abc\n"     +
+                  "     abc\n"     +
+                  "+-+-----+---+\n"+
+                  "| +--+--+   |\n"+
+                  "| |  |  |   |\n"+
+                  "+-+--+--+---+\n";
+
+            const st = mkEdgeState(src);
+            edgePrims.selectEdgeUnderPoint(st, point.mkP2(9, 0), "Left");
+            edgePrims.slideVerticalEdge(st, -2);
+
+            const exp =
+                  "hellothere\n"   +
+                  "     abc\n"     +
+                  "     abc\n"     +
+                  "+-+---+-----+\n"+
+                  "| +--++     |\n"+
+                  "| |  ||     |\n"+
+                  "+-+--++-----+\n";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
     });
 });
