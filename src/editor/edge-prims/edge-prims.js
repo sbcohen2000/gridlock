@@ -34,6 +34,10 @@ function _selectEdgeUnderPoint(st, pt, edge) {
     case "Below": break;
     }
 
+    if(!leaf) {
+        return;
+    }
+
     st.selection = { edge, leaf };
 }
 
@@ -53,7 +57,20 @@ export const selectEdgeUnderPoint = state.withDefaultInverse(_selectEdgeUnderPoi
  * @returns {boolean} `true` if an edge exists at the given point, `false` otherwise.
  */
 export function canSelectEdgeUnderPoint(st, pt, edge) {
-    return grid.leafUnderPoint(st.grid, pt) !== undefined;
+    const leaf = grid.leafUnderPoint(st.grid, pt);
+    if(!leaf) {
+        return false;
+    }
+
+    if(edge === "Left" && !grid.leafToLeftOf(st.grid, leaf)) {
+        return false;
+    }
+
+    if(edge === "Above" && !grid.leafAbove(st.grid, leaf)) {
+        return false;
+    }
+
+    return true;
 }
 
 /**

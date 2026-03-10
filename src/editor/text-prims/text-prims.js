@@ -134,6 +134,9 @@ export function putPointOnGlobalPosition(st, pt, updateGlobalCol) {
     const oldGlobalCol = st.selection.lastGlobalCol;
     const oldGlobalPt  = findGlobalPoint(st);
 
+    pt.x = util.clamp(0, pt.x, st.grid.dims.width);
+    pt.y = util.clamp(0, pt.y, st.grid.dims.height);
+
     if(updateGlobalCol === undefined) {
         updateGlobalCol = true;
     }
