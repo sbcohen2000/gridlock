@@ -191,7 +191,7 @@ describe("edge-prims", () => {
                   "+-+---+-----+\n"+
                   "| +--++     |\n"+
                   "| |  ||     |\n"+
-                  "+-+--++-----+\n";
+                  "+-+--++-----+";
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
@@ -221,6 +221,5 @@ describe("edge-prims", () => {
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
-
     });
 });

@@ -798,15 +798,16 @@ export function leafUnderPoint(g, p) {
 export function* leavesToLeftOf(g, leaf) {
     let upperLeft = posOfLeaf(g, leaf);
     let bottomY   = upperLeft.y + leaf.dims.height;
-    let query     = point.offset(upperLeft, point.mkV2(-1, 0));
+    let queryX    = upperLeft.x - 1;
+    let query     = point.mkP2(queryX, upperLeft.y);
 
     while (query.y < bottomY) {
         let left = leafUnderPoint(g, query);
         if(!left) return;
         yield left;
 
-        upperLeft = posOfLeaf(g, left);
-        query     = point.offset(upperLeft, point.mkV2(0, left.dims.height));
+        let leftPos = posOfLeaf(g, left);
+        query       = point.mkP2(queryX, leftPos.y + left.dims.height);
     }
 }
 
@@ -870,15 +871,16 @@ export function leafToRightOf(g, leaf) {
 export function* leavesAbove(g, leaf) {
     let upperLeft = posOfLeaf(g, leaf);
     let rightX    = upperLeft.x + leaf.dims.width;
-    let query     = point.offset(upperLeft, point.mkV2(0, -1));
+    let queryY    = upperLeft.y - 1;
+    let query     = point.mkP2(upperLeft.x, queryY);
 
     while (query.x < rightX) {
         let above = leafUnderPoint(g, query);
         if(!above) return;
         yield above;
 
-        upperLeft = posOfLeaf(g, above);
-        query     = point.offset(upperLeft, point.mkV2(above.dims.width, 0));
+        let abovePos = posOfLeaf(g, above);
+        query        = point.mkP2(abovePos.x + above.dims.width, queryY);
     }
 }
 

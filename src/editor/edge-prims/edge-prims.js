@@ -287,8 +287,9 @@ function _slideVerticalEdge(st, n) {
         for(let i = 0; i < leaf.dims.height; ++i) {
             const row = i + upperLeft.y;
             const line = text[row].slice(upperLeft.x, upperLeft.x + leaf.dims.width)
-                  .filter(c => c !== null)
-                  .join("");
+                  .map(c => c ?? " ")
+                  .join("")
+                  .trimEnd();
 
             leaf.data.lines.push(line);
         }
