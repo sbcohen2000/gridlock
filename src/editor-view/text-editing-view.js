@@ -2,9 +2,9 @@ import * as grid from "../grid.js";
 import * as textPrims from "../editor/text-prims/text-prims.js";
 import * as cellPrims from "../editor/cell-prims/cell-prims.js";
 import { CellEditingView } from "./cell-editing-view.js";
-import { EdgeEditingView } from "./edge-editing-view.js";
+import { EdgeSlidingView } from "./edge-editing-view.js";
 import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slicing-view.js";
-import { EditorView, PointerEventContext } from "../editor-view.js";
+import { AbstractEditorView, PointerEventContext } from "../editor-view.js";
 import { View, KeyViewEvent } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 
@@ -13,7 +13,7 @@ import { standardToolbarItems } from "./standard-toolbar.js";
 /** @import { Cell } from "../editor/common-state.d.ts" */
 /** @import { HistoryItem } from "./history.d.ts" */
 
-export class TextEditingView extends EditorView {
+export class TextEditingView extends AbstractEditorView {
     /** @type {TextPrimsState} */
     #teState
 
@@ -89,7 +89,7 @@ export class TextEditingView extends EditorView {
     }
 
     createTextEditingView(parent, st) { void parent; void st; return this; }
-    createEdgeEditingView(parent, st, dragState) { return new EdgeEditingView(parent, this.history, st, dragState); }
+    createEdgeEditingView(parent, st, dragState) { return new EdgeSlidingView(parent, this.history, st, dragState); }
     createCellEditingView(parent, st) { return new CellEditingView(parent, this.history, st); }
     createVerticalCellSlicingView(parent, st) { return new VerticalCellSlicingView(parent, this.history, st); }
     createHorizontalCellSlicingView(parent, st) { return new HorizontalCellSlicingView(parent, this.history, st); }

@@ -2,8 +2,8 @@ import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as slicePrims from "../editor/slice-prims/slice-prims.js";
 import { CellEditingView } from "./cell-editing-view.js";
-import { EdgeEditingView } from "./edge-editing-view.js";
-import { EditorView, PointerEventContext } from "../editor-view.js";
+import { EdgeSlidingView } from "./edge-editing-view.js";
+import { AbstractEditorView, PointerEventContext } from "../editor-view.js";
 import { TextEditingView } from "./text-editing-view.js";
 import { View } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
@@ -17,7 +17,7 @@ import { standardToolbarItems } from "./standard-toolbar.js";
  * A base class for slice cell views. Subclasses provide the direction-
  * specific preview rendering and slice prim.
  */
-class CellSlicingView extends EditorView {
+class AbstractCellSlicingView extends AbstractEditorView {
     /** @type {SlicePrimsState} */
     #scState;
 
@@ -31,6 +31,9 @@ class CellSlicingView extends EditorView {
      */
     constructor(parent, history, st) {
         super(parent, history);
+        if(new.target === AbstractCellSlicingView) {
+            throw new Error("Cannot instantiate AbstractCellSlicingView directly");
+        }
         this.#scState = st;
     }
 
@@ -105,13 +108,13 @@ class CellSlicingView extends EditorView {
     }
 
     createTextEditingView(parent, st) { return new TextEditingView(parent, this.history, st); }
-    createEdgeEditingView(parent, st, dragState) { return new EdgeEditingView(parent, this.history, st, dragState); }
+    createEdgeEditingView(parent, st, dragState) { return new EdgeSlidingView(parent, this.history, st, dragState); }
     createCellEditingView(parent, st) { return new CellEditingView(parent, this.history, st); }
     createVerticalCellSlicingView(parent, st) { return new VerticalCellSlicingView(parent, this.history, st); }
     createHorizontalCellSlicingView(parent, st) { return new HorizontalCellSlicingView(parent, this.history, st); }
 }
 
-export class VerticalCellSlicingView extends CellSlicingView {
+export class VerticalCellSlicingView extends AbstractCellSlicingView {
     createVerticalCellSlicingView(parent, st) { void parent; void st; return this; }
 
     /**
@@ -151,7 +154,7 @@ export class VerticalCellSlicingView extends CellSlicingView {
     }
 }
 
-export class HorizontalCellSlicingView extends CellSlicingView {
+export class HorizontalCellSlicingView extends AbstractCellSlicingView {
     createHorizontalCellSlicingView(parent, st) { void parent; void st; return this; }
 
     /**

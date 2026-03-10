@@ -48,13 +48,16 @@ const BINDING_WIDTH = 24; //px;
  * An editor view is an instance of an editor state, which can show
  * itself on screen and respond to events.
  */
-export class EditorView extends View {
+export class AbstractEditorView extends View {
     /**
      * @param {View} parent
      * @param {HistoryItem[]} history
      */
     constructor(parent, history) {
         super(parent);
+        if(new.target === AbstractEditorView) {
+            throw new Error("Cannot instantiate AbstractEditorView directly");
+        }
         this.#history = history;
     }
 
@@ -522,7 +525,7 @@ export class EditorView extends View {
     }
 
     /**
-     * @param {EditorView} newView
+     * @param {AbstractEditorView} newView
      */
     requestReplaceEditorView(newView) {
         this.notify(new ReplaceEditorViewEvent(this, newView));
@@ -648,7 +651,7 @@ export class EditorView extends View {
      *
      * @param {View} parent
      * @param {CommonState} st
-     * @returns {EditorView}
+     * @returns {AbstractEditorView}
      */
     createViewForState(parent, st) {
         if(st instanceof TextPrimsState) {
@@ -674,7 +677,7 @@ export class EditorView extends View {
      * @abstract
      * @param {View} parent
      * @param {TextPrimsState} st
-     * @returns {EditorView}
+     * @returns {AbstractEditorView}
      */
     createTextEditingView(parent, st) {
         void parent; void st;
@@ -688,7 +691,7 @@ export class EditorView extends View {
      * @param {View} parent
      * @param {EdgePrimsState} st
      * @param {import("./editor-view/edge-editing-view.js").DragState} [dragState]
-     * @returns {EditorView}
+     * @returns {AbstractEditorView}
      */
     createEdgeEditingView(parent, st, dragState) {
         void parent; void dragState; void st;
@@ -701,7 +704,7 @@ export class EditorView extends View {
      * @abstract
      * @param {View} parent
      * @param {CellPrimsState} st
-     * @returns {EditorView}
+     * @returns {AbstractEditorView}
      */
     createCellEditingView(parent, st) {
         void parent; void st;
@@ -714,7 +717,7 @@ export class EditorView extends View {
      * @abstract
      * @param {View} parent
      * @param {SlicePrimsState} st
-     * @returns {EditorView}
+     * @returns {AbstractEditorView}
      */
     createVerticalCellSlicingView(parent, st) {
         void parent; void st;
@@ -727,7 +730,7 @@ export class EditorView extends View {
      * @abstract
      * @param {View} parent
      * @param {SlicePrimsState} st
-     * @returns {EditorView}
+     * @returns {AbstractEditorView}
      */
     createHorizontalCellSlicingView(parent, st) {
         void parent; void st;
@@ -830,25 +833,43 @@ export class EditorView extends View {
                 .commit();
         });
     }
+
+    /*************************************************************************/
+    /** Edge Dragging Mode                                                  **/
+
+    /** @typedef {"Move" | "Slide"} EdgeDraggingMode */
+
+    /** @type {EdgeDraggingMode} */
+    #edgeDraggingMode = "Move";
+
+    /** @param {EdgeDraggingMode} mode */
+    set edgeDraggingMode(mode) {
+        this.#edgeDraggingMode = mode;
+    }
+
+    /** @returns {EdgeDraggingMode} */
+    get edgeDraggingMode() {
+        return this.#edgeDraggingMode;
+    }
 }
 
 /**
  * Notify that an editor view should be replaced.
  */
 export class ReplaceEditorViewEvent extends ViewEvent {
-    /** @type {EditorView} */
+    /** @type {AbstractEditorView} */
     #newView;
 
     /**
      * @param {View} initiator
-     * @param {EditorView} newView
+     * @param {AbstractEditorView} newView
      */
     constructor(initiator, newView) {
         super(initiator, true);
         this.#newView = newView;
     }
 
-    /** @returns {EditorView} */
+    /** @returns {AbstractEditorView} */
     get newView() { return this.#newView; }
 }
 
@@ -860,7 +881,7 @@ export class PointerEventContext {
     /** @type {PointerEvent} */
     #event
 
-    /** @type {EditorView} */
+    /** @type {AbstractEditorView} */
     #view
 
     /** @type {grid.Leaf<Cell>} */
@@ -873,7 +894,7 @@ export class PointerEventContext {
      * Construct a new `PointerEventContext`.
      *
      * @param {PointerEvent}    event    The pointer event.
-     * @param {EditorView}      view     The editor view.
+     * @param {AbstractEditorView}      view     The editor view.
      * @param {grid.Leaf<Cell>} leaf     The leaf under the pointer.
      * @param {HTMLElement}     leafElem The HTML
      *     element used to represent the leaf.

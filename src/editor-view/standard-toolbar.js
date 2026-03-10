@@ -10,7 +10,7 @@ import { CellEditingView } from "./cell-editing-view.js";
 import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slicing-view.js";
 import { TextEditingView } from "./text-editing-view.js";
 
-/** @import { EditorView } from "../editor-view.js" */
+/** @import { AbstractEditorView } from "../editor-view.js" */
 /** @import { ToolbarDescription } from "./toolbar.js" */
 
 import edit_text_icon_url from "../../www/assets/edit-text-icon.png"
@@ -28,7 +28,7 @@ import trim_edge_icon_url from "../../www/assets/trim-edge-icon.png";
 /**
  * Build the standard set of toolbar items for an editor view.
  *
- * @param {EditorView} editorView The editor view to build toolbar items for.
+ * @param {AbstractEditorView} editorView The editor view to build toolbar items for.
  * @param {string} [enabledLabel] If provided, the button with this label
  *     will be enabled.
  * @returns {ToolbarDescription[]}
@@ -103,17 +103,19 @@ export function standardToolbarItems(editorView, enabledLabel) {
         type: "button",
         iconSrc: move_guide_icon_url,
         label: "move guides",
-        enabled: true,
+        enabled: editorView.edgeDraggingMode === "Move",
         onclick: () => {
-            console.log("TODO (move guides)");
+            editorView.edgeDraggingMode = "Move";
+            editorView.requestRedraw();
         }
     }, {
         type: "button",
         iconSrc: slide_guide_icon_url,
         label: "slide guides",
-        enabled: false,
+        enabled: editorView.edgeDraggingMode === "Slide",
         onclick: () => {
-            console.log("TODO (slide guides)");
+            editorView.edgeDraggingMode = "Slide";
+            editorView.requestRedraw();
         }
     }, {
         type: "divider",

@@ -2,7 +2,7 @@ import * as cmenu from "./context-menu.js";
 import * as serialize from "./editor/serialize-common-state.js";
 /** @import { Recycler } from "./framework.js" */
 import { CommittableRecycler, RecycleStatistics } from "./framework.js";
-import { EditorView, ReplaceEditorViewEvent } from "./editor-view.js";
+import { AbstractEditorView, ReplaceEditorViewEvent } from "./editor-view.js";
 import { TextEditingView } from "./editor-view/text-editing-view.js";
 import { View, RedrawViewEvent, RequestFocusViewEvent, KeyViewEvent, ViewDeletedViewEvent } from "./view.js";
 import { mkToolbarItem } from "./editor-view/toolbar.js";
@@ -13,12 +13,12 @@ new EventSource('/esbuild').addEventListener('change', () => {
 })
 
 class AppView extends View {
-    /** @type {EditorView} */
+    /** @type {AbstractEditorView} */
     #editorView;
 
     /**
      * @param {View} parent
-     * @param {EditorView} initialEditorView
+     * @param {AbstractEditorView} initialEditorView
      */
     constructor(parent, initialEditorView) {
         super(parent);
@@ -58,7 +58,7 @@ class AppView extends View {
     /**
      * Replace the app's editor view.
      *
-     * @param {EditorView} newView
+     * @param {AbstractEditorView} newView
      */
     #replaceViewFromState(newView) {
         const old = this.#editorView;
@@ -89,7 +89,7 @@ function main() {
     }
 
     let initialStateStr = localStorage.getItem("editorState");
-    /** @type {EditorView} */
+    /** @type {AbstractEditorView} */
     let initialView;
     if(initialStateStr) {
         initialView = new TextEditingView(null, [], serialize.textEditingStateFromString(initialStateStr));
@@ -112,7 +112,7 @@ function main() {
 
         /**
          * @param {View} parent
-         * @param {EditorView} initialView The initial editor view
+         * @param {AbstractEditorView} initialView The initial editor view
          */
         constructor(parent, initialView) {
             super(parent);
