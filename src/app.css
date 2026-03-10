@@ -1,4 +1,5 @@
 :root {
+    --selection-color: #77a0ed;
     --shadow-color: 0deg 0% 52%;
     --shadow-elevation-medium:
         -0.4px 0.2px 0.4px hsl(var(--shadow-color) / 0.66),
@@ -98,7 +99,7 @@
     width: 1ch;
     height: 1em;
     border-bottom: 4px solid black;
-    z-index: 100;
+    z-index: 2;
 }
 
 .editor-toolbar {
@@ -157,7 +158,7 @@
     top: 0;
     position: absolute;
     z-index: 1;
-    outline: 1px solid dodgerblue;
+    outline: 1px solid var(--selection-color);
     outline-offset: -0.5px;
 }
 
@@ -172,6 +173,8 @@
     border-radius: 2px;
     max-width: 90vw;
     max-height: 90vh;
+    box-shadow: var(--shadow-elevation-medium);
+    z-index: 3;
 }
 
 .editor-context-menu-screen {
@@ -183,7 +186,7 @@
 }
 
 .editor-context-menu-button:hover {
-    background-color: skyblue;
+    background-color: var(--selection-color);
 }
 
 .editor-context-menu-button {
