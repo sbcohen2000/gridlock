@@ -57,25 +57,31 @@
     white-space: preserve;
 }
 
-.editor-cell {
+.editor-node {
     position: relative;
 }
 
-.editor-leaf-right-edge {
+.editor-vertical-guide {
     position: absolute;
     right: -0.5px;
-    top: 0;
-    bottom: 0;
+    top: 2px;
+    bottom: 2px;
     border-right: 1px solid gray;
+    z-index: 2;
 }
 
-.editor-leaf-bottom-edge {
+.editor-horizontal-guide {
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 2px;
+    right: 2px;
     bottom: -0.5px;
     border-bottom: 1px solid gray;
     background-color: red;
+    z-index: 2;
+}
+
+.editor-cell {
+    position: relative;
 }
 
 .editor-line {

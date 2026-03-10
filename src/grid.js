@@ -432,7 +432,7 @@ export function parseASCII(src) {
  * @param {point.P2} [p]
  * @returns {IteratorObject<[Grid<A>, point.P2]>}
  */
-export function* allNodes(g, p) {
+export function* allNodesWithPosition(g, p) {
     if(!p) {
         p = point.mkOrigin();
     }
@@ -440,19 +440,19 @@ export function* allNodes(g, p) {
     switch(g.type) {
     case "Vert": {
         yield [g, p];
-        for(const c of allNodes(g.left, p)) {
+        for(const c of allNodesWithPosition(g.left, p)) {
             yield c;
         }
-        for(const c of allNodes(g.right, point.offset(p, point.mkV2(0, g.left.dims.height)))) {
+        for(const c of allNodesWithPosition(g.right, point.offset(p, point.mkV2(0, g.left.dims.height)))) {
             yield c;
         }
     } break;
     case "Horz": {
         yield [g, p];
-        for(const c of allNodes(g.left, p)) {
+        for(const c of allNodesWithPosition(g.left, p)) {
             yield c;
         }
-        for(const c of allNodes(g.right, point.offset(p, point.mkV2(g.left.dims.width, 0)))) {
+        for(const c of allNodesWithPosition(g.right, point.offset(p, point.mkV2(g.left.dims.width, 0)))) {
             yield c;
         }
     } break;
@@ -468,7 +468,7 @@ export function* allNodes(g, p) {
  * @returns {IteratorObject<Leaf<A>>}
  */
 export function allLeaves(g) {
-    return /** @type{IteratorObject<Leaf<A>>} */ (allNodes(g).flatMap(([n, _]) =>
+    return /** @type{IteratorObject<Leaf<A>>} */ (allNodesWithPosition(g).flatMap(([n, _]) =>
         n.type === "Leaf" ? [n] : []));
 }
 
@@ -480,7 +480,7 @@ export function allLeaves(g) {
  * @returns {IteratorObject<[Leaf<A>, point.P2]>}
  */
 export function allLeavesWithPosition(g) {
-    return /** @type{IteratorObject<[Leaf<A>, point.P2]>} */ (allNodes(g).flatMap((np) =>
+    return /** @type{IteratorObject<[Leaf<A>, point.P2]>} */ (allNodesWithPosition(g).flatMap((np) =>
         np[0].type === "Leaf" ? [np] : []));
 }
 

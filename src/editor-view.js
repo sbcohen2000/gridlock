@@ -276,6 +276,38 @@ export class EditorView extends View {
     /** View-Building Functions                                             **/
 
     /**
+     * View a single node in the grid.
+     *
+     * @param {grid.Split<Cell>} node
+     * @param {point.P2} p
+     * @param {Recycler} r
+     */
+    #viewNode(node, p, r) {
+        r.elem({ tag: "div", clearAttributes: true }, (nodeElem) => {
+            const sz = node.dims;
+            const gridSpec = node.type === "Vert"
+                  ? `${p.y + 1}/${p.x + 1}/span ${node.left.dims.height}/span ${sz.width}`
+                  : `${p.y + 1}/${p.x + 1}/span ${sz.height}/span ${node.left.dims.width}`;
+            nodeElem.className      = "editor-node";
+            nodeElem.style.gridArea = gridSpec;
+
+            const r = new CommittableRecycler(nodeElem);
+
+            if(node.type === "Vert") {
+                r.elem({ tag: "div", key: "horizontal-guide" }, (horizontalGuideElem) => {
+                    horizontalGuideElem.className = "editor-horizontal-guide";
+                })
+            } else {
+                r.elem({ tag: "div", key: "vertical-guide" }, (verticalGuideElem) => {
+                    verticalGuideElem.className = "editor-vertical-guide";
+                });
+            }
+
+            r.commit();
+        });
+    }
+
+    /**
      * Build the contents (span fragments) for a line element.
      *
      * @param {HTMLElement} lineElem
@@ -396,7 +428,6 @@ export class EditorView extends View {
 
             leafElem.className      = "editor-cell";
             leafElem.style.width    = `${sz.width}ch`;
-            leafElem.style.position = "relative";
             leafElem.style.gridArea = gridSpec;
 
             leafElem.onpointermove = (e) => {
@@ -409,27 +440,14 @@ export class EditorView extends View {
                 this.onPointerDownInLeaf(ctx);
             }
 
-            const r = new CommittableRecycler(leafElem)
-                  .view(r => {
-                      for(const rowNo of leaf.data.lines.map((_, i) => i)) {
-                          this.viewLine(rowNo, leaf, leafUl, r);
-                      }
-                  })
-                  .view(r => this.viewLeafSelection(leaf, r));
-
-            if(grid.leafToRightOf(this.state.grid, leaf)) {
-                r.elem({ tag: "div", key: "leaf-right-edge" }, (rightEdgeElem) => {
-                    rightEdgeElem.className = "editor-leaf-right-edge";
-                });
-            }
-
-            if(grid.leafBelow(this.state.grid, leaf)) {
-                r.elem({ tag: "div", key: "leaf-bottom-edge" }, (bottomEdgeElem) => {
-                    bottomEdgeElem.className = "editor-leaf-bottom-edge";
+            return new CommittableRecycler(leafElem)
+                .view(r => {
+                    for(const rowNo of leaf.data.lines.map((_, i) => i)) {
+                        this.viewLine(rowNo, leaf, leafUl, r);
+                    }
                 })
-            }
-
-            r.commit();
+                .view(r => this.viewLeafSelection(leaf, r))
+                .commit();
         });
     }
 
@@ -464,8 +482,12 @@ export class EditorView extends View {
 
                 new CommittableRecycler(gridRoot)
                     .view(r => {
-                        for(const [leaf, p] of grid.allLeavesWithPosition(this.state.grid)) {
-                            this.viewLeaf(leaf, p, r);
+                        for(const [node, p] of grid.allNodesWithPosition(this.state.grid)) {
+                            if(node.type === "Leaf") {
+                                this.viewLeaf(node, p, r);
+                            } else {
+                                this.#viewNode(node, p, r);
+                            }
                         }
                     })
                     .commit();
