@@ -170,7 +170,7 @@ describe("edge-prims", () => {
             );
         });
 
-        it("Can shift an edge in a grid which requires restructuring", () => {
+        it("Can shift an edge in a more complex grid (1)", () => {
             const src =
                   "hellothere\n"   +
                   "     abc\n"     +
@@ -195,5 +195,32 @@ describe("edge-prims", () => {
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
+
+        it("Can shift an edge in a more complex grid (2)", () => {
+            const src =
+                  "hellothere\n"   +
+                  "     abc\n"     +
+                  "     abc\n"     +
+                  "+-+-----+---+\n"+
+                  "| +--+--+   |\n"+
+                  "| |  |  |   |\n"+
+                  "+-+--+--+---+";
+
+            const st = mkEdgeState(src);
+            edgePrims.selectEdgeUnderPoint(st, point.mkP2(2, 1), "Right");
+            edgePrims.slideVerticalEdge(st, 1);
+
+            const exp =
+                  "hellothere\n"   +
+                  "     abc\n"     +
+                  "     abc\n"     +
+                  "+-+-----+---+\n"+
+                  "| +---+-+   |\n"+
+                  "| |   | |   |\n"+
+                  "+-+---+-+---+";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
     });
 });
