@@ -48,7 +48,7 @@ export interface Inverse<S> {
    * A function which, when applied to the state, will mutate it
    * undoing the forward operation.
    */
-  apply(st: S): Promise<S>;
+  apply(st: S): S;
 }
 
 interface PrimitiveSignatureBase {
@@ -56,8 +56,6 @@ interface PrimitiveSignatureBase {
   function: any,
   /** The type of the function's arguments. */
   args: Type[],
-  /** Is the function async? */
-  async: boolean,
   /** A short description of the primitive. */
   description: string
 }

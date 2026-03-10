@@ -569,11 +569,11 @@ export class EditorView extends View {
      * @template {CommonState} S
      * @template {any[]} A
      * @param {S} st The current state.
-     * @param {(st: S, ...args: A) => Promise<Inverse<S>> | Inverse<S>} prim The primitive operation to wrap.
+     * @param {(st: S, ...args: A) => Inverse<S>} prim The primitive operation to wrap.
      * @param {A} args The arguments to the primitive function
      */
-    async runPrimitiveWithUndo(st, prim, ...args) {
-        const inverse = await prim(st, ...args);
+    runPrimitiveWithUndo(st, prim, ...args) {
+        const inverse = prim(st, ...args);
         this.commitUndoableItem(inverse);
     }
 
@@ -587,21 +587,21 @@ export class EditorView extends View {
      * @template {CommonState} S
      * @template {any[]} A
      * @param {S} st The current state.
-     * @param {(st: S, ...args: A) => Promise<Inverse<S>> | Inverse<S>} prim The primitive operation to wrap.
+     * @param {(st: S, ...args: A) => Inverse<S>} prim The primitive operation to wrap.
      * @param {A} args The arguments to the primitive function
      */
-    async runPrimitiveWithUndoThenRedraw(st, prim, ...args) {
-        await this.runPrimitiveWithUndo(st, prim, ...args);
+    runPrimitiveWithUndoThenRedraw(st, prim, ...args) {
+        this.runPrimitiveWithUndo(st, prim, ...args);
         this.requestRedraw();
     }
 
-    async undo() {
+    undo() {
         if(this.#history.length === 0) {
             return;
         }
 
         const top = this.#history.pop();
-        const newState = await top.apply(this.state);
+        const newState = top.apply(this.state);
 
         // Replace the view with one which can view the current state.
         this.requestReplaceEditorView(this.createViewForState(this.parent, newState));

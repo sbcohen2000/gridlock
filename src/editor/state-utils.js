@@ -25,7 +25,7 @@ export class SnapshotInverse {
     /**
      * @param {S} st
      */
-    async apply(st) {
+    apply(st) {
         Object.assign(st, this.#snapshot);
         return st;
     }
@@ -42,15 +42,15 @@ export class SnapshotInverse {
  *
  * @template {CommonState} S
  * @template {any[]} A
- * @param {(st: S, ...args: A) => void | Promise<void>} fn The primitive operation to wrap.
+ * @param {(st: S, ...args: A) => void} fn The primitive operation to wrap.
  * @param {string} [fwdDescription] A description of the forward
  *     operation.
- * @returns {(st: S, ...args: A) => Promise<Inverse<S>>}
+ * @returns {(st: S, ...args: A) => Inverse<S>}
  */
 export function withDefaultInverse(fn, fwdDescription) {
-    return async (/** @type {S} */ st, /** @type {A} */ ...args) => {
+    return (/** @type {S} */ st, /** @type {A} */ ...args) => {
         const snapshot = st.clone();
-        await fn(st, ...args);
+        fn(st, ...args);
         return new SnapshotInverse(snapshot, fwdDescription);
     };
 }
@@ -64,7 +64,7 @@ export class IdInverse {
     /**
      * @param {CommonState} st
      */
-    async apply(st) { return st; }
+    apply(st) { return st; }
 
     /**
      * @param {Inverse<any>} i

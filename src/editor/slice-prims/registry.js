@@ -11,14 +11,12 @@ export const PRIMITIVES = [
     {
         function: prims.splitCellVerticallyAtGlobalRow,
         args: ["point"],
-        async: true,
         const: false,
         description: "Split a cell vertically at a global row"
     },
     {
         function: prims.splitCellHorizontallyAtGlobalCol,
         args: ["point"],
-        async: true,
         const: false,
         description: "Split a cell horizontally at a global column"
     },

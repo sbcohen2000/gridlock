@@ -12,42 +12,36 @@ export const PRIMITIVES = [
         function: prims.canSelectEdgeUnderPoint,
         args: ["point", "string"],
         retty: "boolean",
-        async: false,
         const: true,
         description: "Check if an edge can be selected under a global point"
     },
     {
         function: prims.selectEdgeUnderPoint,
         args: ["point", "string"],
-        async: true,
         const: false,
         description: "Select an edge of the leaf under a global point"
     },
     {
         function: prims.moveVerticalEdge,
-        args: ["number", "glpk"],
-        async: true,
+        args: ["number"],
         const: false,
         description: "Shift the selected vertical edge by n columns"
     },
     {
         function: prims.moveHorizontalEdge,
         args: ["number"],
-        async: true,
         const: false,
         description: "Shift the selected horizontal edge by n rows"
     },
     {
         function: prims.slideVerticalEdge,
-        args: ["number", "glpk"],
-        async: true,
+        args: ["number"],
         const: false,
         description: "Slide the selected vertical edge by n columns"
     },
     {
         function: prims.slideHorizontalEdge,
         args: ["number"],
-        async: true,
         const: false,
         description: "Slide the selected horizontal edge by n rows"
     },

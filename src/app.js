@@ -1,13 +1,11 @@
 import * as cmenu from "./context-menu.js";
 import * as serialize from "./editor/serialize-common-state.js";
-import GLPK from "glpk.js";
 /** @import { Recycler } from "./framework.js" */
 import { CommittableRecycler, RecycleStatistics } from "./framework.js";
 import { EditorView, ReplaceEditorViewEvent } from "./editor-view.js";
 import { TextEditingView } from "./editor-view/text-editing-view.js";
 import { View, RedrawViewEvent, RequestFocusViewEvent, KeyViewEvent, ViewDeletedViewEvent } from "./view.js";
 import { mkToolbarItem } from "./editor-view/toolbar.js";
-import { theGLPKInstance } from "./glpk.js";
 
 // Reload the page when esbuild issues a change event.
 new EventSource('/esbuild').addEventListener('change', () => {
@@ -84,9 +82,7 @@ class AppView extends View {
     }
 }
 
-async function main() {
-    theGLPKInstance.glpk = await GLPK();
-
+function main() {
     const editorRoot = document.getElementById("editor-root");
     if(!editorRoot) {
         throw new Error("Could not find #editor-root element");
@@ -216,7 +212,7 @@ async function main() {
         }
     })(null, initialView);
 
-    document.addEventListener("keydown", async (e) => {
+    document.addEventListener("keydown", (e) => {
         topLevelView.handleKeyEvent(e);
     });
 

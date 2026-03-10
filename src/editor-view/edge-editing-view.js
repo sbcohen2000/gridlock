@@ -8,7 +8,6 @@ import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slici
 import { EditorView } from "../editor-view.js";
 import { TextEditingView } from "./text-editing-view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
-import { theGLPKInstance } from "../glpk.js";
 
 /** @import { Recycler } from "../framework.js" */
 /** @import { EdgePrimsState } from "../editor/edge-prims/state.js" */
@@ -57,15 +56,6 @@ export class EdgeEditingView extends EditorView {
     }
 
     /**
-     * An `AbortController` which is used to discard GLPK results
-     * which become out-of-date before they can be applied to graph
-     * when the user drags a vertical guide quickly.
-     *
-     * @type {AbortController | null}
-     */
-    #GLPKAbortController = null;
-
-    /**
      * @param {HTMLElement} root
      */
     _viewRoot(root) {
@@ -73,13 +63,6 @@ export class EdgeEditingView extends EditorView {
 
         root.onpointermove = (e) => {
             if(!this.#dragState) return;
-
-            // Construct a new `AbortController` for this drag action,
-            // aborting the previous abort controller if it exists.
-            if(this.#GLPKAbortController !== null) {
-                this.#GLPKAbortController.abort();
-            }
-            this.#GLPKAbortController = new AbortController();
 
             const g        = this.#eeState.grid;
             const ds       = this.#dragState;
@@ -97,13 +80,8 @@ export class EdgeEditingView extends EditorView {
                 const targetEdgeX  = dxGrid;
                 const dw = targetEdgeX - currentEdgeX;
 
-                // Invoke the solver to modify the `leftLeaf`'s width by `dw`.
-                const settings = {
-                    abortSignal: this.#GLPKAbortController.signal
-                };
-
                 if(this.#dragState.lastArg !== dw && dw !== 0) {
-                    this.runPrimitiveWithUndoThenRedraw(this.#eeState, edgePrims.moveVerticalEdge, dw, theGLPKInstance.glpk, settings);
+                    this.runPrimitiveWithUndoThenRedraw(this.#eeState, edgePrims.moveVerticalEdge, dw);
                 }
                 this.#dragState.lastArg = dw;
             } else {

@@ -2,21 +2,18 @@ import * as grid from "../../src/grid.js";
 import * as point from "../../src/point.js";
 import * as serialize from "../../src/editor/serialize-common-state.js";
 import * as textPrims from "../../src/editor/text-prims/text-prims.js";
-import GLPK from "glpk.js/node";
 import { expect } from "chai";
-
-const glpk = await GLPK();
 
 describe("text-prims", () => {
     describe("insertString", () => {
-        it("Can insert a string into a state with a single leaf", async () => {
+        it("Can insert a string into a state with a single leaf", () => {
             const src =
                   "world\n"   +
                   "+-----+\n" +
                   "+-----+";
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
-            await textPrims.insertString(st, "hello ", glpk);
+            textPrims.insertString(st, "hello ");
 
             const exp =
                   "hello world\n"  +
@@ -26,17 +23,17 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can insert individual spaces before a leaf", async () => {
+        it("Can insert individual spaces before a leaf", () => {
             const src =
                   "world\n"   +
                   "+-----+\n" +
                   "+-----+";
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
-            await textPrims.insertString(st, " ", glpk);
-            await textPrims.insertString(st, " ", glpk);
-            await textPrims.insertString(st, " ", glpk);
-            await textPrims.insertString(st, " ", glpk);
+            textPrims.insertString(st, " ");
+            textPrims.insertString(st, " ");
+            textPrims.insertString(st, " ");
+            textPrims.insertString(st, " ");
 
             const exp =
                   "    world\n"  +
@@ -46,7 +43,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can insert a string at the end of a single-line leaf", async () => {
+        it("Can insert a string at the end of a single-line leaf", () => {
             const src =
                   "hello\n"   +
                   "+-----+\n" +
@@ -56,7 +53,7 @@ describe("text-prims", () => {
             // Update the selection to point past the last letter in
             // `hello`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-            await textPrims.insertString(st, " world", glpk);
+            textPrims.insertString(st, " world");
 
             const exp =
                   "hello world\n"  +
@@ -66,7 +63,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can insert a string at the beginning of a new line in a two-line leaf", async () => {
+        it("Can insert a string at the beginning of a new line in a two-line leaf", () => {
             const src =
                   "hello\n"   +
                   "\n"        +
@@ -77,7 +74,7 @@ describe("text-prims", () => {
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
             // Update the selection to point underneath the `h`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
-            await textPrims.insertString(st, "world", glpk);
+            textPrims.insertString(st, "world");
 
             {
                 const exp =
@@ -94,7 +91,7 @@ describe("text-prims", () => {
             // we expect (at the end of the new line).
 
             {
-                textPrims.insertString(st, "x", glpk);
+                textPrims.insertString(st, "x");
 
                 const exp =
                       "hello\n"   +
@@ -107,7 +104,7 @@ describe("text-prims", () => {
             }
         });
 
-        it("Can insert a string in a multi-leaf document", async () => {
+        it("Can insert a string in a multi-leaf document", () => {
             const src =
                   "hello other\n"   +
                   "      lines\n"   +
@@ -118,7 +115,7 @@ describe("text-prims", () => {
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
             // Update the selection to point underneath the `h`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1));
-            await textPrims.insertString(st, "A long second line", glpk);
+            textPrims.insertString(st, "A long second line");
 
             const exp =
                   "hello             other\n"   +
@@ -186,7 +183,7 @@ describe("text-prims", () => {
     });
 
     describe("insertGlobalNewline", () => {
-        it("Can insert a newline at the end of a single-line leaf", async () => {
+        it("Can insert a newline at the end of a single-line leaf", () => {
             const src =
                   "hello\n" +
                   "+-----+\n" +
@@ -196,7 +193,7 @@ describe("text-prims", () => {
             // Update the selection to point past the last letter in
             // `hello`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-            await textPrims.insertGlobalNewline(st, glpk);
+            textPrims.insertGlobalNewline(st);
 
             const exp =
                   "hello\n"   +
@@ -208,7 +205,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can insert a newline between leaves", async () => {
+        it("Can insert a newline between leaves", () => {
             const src =
                   "hellothere\n"  +
                   "+----+----+\n" +
@@ -218,7 +215,7 @@ describe("text-prims", () => {
             // Update the selection to point past the last letter in
             // `hello`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-            await textPrims.insertGlobalNewline(st, glpk);
+            textPrims.insertGlobalNewline(st);
 
             const exp =
                   "hello\n"       +
@@ -230,7 +227,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can insert a newline within leaves", async () => {
+        it("Can insert a newline within leaves", () => {
             const src =
                   "hellothere\n"  +
                   "+----+----+\n" +
@@ -238,7 +235,7 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
             textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
-            await textPrims.insertGlobalNewline(st, glpk);
+            textPrims.insertGlobalNewline(st);
 
             const exp =
                   "hel\n"         +
@@ -250,7 +247,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can split a row of leaves. (1)", async () => {
+        it("Can split a row of leaves. (1)", () => {
             const src =
                   "one  two  three\n"  +
                   "one  two  three\n"  +
@@ -262,7 +259,7 @@ describe("text-prims", () => {
             // Update the selection to point to the first letter in
             // the top `two`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(5, 0));
-            await textPrims.insertGlobalNewline(st, glpk);
+            textPrims.insertGlobalNewline(st);
 
             const exp =
                   "one\n"              +
@@ -276,7 +273,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can split a row of leaves. (2)", async () => {
+        it("Can split a row of leaves. (2)", () => {
             const src =
                   "one  two  three\n"  +
                   "one  two  three\n"  +
@@ -288,7 +285,7 @@ describe("text-prims", () => {
             // Update the selection to point past the last letter in the
             // top `one`.
             textPrims.putPointOnGlobalPosition(st, point.mkP2(3, 0));
-            await textPrims.insertGlobalNewline(st, glpk);
+            textPrims.insertGlobalNewline(st);
 
             const exp =
                   "one\n"              +
@@ -328,7 +325,7 @@ describe("text-prims", () => {
     });
 
     describe("putPointOnNextGlobalLine", () => {
-        it("Does the `right` thing on a large document", async () => {
+        it("Does the `right` thing on a large document", () => {
             const src =
                   "function x() {             // Note 3\n"              +
                   "  return 2;                // Note 1\n"              +
@@ -367,7 +364,7 @@ describe("text-prims", () => {
             // Put an `X` and go down a line.
             let fuel = 1000;
             do {
-                await textPrims.insertString(st, "X", glpk, false);
+                textPrims.insertString(st, "X",  false);
                 --fuel;
             } while(!(textPrims.putPointOnNextGlobalLine(st) instanceof textPrims.IdInverse) && fuel > 0);
 
@@ -429,28 +426,28 @@ describe("text-prims", () => {
             });
         }
 
-        it("Can spread empty text into a single cell", async () => {
+        it("Can spread empty text into a single cell", () => {
             const src =
                   "hello\n"    +
                   "+----+\n" +
                   "+----+"
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
-            await textPrims._spreadTextOnGlobalRow(
-                st, 0, 0, textOnGlobalLineIterFromStringsIter([].values()), glpk);
+            textPrims._spreadTextOnGlobalRow(
+                st, 0, 0, textOnGlobalLineIterFromStringsIter([].values()));
 
             expect(serialize.printCommonState(st)).to.equal(src);
         });
 
-        it("Can spread text into a single empty cell", async () => {
+        it("Can spread text into a single empty cell", () => {
             const src =
                   "\n"    +
                   "+-+\n" +
                   "+-+"
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
-            await textPrims._spreadTextOnGlobalRow(
-                st, 0, 0, textOnGlobalLineIterFromStringsIter(["hello"].values()), glpk);
+            textPrims._spreadTextOnGlobalRow(
+                st, 0, 0, textOnGlobalLineIterFromStringsIter(["hello"].values()));
 
             const exp =
                   "hello\n"  +
@@ -460,15 +457,15 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can spread multiple texts into a single empty cell", async () => {
+        it("Can spread multiple texts into a single empty cell", () => {
             const src =
                   "\n"    +
                   "+-+\n" +
                   "+-+"
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
-            await textPrims._spreadTextOnGlobalRow(
-                st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+            textPrims._spreadTextOnGlobalRow(
+                st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()));
 
             const exp =
                   "abc\n"  +
@@ -478,15 +475,15 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can spread multiple texts into multiple empty cells (1)", async () => {
+        it("Can spread multiple texts into multiple empty cells (1)", () => {
             const src =
                   "\n"  +
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
-            await textPrims._spreadTextOnGlobalRow(
-                st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+            textPrims._spreadTextOnGlobalRow(
+                st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()));
 
             const exp =
                   "a b c\n"   +
@@ -496,15 +493,15 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can spread multiple texts into multiple empty cells (2)", async () => {
+        it("Can spread multiple texts into multiple empty cells (2)", () => {
             const src =
                   "\n"  +
                   "+-+-+\n" +
                   "+-+-+"
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
-            await textPrims._spreadTextOnGlobalRow(
-                st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()), glpk);
+            textPrims._spreadTextOnGlobalRow(
+                st, 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()));
 
             const exp =
                   "a bc\n"  +
@@ -514,15 +511,15 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can spread multiple texts into multiple non-empty cells", async () => {
+        it("Can spread multiple texts into multiple non-empty cells", () => {
             const src =
                   "aabb\n"    +
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
-            await textPrims._spreadTextOnGlobalRow(
-                st, 0, 0, textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
+            textPrims._spreadTextOnGlobalRow(
+                st, 0, 0, textOnGlobalLineIterFromStringsIter(["c", "d"].values()));
 
             const exp =
                   "aacbbd\n"   +
@@ -532,15 +529,15 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can spread multiple texts into multiple non-empty cells with a non-zero column", async () => {
+        it("Can spread multiple texts into multiple non-empty cells with a non-zero column", () => {
             const src =
                   "aabb\n"    +
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
-            await textPrims._spreadTextOnGlobalRow(
-                st, 0, 2, textOnGlobalLineIterFromStringsIter(["c", "d"].values()), glpk);
+            textPrims._spreadTextOnGlobalRow(
+                st, 0, 2, textOnGlobalLineIterFromStringsIter(["c", "d"].values()));
 
             const exp =
                   "aabbcd\n"   +
@@ -551,8 +548,8 @@ describe("text-prims", () => {
         });
     });
 
-    describe("removeGlobalNewline", async () => {
-        it("Does nothing on the first line of the document", async () => {
+    describe("removeGlobalNewline", () => {
+        it("Does nothing on the first line of the document", () => {
             const src =
                   "foo bar\n"   +
                   "+---+---+\n" +
@@ -560,13 +557,13 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
             textPrims.putPointOnGlobalPosition(st, point.mkOrigin(), false);
-            await textPrims.removeGlobalNewline(st, glpk);
+            textPrims.removeGlobalNewline(st);
 
             expect(textPrims.pointAtBeginningOfGlobalLine(st)).to.be.true;
             expect(serialize.printCommonState(st)).to.equal(src);
         });
 
-        it("Can remove the line on a 2-line document", async () => {
+        it("Can remove the line on a 2-line document", () => {
             const src =
                   "foo bar\n"   +
                   "baz\n"       +
@@ -576,10 +573,10 @@ describe("text-prims", () => {
 
             const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
             textPrims.putPointOnGlobalPosition(st, point.mkP2(0, 1), false);
-            await textPrims.removeGlobalNewline(st, glpk);
+            textPrims.removeGlobalNewline(st);
 
             // Insert a character to test that the point is in the right spot.
-            await textPrims.insertString(st, "X", glpk, false);
+            textPrims.insertString(st, "X",  false);
 
             const exp =
                   "foo barXbaz\n"  +

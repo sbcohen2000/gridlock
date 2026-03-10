@@ -15,40 +15,40 @@ function mkCellState(src) {
 
 describe("cell-prims", () => {
     describe("selectLeafUnderPoint", () => {
-        it("Selects a leaf in a single-leaf grid", async () => {
+        it("Selects a leaf in a single-leaf grid", () => {
             const st = mkCellState(
                 "hello\n" +
                     "+-----+\n" +
                     "+-----+"
             );
 
-            await cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
+            cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
 
             expect(st.selection.leaves.size).to.equal(1);
         });
 
-        it("Accumulates leaves when clear is false", async () => {
+        it("Accumulates leaves when clear is false", () => {
             const st = mkCellState(
                 "hello there\n" +
                     "+-----+-----+\n" +
                     "+-----+-----+"
             );
 
-            await cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
-            await cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), false);
+            cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
+            cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), false);
 
             expect(st.selection.leaves.size).to.equal(2);
         });
 
-        it("Replaces selection when clear is true", async () => {
+        it("Replaces selection when clear is true", () => {
             const st = mkCellState(
                 "hello there\n" +
                     "+-----+-----+\n" +
                     "+-----+-----+"
             );
 
-            await cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
-            await cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), true);
+            cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
+            cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), true);
 
             expect(st.selection.leaves.size).to.equal(1);
         });

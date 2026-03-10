@@ -44,7 +44,7 @@ function _selectEdgeUnderPoint(st, pt, edge) {
 /**
  * Select an edge of the leaf under the given global point.
  *
- * @type {(st: EdgePrimsState, pt: point.P2, edge: EdgeLocation) => Promise<Inverse<EdgePrimsState>>}
+ * @type {(st: EdgePrimsState, pt: point.P2, edge: EdgeLocation) => Inverse<EdgePrimsState>}
  */
 export const selectEdgeUnderPoint = state.withDefaultInverse(_selectEdgeUnderPoint);
 
@@ -91,33 +91,41 @@ function _countTrailingBlankLines(leaf) {
 }
 
 /**
- * Move the selected vertical edge by the given number of rows. If
+ * Move the selected vertical edge by the given number of columns. If
  * the selected edge is not vertical, or there is no selected edge,
  * then this function does nothing.
  *
  * @param {EdgePrimsState} st
  * @param {number} n
- * @param {any} glpk
- * @param {grid.SolveSettings<Cell>} [settings]
  */
-async function _moveVerticalEdge(st, n, glpk, settings) {
+function _moveVerticalEdge(st, n) {
     if(st.selection.edge === "Below") {
         return;
     }
 
-    settings.measure = (leaf) => leaf.data.lines.reduce((maxLen, line) =>
-        Math.max(maxLen, line.length), 0);
+    const leaf = st.selection.leaf;
+    const globalCol = grid.posOfLeaf(st.grid, leaf).x + leaf.dims.width - 1;
+    const leaves = [...grid.leavesUnderCol(st.grid, globalCol)];
 
-    const g = await grid.modifyWidth(st.grid, n, st.selection.leaf, glpk, settings);
-    if(g !== null) {
-        st.grid = g;
+    if(n < 0) {
+        const spaceToLeft = leaves.reduce((min, l) => {
+            const maxLineLen = l.data.lines.reduce((max, line) => Math.max(max, line.length), 0);
+            return Math.min(min, l.dims.width - Math.max(maxLineLen, 1));
+        }, Infinity);
+        n = Math.max(-spaceToLeft, n);
     }
+
+    if(n === 0) {
+        return;
+    }
+
+    st.grid = grid.modifyWidthOfLeaves(st.grid, n, leaves);
 }
 
 /**
  * Move the selected vertical edge by the given number of columns.
  *
- * @type {(st: EdgePrimsState, n: number, glpk: any, settings?: grid.SolveSettings<Cell>) => Promise<Inverse<EdgePrimsState>>}
+ * @type {(st: EdgePrimsState, n: number) => Inverse<EdgePrimsState>}
  */
 export const moveVerticalEdge = state.withDefaultInverse(_moveVerticalEdge);
 
@@ -169,7 +177,7 @@ function _moveHorizontalEdge(st, n) {
 /**
  * Move the selected horizontal edge by the given number of rows.
  *
- * @type {(st: EdgePrimsState, n: number) => Promise<Inverse<EdgePrimsState>>}
+ * @type {(st: EdgePrimsState, n: number) => Inverse<EdgePrimsState>}
  */
 export const moveHorizontalEdge = state.withDefaultInverse(_moveHorizontalEdge);
 
@@ -188,7 +196,7 @@ function _slideHorizontalEdge(st, n) {
 /**
  * Slide the selected horizontal edge by the given number of rows.
  *
- * @type {(st: EdgePrimsState, n: number) => Promise<Inverse<EdgePrimsState>>}
+ * @type {(st: EdgePrimsState, n: number) => Inverse<EdgePrimsState>}
  */
 export const slideHorizontalEdge = state.withDefaultInverse(_slideHorizontalEdge);
 
@@ -199,17 +207,15 @@ export const slideHorizontalEdge = state.withDefaultInverse(_slideHorizontalEdge
  *
  * @param {EdgePrimsState} st
  * @param {number} n
- * @param {any} glpk
- * @param {grid.SolveSettings<Cell>} [settings]
  */
-async function _slideVerticalEdge(st, n, glpk, settings) {
+function _slideVerticalEdge(st, n) {
     // TODO
 }
 
 /**
  * Slide the selected vertical edge by the given number of columns.
  *
- * @type {(st: EdgePrimsState, n: number, glpk: any, settings?: grid.SolveSettings<Cell>) => Promise<Inverse<EdgePrimsState>>}
+ * @type {(st: EdgePrimsState, n: number) => Inverse<EdgePrimsState>}
  */
 export const slideVerticalEdge = state.withDefaultInverse(_slideVerticalEdge);
 
@@ -223,7 +229,7 @@ export function editEdge(st) {
     const firstLeaf = grid.allLeaves(st.grid).next().value;
 
     return [ new EdgePrimsState(st.grid, { edge: "Right", leaf: firstLeaf }), {
-        apply: async (_s) => {
+        apply: (_s) => {
             return snapshot;
         },
         fwdDescription: "start editing edge"

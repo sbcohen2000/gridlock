@@ -7,7 +7,6 @@ import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slici
 import { EditorView, PointerEventContext } from "../editor-view.js";
 import { View, KeyViewEvent } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
-import { theGLPKInstance } from "../glpk.js";
 
 /** @import { Recycler } from "../framework.js" */
 /** @import { TextPrimsState } from "../editor/text-prims/state.js" */
@@ -113,7 +112,7 @@ export class TextEditingView extends EditorView {
                 case "f": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnNextGlobalCol); break;
                 }
             } else {
-                this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.insertString, e.key, theGLPKInstance.glpk);
+                this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.insertString, e.key);
             }
         } else {
             // Only if there's no command state do we allow the
@@ -122,13 +121,13 @@ export class TextEditingView extends EditorView {
             switch(e.key) {
             case "Backspace": {
                 if(textPrims.pointAtBeginningOfGlobalLine(this.#teState)) {
-                    this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.removeGlobalNewline, theGLPKInstance.glpk);
+                    this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.removeGlobalNewline);
                 } else {
                     this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.removeString, 1);
                 }
             } break;
             case "Enter": {
-                this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.insertGlobalNewline, theGLPKInstance.glpk);
+                this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.insertGlobalNewline);
             } break;
             default: break;
             }

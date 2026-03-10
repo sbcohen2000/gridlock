@@ -91,7 +91,7 @@ class PutPointOnGlobalPositionInverse  {
     /**
      * @param {TextPrimsState} st
      */
-    async apply(st) {
+    apply(st) {
         putPointOnGlobalPosition(st, this.#oldPos, false);
         st.selection.lastGlobalCol = this.#oldGlobalCol;
         return st;
@@ -192,12 +192,13 @@ function _maximumLineLength(leaf) {
  *
  * @param {grid.Grid<Cell>} g    The root of the grid.
  * @param {grid.Leaf<Cell>} leaf The leaf to expand.
- * @param {any}                   glpk The glpk instance.
  */
-async function _expandLeafWidthIfNecessary(g, leaf, glpk) {
+function _expandLeafWidthIfNecessary(g, leaf) {
     const dW = _maximumLineLength(leaf) - leaf.dims.width;
     if(0 < dW) {
-        await grid.modifyWidth(g, dW, leaf, glpk);
+        const globalCol = grid.posOfLeaf(g, leaf).x + leaf.dims.width - 1;
+        const leaves = [...grid.leavesUnderCol(g, globalCol)];
+        grid.modifyWidthOfLeaves(g, dW, leaves);
     }
 }
 
@@ -639,7 +640,7 @@ function _removeGlobalLine(st) {
  * Remove the line referred to by the current point, across all
  * leaves, removing newly empty leaves.
  *
- * @type {(st: TextPrimsState) => Promise<Inverse<TextPrimsState>>}
+ * @type {(st: TextPrimsState) => Inverse<TextPrimsState>}
  */
 export const removeGlobalLine = state.withDefaultInverse(
     (/** @type {TextPrimsState} */ st) => { _removeGlobalLine(st); },
@@ -652,10 +653,10 @@ export const removeGlobalLine = state.withDefaultInverse(
  * If the point is not at the beginning of the line, this function is
  * a no-op.
  *
- * @type {(st: TextPrimsState, glpk: any) => Promise<Inverse<TextPrimsState>>}
+ * @type {(st: TextPrimsState) => Inverse<TextPrimsState>}
  */
 export const removeGlobalNewline = state.withDefaultInverse(
-    async (/** @type {TextPrimsState} */ st, /** @type {any} */ glpk) => {
+    (/** @type {TextPrimsState} */ st) => {
         const globalPt = findGlobalPoint(st);
         if(globalPt.y === 0) return;
         if(globalPt.x >   0) return;
@@ -674,7 +675,7 @@ export const removeGlobalNewline = state.withDefaultInverse(
         // Put the point at the end of the line.
         putPointAtEndOfGlobalLine(st);
         const globalCol = _lastColumnOnGlobalLine(st, globalRow - 1);
-        await _spreadTextOnGlobalRow(st, globalRow - 1, globalCol, textOnLine.values(), glpk);
+        _spreadTextOnGlobalRow(st, globalRow - 1, globalCol, textOnLine.values());
     },
     "remove newline"
 );
@@ -684,7 +685,7 @@ export const removeGlobalNewline = state.withDefaultInverse(
  * will not leave the context of its leaf, even if `n` exceeds the
  * length of the current line.
  *
- * @type {(st: TextPrimsState, n: number) => Promise<Inverse<TextPrimsState>>}
+ * @type {(st: TextPrimsState, n: number) => Inverse<TextPrimsState>}
  */
 export const removeString = state.withDefaultInverse(
     (/** @type {TextPrimsState} */ st, /** @type {number} */ n) => {
@@ -719,10 +720,10 @@ export const removeString = state.withDefaultInverse(
  * document, then this function also creates a new line in the current
  * leaf and sets the point to it.
  *
- * @type {(st: TextPrimsState, glpk: any) => Promise<Inverse<TextPrimsState>>}
+ * @type {(st: TextPrimsState) => Inverse<TextPrimsState>}
  */
 export const insertGlobalNewline = state.withDefaultInverse(
-    async (/** @type {TextPrimsState} */ st, /** @type {any} */ glpk) => {
+    (/** @type {TextPrimsState} */ st) => {
         // Find the location of the cursor in the global coordinate space.
         const globalPt  = findGlobalPoint(st);
         const globalRow = globalPt.y;
@@ -740,7 +741,7 @@ export const insertGlobalNewline = state.withDefaultInverse(
         grid.modifyHeightOfLeaves(st.grid, 1, leaves);
 
         const newRow = globalRow + 1;
-        await _spreadTextOnGlobalRow(st, newRow, 0, afterPointer.values(), glpk);
+        _spreadTextOnGlobalRow(st, newRow, 0, afterPointer.values());
 
         putPointOnGlobalPosition(st, point.mkP2(0, newRow), false);
     },
@@ -752,10 +753,10 @@ export const insertGlobalNewline = state.withDefaultInverse(
  * selection is a multi-selection, then it is converted to a single
  * selection prior to insertion.
  *
- * @type {(st: TextPrimsState, s: string, glpk: any, advancePoint?: boolean) => Promise<Inverse<TextPrimsState>>}
+ * @type {(st: TextPrimsState, s: string, advancePoint?: boolean) => Inverse<TextPrimsState>}
  */
 export const insertString = state.withDefaultInverse(
-    async (/** @type {TextPrimsState} */ st, /** @type {string} */ s, /** @type {any} */ glpk, /** @type {boolean | undefined} */ advancePoint) => {
+    (/** @type {TextPrimsState} */ st, /** @type {string} */ s, /** @type {boolean | undefined} */ advancePoint) => {
         if(advancePoint === undefined) {
             advancePoint = true;
         }
@@ -775,7 +776,7 @@ export const insertString = state.withDefaultInverse(
             _updateLastGlobalCol(st);
         }
 
-        await _expandLeafWidthIfNecessary(st.grid, st.selection.leaf, glpk);
+        _expandLeafWidthIfNecessary(st.grid, st.selection.leaf);
     },
     "insert string"
 );
@@ -791,9 +792,8 @@ export const insertString = state.withDefaultInverse(
  * @param {number}         col  The global column at which to insert the text.
  * @param {TextOnGlobalLineIter} textIter The text iterator from which we
  *    will determine the text to insert.
- * @param {any}            glpk The GLPK instance.
  */
-export async function _spreadTextOnGlobalRow(st, row, col, textIter, glpk) {
+export function _spreadTextOnGlobalRow(st, row, col, textIter) {
     const leaves = [...grid.leavesUnderRow(st.grid, row)];
     util.assert(leaves.length > 0);
 
@@ -819,7 +819,7 @@ export async function _spreadTextOnGlobalRow(st, row, col, textIter, glpk) {
             // leaf, even if `textIter` consists of multiple entries.
             const remainingText = _concatenatePositionedText(textIter);
             leaf.data.lines[localRow] += remainingText;
-            await _expandLeafWidthIfNecessary(st.grid, leaf, glpk);
+            _expandLeafWidthIfNecessary(st.grid, leaf);
         } else {
             const nextText = textIter.next();
             if(nextText.done) {
@@ -827,7 +827,7 @@ export async function _spreadTextOnGlobalRow(st, row, col, textIter, glpk) {
             }
 
             leaf.data.lines[localRow] += nextText.value.text;
-            await _expandLeafWidthIfNecessary(st.grid, leaf, glpk);
+            _expandLeafWidthIfNecessary(st.grid, leaf);
         }
     }
 }
@@ -846,7 +846,7 @@ export function editText(st) {
         leaf: firstLeaf,
         lastGlobalCol: 0
     }), {
-        apply: async (_s) => {
+        apply: (_s) => {
             return snapshot;
         },
         fwdDescription: "start editing text"

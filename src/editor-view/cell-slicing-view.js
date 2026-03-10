@@ -45,9 +45,9 @@ class CellSlicingView extends EditorView {
      *
      * @abstract
      * @param {point.P2} globalPos
-     * @returns {Promise<void>}
+     * @returns {void}
      */
-    async sliceAt(globalPos) {
+    sliceAt(globalPos) {
         void globalPos;
         throw new Error("Method not implemented");
     }
@@ -57,9 +57,9 @@ class CellSlicingView extends EditorView {
      *
      * @param {PointerEventContext} _ctx
      */
-    async onPointerDownInLeaf(_ctx) {
+    onPointerDownInLeaf(_ctx) {
         if(this.#hoveredPos === null) return;
-        await this.sliceAt(this.#hoveredPos);
+        this.sliceAt(this.#hoveredPos);
         this.requestRedraw();
     }
 
@@ -117,8 +117,8 @@ export class VerticalCellSlicingView extends CellSlicingView {
     /**
      * @param {point.P2} globalPos
      */
-    async sliceAt(globalPos) {
-        await this.runPrimitiveWithUndoThenRedraw(this.state, slicePrims.splitCellVerticallyAtGlobalRow, globalPos);
+    sliceAt(globalPos) {
+        this.runPrimitiveWithUndoThenRedraw(this.state, slicePrims.splitCellVerticallyAtGlobalRow, globalPos);
     }
 
     /**
@@ -157,8 +157,8 @@ export class HorizontalCellSlicingView extends CellSlicingView {
     /**
      * @param {point.P2} globalPos
      */
-    async sliceAt(globalPos) {
-        await this.runPrimitiveWithUndoThenRedraw(this.state, slicePrims.splitCellHorizontallyAtGlobalCol, globalPos);
+    sliceAt(globalPos) {
+        this.runPrimitiveWithUndoThenRedraw(this.state, slicePrims.splitCellHorizontallyAtGlobalCol, globalPos);
     }
 
     /**

@@ -35,7 +35,7 @@ function _selectLeafUnderPoint(st, pt, clear) {
 /**
  * Add the leaf under the given `pt` to the selection.
  *
- * @type {(st: CellPrimsState, pt: point.P2, clear: boolean) => Promise<Inverse<CellPrimsState>>}
+ * @type {(st: CellPrimsState, pt: point.P2, clear: boolean) => Inverse<CellPrimsState>}
  */
 export const selectLeafUnderPoint = state.withDefaultInverse(_selectLeafUnderPoint);
 
@@ -48,7 +48,7 @@ export function editCells(st) {
     const snapshot = st.clone();
 
     return [ new CellPrimsState(st.grid, { leaves: new Set() }), {
-        apply: async (_s) => {
+        apply: (_s) => {
             return snapshot;
         },
         fwdDescription: "start editing cells"
