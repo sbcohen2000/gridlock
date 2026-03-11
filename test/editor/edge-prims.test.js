@@ -11,7 +11,7 @@ import { expect } from "chai";
  * @returns {import("../../src/editor/edge-prims/state.js").EdgeMovingPrimsState}
  */
 function mkMovingEdgeState(src) {
-    return edgePrims.moveEdge(serialize.textEditingStateFromString(src))[0];
+    return edgePrims.startMovingEdge(serialize.textEditingStateFromString(src))[0];
 }
 
 /**
@@ -21,134 +21,206 @@ function mkMovingEdgeState(src) {
  * @returns {import("../../src/editor/edge-prims/state.js").EdgeSlidingPrimsState}
  */
 function mkSlidingEdgeState(src) {
-    return edgePrims.slideEdge(serialize.textEditingStateFromString(src))[0];
+    return edgePrims.startSlidingEdge(serialize.textEditingStateFromString(src))[0];
 }
 
 describe("edge-prims", () => {
+    describe("selectEdgeUnderPoint", () => {
+        it("Can select the edge under the point of a two-cell grid (1)", () => {
+            const src =
+                  "top\n" +
+                  "bot\n" +
+                  "+---+\n" +
+                  "+---+\n" +
+                  "+---+";
+            const st = mkMovingEdgeState(src);
+
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Above")).to.be.false;
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Left")).to.be.false;
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Right")).to.be.false;
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below")).to.be.true;
+            expect(st.selection).to.equal(st.grid);
+        });
+
+        it("Can select the edge under the point of a two-cell grid (2)", () => {
+            const src =
+                  "top\n" +
+                  "bot\n" +
+                  "+---+\n" +
+                  "+---+\n" +
+                  "+---+";
+            const st = mkMovingEdgeState(src);
+
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 1), "Left")).to.be.false;
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 1), "Right")).to.be.false;
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 1), "Below")).to.be.false;
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 1), "Above")).to.be.true;
+            expect(st.selection).to.equal(st.grid);
+        });
+
+        it("Selects correct edges in nested grid", () => {
+            const src =
+                  "aa\n" +
+                  "bb\n" +
+                  "cc\n" +
+                  "dd\n" +
+                  "ee\n" +
+                  "ff\n" +
+                  "+--+--+\n" + // -+
+                  "|  |  |\n" + //  | expectation 1
+                  "+--+--+\n" + // -|+
+                  "|  |  |\n" + //  ||
+                  "+--+--+\n" + // -+|
+                  "|  |  |\n" + //   | expectation 2
+                  "+--+--+";    // --+
+            //     |     |
+            //     +-----+ expectation 3
+            const st = mkMovingEdgeState(src);
+
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 2), "Above")).to.be.true;
+            const aboveFromMid = st.selection;
+            expect(aboveFromMid.type).to.equal("Vert");
+
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 2), "Below")).to.be.true;
+            const belowFromMid = st.selection;
+            expect(belowFromMid.type).to.equal("Vert");
+
+            expect(aboveFromMid).to.not.equal(belowFromMid);
+
+            expect(edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 2), "Right")).to.be.true;
+            expect(st.selection).to.equal(st.grid);
+        });
+    })
+
     describe("moveHorizontalEdge", () => {
         it("Moves a horizontal edge down by 1", () => {
-            const st = mkMovingEdgeState(
+            const src =
                 "top\n" +
-                    "bot\n" +
-                    "+---+---+\n" +
-                    "+---+---+\n" +
-                    "+---+---+"
-            );
+                "bot\n" +
+                "+---+---+\n" +
+                "+---+---+\n" +
+                "+---+---+";
+            const st = mkMovingEdgeState(src);
 
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-            edgePrims.moveHorizontalEdge(st, 1);
+            edgePrims.moveEdge(st, 1);
 
-            expect(grid.printASCII(st.grid)).to.equal(
+            const exp =
                 "+---+---+\n" +
-                    "|   |   |\n" +
-                    "+---+---+\n" +
-                    "+---+---+"
-            );
+                "|   |   |\n" +
+                "+---+---+\n" +
+                "+---+---+";
+
+            expect(grid.printASCII(st.grid)).to.equal(exp);
         });
 
         it("Moves a horizontal edge up by 1", () => {
-            const st = mkMovingEdgeState(
+            const src =
                 "top\n" +
-                    "\n" +
-                    "bot\n" +
-                    "+---+---+\n" +
-                    "|   |   |\n" +
-                    "+---+   |\n" +
-                    "+---+---+"
-            );
+                "\n" +
+                "bot\n" +
+                "+---+---+\n" +
+                "|   |   |\n" +
+                "+---+   |\n" +
+                "+---+---+";
+            const st = mkMovingEdgeState(src);
 
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-            edgePrims.moveHorizontalEdge(st, -1);
+            edgePrims.moveEdge(st, -1);
 
-            expect(grid.printASCII(st.grid)).to.equal(
+            const exp =
                 "+---+---+\n" +
-                    "+---+   |\n" +
-                    "+---+---+"
-            );
+                "+---+   |\n" +
+                "+---+---+";
+
+            expect(grid.printASCII(st.grid)).to.equal(exp);
         });
 
         it("Does not shrink a leaf below height 1", () => {
-            const st = mkMovingEdgeState(
+            const src =
                 "top\n" +
-                    "bot\n" +
-                    "+---+\n" +
-                    "+---+\n" +
-                    "+---+"
-            );
+                "bot\n" +
+                "+---+\n" +
+                "+---+\n" +
+                "+---+";
+            const st = mkMovingEdgeState(src);
 
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-            const gridBefore = grid.printASCII(st.grid);
-            edgePrims.moveHorizontalEdge(st, -1);
+            const exp = grid.printASCII(st.grid);
+            edgePrims.moveEdge(st, -1);
 
             // Top leaf is already height 1, can't shrink further
-            expect(grid.printASCII(st.grid)).to.equal(gridBefore);
+            expect(grid.printASCII(st.grid)).to.equal(exp);
         });
 
     });
 
     describe("slideVerticalEdge", () => {
         it("Can shift two empty cells", () => {
-            const st = mkSlidingEdgeState(
+            const src =
                 "\n" +
                 "\n" +
                 "+---+-+\n" +
                 "|   | |\n" +
-                "+---+-+"
-            );
+                "+---+-+";
+            const st = mkSlidingEdgeState(src);
 
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Right");
-            edgePrims.slideVerticalEdge(st, -2);
+            edgePrims.slideEdge(st, -2);
 
-            expect(grid.printASCII(st.grid)).to.equal(
+            const exp =
                 "+-+---+\n" +
                 "| |   |\n" +
-                "+-+---+"
-            );
+                "+-+---+";
+
+            expect(grid.printASCII(st.grid)).to.equal(exp);
         });
 
         it("Won't cause a cell to have a width of zero", () => {
-            const st = mkSlidingEdgeState(
+            const src =
                 "\n" +
                 "\n" +
                 "+---+-+\n" +
                 "|   | |\n" +
-                "+---+-+"
-            );
+                "+---+-+";
+            const st = mkSlidingEdgeState(src);
 
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Right");
-            edgePrims.slideVerticalEdge(st, -100);
+            edgePrims.slideEdge(st, -100);
 
-            expect(grid.printASCII(st.grid)).to.equal(
+            const exp =
                 "++----+\n" +
                 "||    |\n" +
-                "++----+"
-            );
+                "++----+";
+
+            expect(grid.printASCII(st.grid)).to.equal(exp);
         });
 
 
         it("Can shift text between two cells", () => {
-            const st = mkSlidingEdgeState(
+            const src =
                 "foofoo\n"  +
                 "barbar\n"  +
                 "+--+--+\n" +
                 "|  |  |\n" +
-                "+--+--+"
-            );
+                "+--+--+";
+            const st = mkSlidingEdgeState(src);
 
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Right");
-            edgePrims.slideVerticalEdge(st, -1);
+            edgePrims.slideEdge(st, -1);
 
-            expect(serialize.printCommonState(st)).to.equal(
+            const exp =
                 "foofoo\n" +
                 "barbar\n" +
                 "+-+---+\n" +
                 "| |   |\n" +
-                "+-+---+"
-            );
+                "+-+---+";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
         it("Can shift text between multiple cells", () => {
-            const st = mkSlidingEdgeState(
+            const src =
                 "abcdef\n"  +
                 "abcdef\n"  +
                 "abcdef\n"  +
@@ -159,13 +231,13 @@ describe("edge-prims", () => {
                 "+--+  |\n" +
                 "|  +--+\n" +
                 "|  |  |\n" +
-                "+--+--+"
-            );
+                "+--+--+";
+            const st = mkSlidingEdgeState(src);
 
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(3, 3), "Left");
-            edgePrims.slideVerticalEdge(st, 2);
+            edgePrims.slideEdge(st, 2);
 
-            expect(serialize.printCommonState(st)).to.equal(
+            const exp =
                 "abcdef\n"  +
                 "abcdef\n"  +
                 "abcdef\n"  +
@@ -176,8 +248,9 @@ describe("edge-prims", () => {
                 "+----+|\n" +
                 "|    ++\n" +
                 "|    ||\n" +
-                "+----++"
-            );
+                "+----++";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
         it("Can shift an edge in a more complex grid (1)", () => {
@@ -192,7 +265,7 @@ describe("edge-prims", () => {
 
             const st = mkSlidingEdgeState(src);
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(9, 0), "Left");
-            edgePrims.slideVerticalEdge(st, -2);
+            edgePrims.slideEdge(st, -2);
 
             const exp =
                   "hellothere\n"   +
@@ -218,7 +291,7 @@ describe("edge-prims", () => {
 
             const st = mkSlidingEdgeState(src);
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(2, 1), "Right");
-            edgePrims.slideVerticalEdge(st, 1);
+            edgePrims.slideEdge(st, 1);
 
             const exp =
                   "hellothere\n"   +
@@ -253,7 +326,7 @@ describe("edge-prims", () => {
 
             const st = mkSlidingEdgeState(src);
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(7, 4), "Right");
-            edgePrims.slideVerticalEdge(st, 2);
+            edgePrims.slideEdge(st, 2);
 
             const exp =
                   "hellothere\n"       +
@@ -289,7 +362,7 @@ describe("edge-prims", () => {
 
             const st = mkSlidingEdgeState(src);
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(5, 1), "Above");
-            edgePrims.slideHorizontalEdge(st, 1);
+            edgePrims.slideEdge(st, 1);
 
             const exp =
                   "hellothere\n"   +

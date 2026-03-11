@@ -4,11 +4,50 @@
  * @module edge-prims
  */
 
+import * as point from "../../point.js";
 import * as grid from "../../grid.js";
 import * as state from "../state-utils.js";
 import { EdgePrimsState, EdgeMovingPrimsState, EdgeSlidingPrimsState } from "./state.js";
 
 /** @import { Inverse, CommonState, Cell } from "../common-state.d.ts" */
+
+/**
+ * Select the edge adjacent to the leaf under the global point in the
+ * given direction.
+ *
+ * @param {EdgePrimsState} st
+ * @param {point.P2} pt
+ * @param {"Left" | "Right" | "Above" | "Below"} direction
+ * @returns {boolean} `true` if the selection was changed (i.e. the
+ *     parameters describe a valid edge), or `false` if the selection
+ *     was invalid, and hence was not changed.
+ */
+export function selectEdgeUnderPoint(st, pt, direction) {
+    const leaf = grid.leafUnderPoint(st.grid, pt);
+    if(!leaf) {
+        return false;
+    }
+
+    const chain = grid.parentChain(st.grid, leaf);
+
+    /** @type {grid.Grid<Cell>} */
+    let last = leaf;
+    for(const node of chain) {
+        const atRightChild = direction === "Left"  && node.type === "Horz" && node.right === last;
+        const atLeftChild  = direction === "Right" && node.type === "Horz" && node.left  === last;
+        const atBelowChild = direction === "Above" && node.type === "Vert" && node.right === last;
+        const atAboveChild = direction === "Below" && node.type === "Vert" && node.left  === last;
+
+        if(atRightChild || atLeftChild || atBelowChild || atAboveChild) {
+            st.selection = node;
+            return true;
+        }
+
+        last = node;
+    }
+
+    return false;
+}
 
 /**
  * Select the edge of the given `node`.
