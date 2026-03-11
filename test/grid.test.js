@@ -959,74 +959,6 @@ describe("leavesUnderRow", () => {
     });
 });
 
-describe("leavesToLeftOf", () => {
-    it("Returns nothing for a leaf at the left edge", () => {
-        const g = grid.parseASCII(
-            "+--+--+\n" +
-            "|a |b |\n" +
-            "+--+--+"
-        );
-
-        const a = grid.leafWithLabel(g, "a");
-        expect([...grid.leavesToLeftOf(g, a)]).to.have.lengthOf(0);
-    });
-
-    it("Returns the single leaf to the left", () => {
-        const g = grid.parseASCII(
-            "+--+--+\n" +
-            "|a |b |\n" +
-            "+--+--+"
-        );
-
-        const a = grid.leafWithLabel(g, "a");
-        const b = grid.leafWithLabel(g, "b");
-
-        const leaves = [...grid.leavesToLeftOf(g, b)];
-        expect(leaves).to.have.lengthOf(1);
-        expect(leaves[0]).to.equal(a);
-    });
-
-    it("Returns multiple leaves when they tile the left side", () => {
-        const g = grid.parseASCII(
-            "+--+--+\n" +
-            "|a |c |\n" +
-            "+--+  |\n" +
-            "|b |  |\n" +
-            "+--+--+"
-        );
-
-        const a = grid.leafWithLabel(g, "a");
-        const b = grid.leafWithLabel(g, "b");
-        const c = grid.leafWithLabel(g, "c");
-
-        const leaves = [...grid.leavesToLeftOf(g, c)];
-        expect(leaves).to.have.lengthOf(2);
-        expect(leaves[0]).to.equal(a);
-        expect(leaves[1]).to.equal(b);
-    });
-
-    it("Does not return a leaf below the queried leaf", () => {
-        const g = grid.parseASCII(
-            "+--+--+\n" +
-            "|a |d |\n" +
-            "+--+  |\n" +
-            "|b |  |\n" +
-            "+--+--+\n" +
-            "|c    |\n" +
-            "+-----+"
-        );
-
-        const a = grid.leafWithLabel(g, "a");
-        const b = grid.leafWithLabel(g, "b");
-        const c = grid.leafWithLabel(g, "c");
-        const d = grid.leafWithLabel(g, "d");
-
-        const leaves = [...grid.leavesToLeftOf(g, d)];
-        expect(leaves).to.deep.equal([a, b]);
-        expect(leaves).to.not.include(c);
-    });
-});
-
 describe("modifyHeightOfLeaves", () => {
     it("Grows a single leaf that spans the full width", () => {
         const g = grid.parseASCII(
@@ -1123,50 +1055,5 @@ describe("modifyHeightOfLeaves", () => {
         expect(() => grid.modifyHeightOfLeaves(g, 1, [a, c])).to.throw(
             "horizontally overlapping leaves passed to modifyHeightOfLeaves"
         );
-    });
-});
-
-describe("rightNeighborhoodOfLeaf", () => {
-    it("Works", () => {
-        let src =
-            "+--+--+--+\n" +
-            "|a |b |c |\n" +
-            "|  +--+--+\n" +
-            "|  |d |e |\n" +
-            "+--+--+--+\n" +
-            "|f    |g |\n" +
-            "+-----+--+";
-
-        const g = grid.parseASCII(src);
-
-        const a = grid.leafWithLabel(g, "a");
-        const b = grid.leafWithLabel(g, "b");
-        const d = grid.leafWithLabel(g, "d");
-        const e = grid.leafWithLabel(g, "e");
-        const f = grid.leafWithLabel(g, "f");
-
-        {
-            const [l, r] = grid.rightNeighborhoodOfLeaf(g, a);
-            expect(l).to.have.lengthOf(1);
-            expect(l).to.contain(a);
-            expect(r).to.have.lengthOf(2);
-            expect(r).to.contain(b);
-            expect(r).to.contain(d);
-        }
-
-        {
-            const [l, r] = grid.rightNeighborhoodOfLeaf(g, d);
-            expect(l).to.have.lengthOf(1);
-            expect(l).to.contain(d);
-            expect(r).to.have.lengthOf(1);
-            expect(r).to.contain(e);
-        }
-
-        {
-            const [l, r] = grid.rightNeighborhoodOfLeaf(g, e);
-            expect(l).to.have.lengthOf(1);
-            expect(l).to.contain(e);
-            expect(r).to.have.lengthOf(0);
-        }
     });
 });

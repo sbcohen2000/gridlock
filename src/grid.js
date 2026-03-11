@@ -1,6 +1,5 @@
 import * as point from "./point.js";
 import * as rect from "./rect.js";
-import { iterFirst } from "./util.js";
 
 /**
  * @typedef {{
@@ -788,30 +787,6 @@ export function leafUnderPoint(g, p) {
 }
 
 /**
- * Find all of the leaves to the left of `leaf` in `g`.
- *
- * @template A
- * @param {Grid<A>} g
- * @param {Leaf<A>} leaf
- * @returns {IteratorObject<Leaf<A>>} The leaves to the left of `leaf`.
- */
-export function* leavesToLeftOf(g, leaf) {
-    let upperLeft = posOfLeaf(g, leaf);
-    let bottomY   = upperLeft.y + leaf.dims.height;
-    let queryX    = upperLeft.x - 1;
-    let query     = point.mkP2(queryX, upperLeft.y);
-
-    while (query.y < bottomY) {
-        let left = leafUnderPoint(g, query);
-        if(!left) return;
-        yield left;
-
-        let leftPos = posOfLeaf(g, left);
-        query       = point.mkP2(queryX, leftPos.y + left.dims.height);
-    }
-}
-
-/**
  * Find the leaf to the left of `leaf` in `g`, if it exists.
  *
  * @template A
@@ -821,30 +796,9 @@ export function* leavesToLeftOf(g, leaf) {
  *     if there is no leaf to the left of `leaf`.
  */
 export function leafToLeftOf(g, leaf) {
-    return iterFirst(leavesToLeftOf(g, leaf));
-}
-
-/**
- * Find all of the leaves to the right of `leaf` in `g`.
- *
- * @template A
- * @param {Grid<A>} g
- * @param {Leaf<A>} leaf
- * @returns {IteratorObject<Leaf<A>>} The leaves to the right of `leaf`.
- */
-export function* leavesToRightOf(g, leaf) {
-    let upperLeft = posOfLeaf(g, leaf);
-    let bottomY   = upperLeft.y + leaf.dims.height;
-    let query     = point.offset(upperLeft, point.mkV2(leaf.dims.width, 0));
-
-    while (query.y < bottomY) {
-        let right = leafUnderPoint(g, query);
-        if(!right) return;
-        yield right;
-
-        upperLeft = posOfLeaf(g, right);
-        query     = point.offset(upperLeft, point.mkV2(0, right.dims.height));
-    }
+    const upperLeft = posOfLeaf(g, leaf);
+    const query = point.offset(upperLeft, point.mkV2(-1, 0));
+    return leafUnderPoint(g, query);
 }
 
 /**
@@ -857,31 +811,9 @@ export function* leavesToRightOf(g, leaf) {
  *     if there is no leaf to the right of `leaf`.
  */
 export function leafToRightOf(g, leaf) {
-    return iterFirst(leavesToRightOf(g, leaf));
-}
-
-/**
- * Find all of the leaves above `leaf` in `g`.
- *
- * @template A
- * @param {Grid<A>} g
- * @param {Leaf<A>} leaf
- * @returns {IteratorObject<Leaf<A>>} The leaves above `leaf`.
- */
-export function* leavesAbove(g, leaf) {
-    let upperLeft = posOfLeaf(g, leaf);
-    let rightX    = upperLeft.x + leaf.dims.width;
-    let queryY    = upperLeft.y - 1;
-    let query     = point.mkP2(upperLeft.x, queryY);
-
-    while (query.x < rightX) {
-        let above = leafUnderPoint(g, query);
-        if(!above) return;
-        yield above;
-
-        let abovePos = posOfLeaf(g, above);
-        query        = point.mkP2(abovePos.x + above.dims.width, queryY);
-    }
+    const upperLeft = posOfLeaf(g, leaf);
+    const query = point.offset(upperLeft, point.mkV2(leaf.dims.width, 0));
+    return leafUnderPoint(g, query);
 }
 
 /**
@@ -894,30 +826,9 @@ export function* leavesAbove(g, leaf) {
  *     if there is no leaf above `leaf`.
  */
 export function leafAbove(g, leaf) {
-    return iterFirst(leavesAbove(g, leaf));
-}
-
-/**
- * Find all of the leaves below `leaf` in `g`.
- *
- * @template A
- * @param {Grid<A>} g
- * @param {Leaf<A>} leaf
- * @returns {IteratorObject<Leaf<A>>} The leaves below `leaf`.
- */
-export function* leavesBelow(g, leaf) {
-    let upperLeft = posOfLeaf(g, leaf);
-    let rightX    = upperLeft.x + leaf.dims.width;
-    let query     = point.offset(upperLeft, point.mkV2(0, leaf.dims.height));
-
-    while (query.x < rightX) {
-        let below = leafUnderPoint(g, query);
-        if(!below) return;
-        yield below;
-
-        upperLeft = posOfLeaf(g, below);
-        query     = point.offset(upperLeft, point.mkV2(below.dims.width, 0));
-    }
+    const upperLeft = posOfLeaf(g, leaf);
+    const query = point.offset(upperLeft, point.mkV2(0, -1));
+    return leafUnderPoint(g, query);
 }
 
 /**
@@ -930,105 +841,9 @@ export function* leavesBelow(g, leaf) {
  *     if there is no leaf below `leaf`.
  */
 export function leafBelow(g, leaf) {
-    return iterFirst(leavesBelow(g, leaf));
-}
-
-/**
- * Given a leaf of the grid, find two sets of leaves in its
- * neighborhood whose dimensions must change if we change the
- * width of the original leaf.
- *
- * Two sets are returned; those leaves to the right of the original
- * leaf, whose dimension must change by the opposite as the original
- * leaf, and those leaves above and below the target leaf whose
- * dimension must change by an equal amount as the original leaf.
- *
- * The focus leaf is placed in the right set.
- *
- * @template A
- * @param {Grid<A>} g
- * @param {Leaf<A>} focus
- * @returns {[Set<Leaf<A>>, Set<Leaf<A>>]}
- */
-export function rightNeighborhoodOfLeaf(g, focus) {
-    const leftSet = new Set([focus]);
-    const rightSet = new Set();
-
-    /** @type {boolean} */
-    let added = true;
-    while(added) {
-        added = false;
-
-        for(const ll of leftSet) {
-            const rightLeaves = leavesToRightOf(g, ll);
-            for(const rl of rightLeaves) {
-                if(!rightSet.has(rl)) {
-                    added = true;
-                    rightSet.add(rl);
-                }
-            }
-        }
-
-        for(const rl of rightSet) {
-            const leftLeaves = leavesToLeftOf(g, rl);
-            for(const ll of leftLeaves) {
-                if(!leftSet.has(ll)) {
-                    added = true;
-                    leftSet.add(ll);
-                }
-            }
-        }
-    }
-
-    return [leftSet, rightSet];
-}
-
-/**
- * Given a leaf of the grid, find two sets of leaves in its
- * neighborhood whose dimensions must change if we change the
- * height of the original leaf.
- *
- * Two sets are returned; those leaves below the original leaf, whose
- * dimension must change by the opposite as the original leaf, and
- * those leaves to the left and right of the target leaf whose
- * dimension must change by an equal amount as the original leaf.
- *
- * @template A
- * @param {Grid<A>} g
- * @param {Leaf<A>} focus
- * @returns {[Set<Leaf<A>>, Set<Leaf<A>>]}
- */
-export function lowerNeighborhoodOfLeaf(g, focus) {
-    const upperSet = new Set([focus]);
-    const lowerSet = new Set();
-
-    /** @type {boolean} */
-    let added = true;
-    while(added) {
-        added = false;
-
-        for(const ul of upperSet) {
-            const belowLeaves = leavesBelow(g, ul);
-            for(const ll of belowLeaves) {
-                if(!lowerSet.has(ll)) {
-                    added = true;
-                    lowerSet.add(ll);
-                }
-            }
-        }
-
-        for(const ll of lowerSet) {
-            const aboveLeaves = leavesAbove(g, ll);
-            for(const ul of aboveLeaves) {
-                if(!upperSet.has(ul)) {
-                    added = true;
-                    upperSet.add(ul);
-                }
-            }
-        }
-    }
-
-    return [upperSet, lowerSet];
+    const upperLeft = posOfLeaf(g, leaf);
+    const query = point.offset(upperLeft, point.mkV2(0, leaf.dims.height));
+    return leafUnderPoint(g, query);
 }
 
 /**

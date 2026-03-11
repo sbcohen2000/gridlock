@@ -1,16 +1,4 @@
 /**
- * Return the first element of an iterator, or `undefined` if the
- * iterator is empty.
- *
- * @template A
- * @param {IterableIterator<A>} i
- * @returns {A | undefined}
- */
-export function iterFirst(i) {
-    return i.next().value;
-}
-
-/**
  * Return the last element of an iterator, or `undefined` if the
  * iterator was empty.
  *
