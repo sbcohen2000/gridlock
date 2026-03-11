@@ -1,7 +1,7 @@
 import * as grid from "../grid.js";
 import * as textPrims from "../editor/text-prims/text-prims.js";
 import * as cellPrims from "../editor/cell-prims/cell-prims.js";
-import { AbstractEditorView, PointerEventContext } from "../editor-view.js";
+import { AbstractEditorView, PointerInLeafEventContext } from "../editor-view.js";
 import { KeyViewEvent } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 import { TextPrimsState } from "../editor/text-prims/state.js";
@@ -31,13 +31,9 @@ export class TextEditingView extends AbstractEditorView {
     /**
      * Handle a pointer-down event inside a leaf element.
      *
-     * @param {PointerEventContext} ctx
+     * @param {PointerInLeafEventContext} ctx
      */
     onPointerDownInLeaf(ctx) {
-        if(this.startDraggingEdgeWhenCloseToOne(ctx)) {
-            return;
-        }
-
         const gridPt = ctx.flooredGridPt;
 
         if(ctx.event.shiftKey && ctx.leaf !== this.#teState.selection.leaf) {

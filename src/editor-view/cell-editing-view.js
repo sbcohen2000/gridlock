@@ -1,6 +1,6 @@
 import * as grid from "../grid.js";
 import * as cellPrims from "../editor/cell-prims/cell-prims.js";
-import { AbstractEditorView, PointerEventContext } from "../editor-view.js";
+import { AbstractEditorView, PointerInLeafEventContext } from "../editor-view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 import { CellPrimsState } from "../editor/cell-prims/state.js";
 
@@ -28,18 +28,19 @@ export class CellEditingView extends AbstractEditorView {
     /**
      * Handle a pointer-down event inside a leaf element.
      *
-     * @param {PointerEventContext} ctx
+     * @param {PointerInLeafEventContext} ctx
      */
     onPointerDownInLeaf(ctx) {
-        if(this.startDraggingEdgeWhenCloseToOne(ctx)) {
-            return;
-        }
-
         if(this.editTextOnDoubleClick(ctx)) {
             return;
         }
 
-        this.runPrimitiveWithUndoThenRedraw(this.#ceState, cellPrims.selectLeafUnderPoint, ctx.leafPosition, !ctx.event.shiftKey);
+        this.runPrimitiveWithUndoThenRedraw(
+            this.#ceState,
+            cellPrims.selectLeafUnderPoint,
+            ctx.leafPosition,
+            !ctx.event.shiftKey
+        );
     }
 
     /**

@@ -18,6 +18,9 @@
         -9.3px 4.6px 10.2px -3.4px hsl(var(--shadow-color) / 0.39);
 }
 
+/*****************************************************************************/
+/** Editor Root                                                              */
+
 #editor-root {
     font-family: monospace;
     -webkit-user-select: none; /* Safari */
@@ -61,22 +64,61 @@
     position: relative;
 }
 
-.editor-vertical-guide {
+/*****************************************************************************/
+/** Editor Guides                                                            */
+
+.editor-vertical-guide-hitbox,
+.editor-vertical-guide,
+.editor-horizontal-guide-hitbox,
+.editor-horizontal-guide {
     position: absolute;
-    right: -0.5px;
+    cursor: pointer;
+}
+
+.editor-horizontal-guide-hitbox,
+.editor-vertical-guide-hitbox {
+    z-index: 1;
+}
+
+.editor-vertical-guide-hitbox,
+.editor-vertical-guide {
     top: 2px;
     bottom: 2px;
+}
+
+.editor-vertical-guide {
+    right: -0.5px;
     border-right: 1px solid gray;
 }
 
+.editor-vertical-guide-hitbox {
+    right: -2px;
+    width: 4px;
+}
+
+.editor-horizontal-guide-hitbox,
 .editor-horizontal-guide {
-    position: absolute;
     left: 2px;
     right: 2px;
+}
+
+.editor-horizontal-guide {
     bottom: -0.5px;
     border-bottom: 1px solid gray;
-    background-color: red;
 }
+
+.editor-horizontal-guide-hitbox {
+    bottom: -2px;
+    height: 4px;
+}
+
+.editor-vertical-guide-hitbox:hover,
+.editor-horizontal-guide-hitbox:hover {
+    background-color: rgba(200, 200, 200, 0.5);
+}
+
+/*****************************************************************************/
+/** Editor Cells                                                             */
 
 .editor-cell {
     position: relative;
@@ -135,6 +177,9 @@
     border-bottom: 1px solid gray;
 }
 
+/*****************************************************************************/
+/** Editor Toolbar                                                           */
+
 .editor-button {
     border: 1px solid transparent;
     cursor: pointer;
@@ -157,21 +202,6 @@
 
 .editor-toolbar-divider {
     border-right: 1px solid gray;
-}
-
-.editor-edge-halo,
-.editor-edge-preview-halo {
-    position: absolute;
-    z-index: 1;
-}
-
-.editor-edge-halo {
-    background-color: green;
-}
-
-.editor-edge-preview-halo {
-    background-color: rgba(200, 200, 200, 0.5);
-    cursor: pointer;
 }
 
 .editor-cell-halo {

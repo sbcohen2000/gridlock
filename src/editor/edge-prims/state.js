@@ -7,14 +7,6 @@ import * as grid from "../../grid.js";
 /** @import { Cell } from "../common-state.d.ts" */
 
 /**
- * @typedef {"Right" | "Below"} CanonicalEdgeLocation
- */
-
-/**
- * @typedef {CanonicalEdgeLocation | "Left" | "Above"} EdgeLocation
- */
-
-/**
  * Abstract base class for edge editing states. Subclasses distinguish
  * between move and slide modes.
  */

@@ -12,7 +12,6 @@ import { padLeftToLength } from "./util.js";
 import HistoryView from "./editor-view/history-view.js";
 
 /** @import { CommonState, Cell, Inverse } from "./editor/common-state.d.ts" */
-/** @import { EdgeLocation } from "./editor/edge-prims/state.js" */
 /** @import { ToolbarDescription } from "./editor-view/toolbar.js" */
 /** @import { HistoryItem } from "./editor-view/history.d.ts" */
 /** @import { DragState } from "./editor-view/edge-editing-view.js" */
@@ -44,12 +43,6 @@ function groupBySpaces(str) {
     const matches = str.matchAll(re);
     return matches.map(match => match[0]);
 }
-
-/**
- * The thickness of the draggable region around an edge.
- * @type {number}
- */
-const EDGE_HALO_THICK = 6;
 
 /**
  * The width of the spiral binding.
@@ -160,7 +153,7 @@ export class AbstractEditorView extends View {
      * Given the global grid location of a click, try to edit the text
      * underneath the position.
      *
-     * @param {PointerEventContext} ctx
+     * @param {PointerInLeafEventContext} ctx
      * @returns {boolean} `true` if the editor was re-targeted for
      *     text editing, and `false` otherwise.
      */
@@ -182,146 +175,56 @@ export class AbstractEditorView extends View {
     }
 
     /*************************************************************************/
-    /** Mouse-Near-Edge                                                     **/
-
-    /**
-     * Record if the mouse is near an edge of a leaf.
-     *
-     * @type {{
-     *   leaf: grid.Leaf<Cell>,
-     *   edge: EdgeLocation
-     * } | null}
-     */
-    #mouseNearEdge = null;
-
-    /**
-     * Set the `#mouseNearEdge` property, requesting a re-draw only if
-     * necessary.
-     *
-     * @param {grid.Leaf<Cell>} leaf
-     * @param {EdgeLocation} edge
-     */
-    #setMouseNearEdgeAndRedrawIfNecessary(leaf, edge) {
-        if(this.#mouseNearEdge === null
-           || this.#mouseNearEdge.leaf !== leaf
-           || this.#mouseNearEdge.edge !== edge) {
-            this.#mouseNearEdge = { leaf, edge };
-            this.requestRedraw();
-        }
-    }
-
-    /**
-     * Clear the `#mouseNearEdge` property, requesting a re-draw only
-     * if necessary.
-     */
-    #clearMouseNearEdgeAndRedrawIfNecessary() {
-        if(this.#mouseNearEdge !== null) {
-            this.#mouseNearEdge = null;
-            this.requestRedraw();
-        }
-    }
-
-    /**
-     * Highlight an edge which is nearby to the pointer in the given
-     * pointer event context.
-     *
-     * @param {PointerEventContext} ctx
-     */
-    highlightNearbyEdge(ctx) {
-        const rect = ctx.leafRect;
-        const relX = ctx.event.clientX - rect.left;
-        const relY = ctx.event.clientY - rect.top;
-
-        // Classify the mouse position into one of five zones.  If
-        // we're closest to one of the edges, we should preview
-        // that edge, while if we're closest to the center, we
-        // should clear the preview.
-        /** @type {[number, EdgeLocation]} */
-        const distanceToLeftEdge   = [relX,               "Left"];
-        /** @type {[number, EdgeLocation]} */
-        const distanceToRightEdge  = [rect.width - relX,  "Right"];
-        /** @type {[number, EdgeLocation]} */
-        const distanceToTopEdge    = [relY,               "Above"];
-        /** @type {[number, EdgeLocation]} */
-        const distanceToBottomEdge = [rect.height - relY, "Below"];
-
-        const [minD, edge] = [
-            distanceToLeftEdge,
-            distanceToRightEdge,
-            distanceToTopEdge,
-            distanceToBottomEdge
-        ].reduce((minD, d) => minD < d ? minD : d, distanceToBottomEdge);
-
-        if(minD <= EDGE_HALO_THICK / 2) {
-            this.#setMouseNearEdgeAndRedrawIfNecessary(ctx.leaf, edge);
-        } else {
-            this.#clearMouseNearEdgeAndRedrawIfNecessary();
-        }
-    }
+    /** Edge Dragging                                                       **/
 
     /**
      * Try to drag an edge, but only if the click was close to one.
      *
      * @param {PointerEventContext} ctx
+     * @param {grid.Split<Cell>} node
      * @returns {boolean} `true` if the editor was re-targeted for
      *     dragging an edge, and `false` otherwise.
      */
-    startDraggingEdgeWhenCloseToOne(ctx) {
-        const rect = ctx.leafRect;
-        const relX = ctx.event.clientX - rect.left;
-        const relY = ctx.event.clientY - rect.top;
+    startDraggingEdge(ctx, node) {
+        // Create the appropriate edge state based on dragging mode.
+        const [st, inv] = this.edgeDraggingMode === "Slide"
+              ? edgePrims.startSlidingEdge(this.state)
+              : edgePrims.startMovingEdge(this.state);
 
-        // Classify the mouse click into one of five zones.  If
-        // we're closest to one of the edges, we should select an
-        // edge, while if we're closest to the center, we should
-        // select the cell itself.
-        /** @type {[number, EdgeLocation]} */
-        const distanceToLeftEdge   = [relX,               "Left"];
-        /** @type {[number, EdgeLocation]} */
-        const distanceToRightEdge  = [rect.width - relX,  "Right"];
-        /** @type {[number, EdgeLocation]} */
-        const distanceToTopEdge    = [relY,               "Above"];
-        /** @type {[number, EdgeLocation]} */
-        const distanceToBottomEdge = [rect.height - relY, "Below"];
+        this.commitUndoableItem(inv);
+        this.runPrimitiveWithUndo(st, edgePrims.selectEdgeOfNode, node);
 
-        const [minD, edge] = [
-            distanceToLeftEdge,
-            distanceToRightEdge,
-            distanceToTopEdge,
-            distanceToBottomEdge
-        ].reduce((minD, d) => minD < d ? minD : d, distanceToBottomEdge);
+        // Capture the pointer of the root element so that the
+        // user can drag outside of the current bounds of the
+        // element if necessary.
+        this._root.setPointerCapture(ctx.event.pointerId);
 
-        if(minD <= EDGE_HALO_THICK / 2) {
-            // Create the appropriate edge state based on dragging mode.
-            const [st, inv] = this.edgeDraggingMode === "Slide"
-                ? edgePrims.slideEdge(this.state)
-                : edgePrims.moveEdge(this.state);
+        /** @type {DragState} */
+        const dragState = {
+            dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
+            dragOriginGrid: ctx.roundedGridPt,
+            gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
+            lastArg: 0
+        };
 
-            if(!edgePrims.canSelectEdgeUnderPoint(st, ctx.leafPosition, edge)) {
-                return false;
-            }
+        this.requestReplaceEditorView(this.createViewForState(st, dragState));
+        return true;
+    }
 
-            this.commitUndoableItem(inv);
-            edgePrims.selectEdgeUnderPoint(st, ctx.leafPosition, edge);
+    /**
+     * @param {PointerEventContext} ctx
+     * @param {grid.Split<Cell>} node
+     */
+    onPointerDownInHorizontalGuide(ctx, node) {
+        this.startDraggingEdge(ctx, node);
+    }
 
-            // Capture the pointer of the root element so that the
-            // user can drag outside of the current bounds of the
-            // element if necessary.
-            this._root.setPointerCapture(ctx.event.pointerId);
-
-            /** @type {DragState} */
-            const dragState = {
-                dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
-                dragOriginGrid: ctx.roundedGridPt,
-                gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
-                lastArg: 0
-            };
-
-            this.requestReplaceEditorView(this.createViewForState(st, dragState));
-            return true;
-        } else {
-            return false;
-        }
+    /**
+     * @param {PointerEventContext} ctx
+     * @param {grid.Split<Cell>} node
+     */
+    onPointerDownInVerticalGuide(ctx, node) {
+        this.startDraggingEdge(ctx, node);
     }
 
     /*************************************************************************/
@@ -346,10 +249,24 @@ export class AbstractEditorView extends View {
             const r = new CommittableRecycler(nodeElem);
 
             if(node.type === "Vert") {
+                r.elem({ tag: "div", key: "horizontal-guide-hitbox" }, (horizontalGuideHitboxElem) => {
+                    horizontalGuideHitboxElem.className = "editor-horizontal-guide-hitbox";
+                    horizontalGuideHitboxElem.onpointerdown = (e) => {
+                        const ctx = new PointerEventContext(e, this);
+                        this.onPointerDownInHorizontalGuide(ctx, node);
+                    }
+                })
                 r.elem({ tag: "div", key: "horizontal-guide" }, (horizontalGuideElem) => {
                     horizontalGuideElem.className = "editor-horizontal-guide";
                 })
             } else {
+                r.elem({ tag: "div", key: "vertical-guide-hitbox" }, (verticalGuideHitboxElem) => {
+                    verticalGuideHitboxElem.className = "editor-vertical-guide-hitbox";
+                    verticalGuideHitboxElem.onpointerdown = (e) => {
+                        const ctx = new PointerEventContext(e, this);
+                        this.onPointerDownInVerticalGuide(ctx, node);
+                    }
+                })
                 r.elem({ tag: "div", key: "vertical-guide" }, (verticalGuideElem) => {
                     verticalGuideElem.className = "editor-vertical-guide";
                 });
@@ -413,44 +330,6 @@ export class AbstractEditorView extends View {
     }
 
     /**
-     * Position an edge halo element based on the edge direction.
-     *
-     * @param {HTMLElement} elem
-     * @param {EdgeLocation} edge
-     */
-    #positionEdgeHalo(elem, edge) {
-        const haloOffset = `${-EDGE_HALO_THICK/2}px`;
-        const haloThick  = `${EDGE_HALO_THICK}px`;
-
-        switch(edge) {
-        case "Above":
-            elem.style.top = haloOffset;
-            elem.style.left = "0";
-            elem.style.width = "100%";
-            elem.style.height = haloThick;
-            break;
-        case "Below":
-            elem.style.bottom = haloOffset;
-            elem.style.left = "0";
-            elem.style.width = "100%";
-            elem.style.height = haloThick;
-            break;
-        case "Left":
-            elem.style.left = haloOffset;
-            elem.style.top = "0";
-            elem.style.height = "100%";
-            elem.style.width = haloThick;
-            break;
-        case "Right":
-            elem.style.right = haloOffset;
-            elem.style.top = "0";
-            elem.style.height = "100%";
-            elem.style.width = haloThick;
-            break;
-        }
-    }
-
-    /**
      * Draw the selection of a leaf, if any, by adding items to the
      * recycler.
      *
@@ -458,12 +337,8 @@ export class AbstractEditorView extends View {
      * @param {Recycler} recycler
      */
     viewLeafSelection(leaf, recycler) {
-        if(this.#mouseNearEdge !== null && this.#mouseNearEdge.leaf === leaf) {
-            recycler.elem({ tag: "div", key: "edge-preview-halo" }, (elem) => {
-                elem.className = "editor-edge-preview-halo";
-                this.#positionEdgeHalo(elem, this.#mouseNearEdge.edge);
-            });
-        }
+        void leaf;
+        void recycler;
     }
 
     /**
@@ -483,12 +358,12 @@ export class AbstractEditorView extends View {
             leafElem.style.gridArea = gridSpec;
 
             leafElem.onpointermove = (e) => {
-                const ctx = new PointerEventContext(e, this, leaf, leafElem);
+                const ctx = new PointerInLeafEventContext(e, this, leaf);
                 this.onPointerMoveInLeaf(ctx);
             };
 
             leafElem.onpointerdown = (e) => {
-                const ctx = new PointerEventContext(e, this, leaf, leafElem);
+                const ctx = new PointerInLeafEventContext(e, this, leaf);
                 this.onPointerDownInLeaf(ctx);
             }
 
@@ -554,23 +429,21 @@ export class AbstractEditorView extends View {
     /**
      * Handle a pointer-down event inside a leaf element.
      *
-     * @param {PointerEventContext} ctx
+     * @param {PointerInLeafEventContext} ctx
      */
     onPointerDownInLeaf(ctx) {
         if(this.editTextOnDoubleClick(ctx)) {
             return;
         }
-
-        this.startDraggingEdgeWhenCloseToOne(ctx);
     }
 
     /**
      * Handle a pointer-move event inside a leaf element.
      *
-     * @param {PointerEventContext} ctx
+     * @param {PointerInLeafEventContext} ctx
      */
     onPointerMoveInLeaf(ctx) {
-        this.highlightNearbyEdge(ctx);
+        void ctx;
     }
 
     /**
@@ -839,26 +712,15 @@ export class PointerEventContext {
     /** @type {AbstractEditorView} */
     #view
 
-    /** @type {grid.Leaf<Cell>} */
-    #leaf
-
-    /** @type {HTMLElement} */
-    #leafElem
-
     /**
      * Construct a new `PointerEventContext`.
      *
-     * @param {PointerEvent}    event    The pointer event.
-     * @param {AbstractEditorView}      view     The editor view.
-     * @param {grid.Leaf<Cell>} leaf     The leaf under the pointer.
-     * @param {HTMLElement}     leafElem The HTML
-     *     element used to represent the leaf.
+     * @param {PointerEvent}       event The pointer event.
+     * @param {AbstractEditorView} view  The editor view.
      */
-    constructor(event, view, leaf, leafElem) {
+    constructor(event, view) {
         this.#event    = event;
         this.#view     = view;
-        this.#leaf     = leaf;
-        this.#leafElem = leafElem;
     }
 
     /**
@@ -868,40 +730,6 @@ export class PointerEventContext {
      */
     get event() {
         return this.#event;
-    }
-
-    /**
-     * The leaf under the pointer.
-     *
-     * @returns {grid.Leaf<Cell>}
-     */
-    get leaf() {
-        return this.#leaf;
-    }
-
-    /**
-     * Get the HTML element used to represent the leaf.
-     *
-     * @returns {HTMLElement}
-     */
-    get leafElem() {
-        return this.#leafElem;
-    }
-
-    /** @type {point.P2 | undefined} */
-    #leafPosCache;
-
-    /**
-     * The position of the leaf's upper-left corner in grid
-     * coordiantes.
-     *
-     * @returns {point.P2}
-     */
-    get leafPosition() {
-        if(!this.#leafPosCache) {
-            this.#leafPosCache = grid.posOfLeaf(this.state.grid, this.leaf);
-        }
-        return this.#leafPosCache;
     }
 
     /**
@@ -958,13 +786,6 @@ export class PointerEventContext {
     }
 
     /**
-     * The client bounding rectangle of the leaf under the pointer.
-     */
-    get leafRect() {
-        return this.#leafElem.getBoundingClientRect();
-    }
-
-    /**
      * The number of columns in the top-level element of the grid.
      *
      * @returns {number}
@@ -980,5 +801,47 @@ export class PointerEventContext {
      */
     get gridH() {
         return this.#view.state.grid.dims.height;
+    }
+}
+
+export class PointerInLeafEventContext extends PointerEventContext {
+    /** @type {grid.Leaf<Cell>} */
+    #leaf
+
+    /**
+     * Construct a new `PointerInLeafEventContext`.
+     *
+     * @param {PointerEvent}       event The pointer event.
+     * @param {AbstractEditorView} view  The editor view.
+     * @param {grid.Leaf<Cell>}    leaf  The leaf under the pointer.
+     */
+    constructor(event, view, leaf) {
+        super(event, view);
+        this.#leaf     = leaf;
+    }
+
+    /** @type {point.P2 | undefined} */
+    #leafPosCache;
+
+    /**
+     * The leaf under the point.
+     *
+     * @returns {grid.Leaf<Cell>}
+     */
+    get leaf() {
+        return this.#leaf;
+    }
+
+    /**
+     * The position of the leaf's upper-left corner in grid
+     * coordiantes.
+     *
+     * @returns {point.P2}
+     */
+    get leafPosition() {
+        if(!this.#leafPosCache) {
+            this.#leafPosCache = grid.posOfLeaf(this.state.grid, this.leaf);
+        }
+        return this.#leafPosCache;
     }
 }

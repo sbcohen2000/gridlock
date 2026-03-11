@@ -26,7 +26,7 @@ export interface CommonState {
 /**
  * Parameter and return types for primitive functions.
  */
-export type Type = "string" | "number" | "point" | "glpk" | "boolean";
+export type Type = "string" | "number" | "point" | "node" | "boolean";
 
 /**
  * The inverse operation.

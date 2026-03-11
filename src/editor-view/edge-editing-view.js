@@ -6,9 +6,6 @@ import { AbstractEditorView } from "../editor-view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
 import { EdgePrimsState, EdgeMovingPrimsState, EdgeSlidingPrimsState } from "../editor/edge-prims/state.js";
 
-/** @import { Recycler } from "../framework.js" */
-/** @import { Cell } from "../editor/common-state.d.ts" */
-
 /**
  * @typedef {Object} DragState
  * @property {point.P2} dragOriginPx   The drag origin in pixels
@@ -19,12 +16,6 @@ import { EdgePrimsState, EdgeMovingPrimsState, EdgeSlidingPrimsState } from "../
  *     call these functions unless their argument has actually
  *     changed.
  */
-
-/**
- * The thickness of the draggable region around an edge.
- * @type {number}
- */
-const EDGE_HALO_THICK = 2;
 
 /**
  * Abstract base class for edge dragging views. Subclasses provide
@@ -57,26 +48,14 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
     }
 
     /**
-     * Apply the vertical edge primitive for the given delta.
+     * Apply the edge primitive for the given delta.
      *
      * @abstract
      * @param {EdgePrimsState} st
-     * @param {number} dw
+     * @param {number} d
      */
-    applyVerticalEdgePrimitive(st, dw) {
-        void st; void dw;
-        throw new Error("Method not implemented");
-    }
-
-    /**
-     * Apply the horizontal edge primitive for the given delta.
-     *
-     * @abstract
-     * @param {EdgePrimsState} st
-     * @param {number} dh
-     */
-    applyHorizontalEdgePrimitive(st, dh) {
-        void st; void dh;
+    applyEdgePrimitive(st, d) {
+        void st; void d;
         throw new Error("Method not implemented");
     }
 
@@ -89,36 +68,36 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
         root.onpointermove = (e) => {
             if(!this.#dragState) return;
 
-            const g        = this.#eeState.grid;
-            const ds       = this.#dragState;
-            const leftLeaf = this.#eeState.selection.leaf;
+            const g    = this.#eeState.grid;
+            const ds   = this.#dragState;
+            const node = this.#eeState.selection;
 
-            if(this.#eeState.selection.edge === "Right") {
+            if(this.#eeState.selection.type === "Horz") {
                 const dxPx         = e.clientX - ds.dragOriginPx.x;
                 const dxGrid       = ds.dragOriginGrid.x + Math.round(dxPx / ds.gridScale.dx);
-                const upperLeft    = grid.posOfLeaf(g, leftLeaf);
+                const upperLeft    = grid.posOfLeaf(g, node);
                 // Find the current position of the edge, and the
                 // target position of the edge, both in global grid
                 // coordinates.
-                const currentEdgeX = upperLeft.x + leftLeaf.dims.width;
+                const currentEdgeX = upperLeft.x + node.left.dims.width;
                 // The target position is the x-location of the cursor in grid units.
                 const targetEdgeX  = dxGrid;
                 const dw = targetEdgeX - currentEdgeX;
 
                 if(this.#dragState.lastArg !== dw && dw !== 0) {
-                    this.applyVerticalEdgePrimitive(this.#eeState, dw);
+                    this.applyEdgePrimitive(this.#eeState, dw);
                 }
                 this.#dragState.lastArg = dw;
             } else {
                 const dyPx         = e.clientY - ds.dragOriginPx.y;
                 const dyGrid       = ds.dragOriginGrid.y + Math.round(dyPx / ds.gridScale.dy);
-                const upperLeft    = grid.posOfLeaf(g, leftLeaf);
-                const currentEdgeY = upperLeft.y + leftLeaf.dims.height;
+                const upperLeft    = grid.posOfLeaf(g, node);
+                const currentEdgeY = upperLeft.y + node.left.dims.height;
                 const targetEdgeY  = dyGrid;
                 const dh = targetEdgeY - currentEdgeY;
 
                 if(this.#dragState.lastArg !== dh && dh !== 0) {
-                    this.applyHorizontalEdgePrimitive(this.#eeState, dh);
+                    this.applyEdgePrimitive(this.#eeState, dh);
                 }
                 this.#dragState.lastArg = dh;
             }
@@ -136,47 +115,6 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
 
     }
 
-    /**
-     * Position an edge halo element based on the edge direction.
-     *
-     * @param {HTMLElement} elem
-     */
-    #positionEdgeHalo(elem) {
-        const haloOffset = `${-EDGE_HALO_THICK/2}px`;
-        const haloThick  = `${EDGE_HALO_THICK}px`;
-
-        switch(this.#eeState.selection.edge) {
-        case "Below":
-            elem.style.bottom = haloOffset;
-            elem.style.left = "0";
-            elem.style.width = "100%";
-            elem.style.height = haloThick;
-            break;
-        case "Right":
-            elem.style.right = haloOffset;
-            elem.style.top = "0";
-            elem.style.height = "100%";
-            elem.style.width = haloThick;
-            break;
-        }
-    }
-
-    /**
-     * Draw the selection of a leaf, if any, by adding items to the
-     * recycler.
-     *
-     * @param {grid.Leaf<Cell>} leaf
-     * @param {Recycler} recycler
-     */
-    viewLeafSelection(leaf, recycler) {
-        if(leaf === this.#eeState.selection.leaf) {
-            recycler.elem({ tag: "div", key: "edge-halo" }, (elem) => {
-                elem.className = "editor-edge-halo";
-                this.#positionEdgeHalo(elem);
-            });
-        }
-    }
-
     describeToolbarItems() {
         return standardToolbarItems(this);
     }
@@ -185,36 +123,20 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
 export class EdgeSlidingView extends AbstractEdgeDraggingView {
     /**
      * @param {EdgePrimsState} st
-     * @param {number} dw
+     * @param {number} d
      */
-    applyVerticalEdgePrimitive(st, dw) {
-        this.runPrimitiveWithUndoThenRedraw(/** @type {EdgeSlidingPrimsState} */ (st), edgePrims.slideVerticalEdge, dw);
-    }
-
-    /**
-     * @param {EdgePrimsState} st
-     * @param {number} dh
-     */
-    applyHorizontalEdgePrimitive(st, dh) {
-        this.runPrimitiveWithUndoThenRedraw(/** @type {EdgeSlidingPrimsState} */ (st), edgePrims.slideHorizontalEdge, dh);
+    applyEdgePrimitive(st, d) {
+        this.runPrimitiveWithUndoThenRedraw(/** @type {EdgeSlidingPrimsState} */ (st), edgePrims.slideEdge, d);
     }
 }
 
 export class EdgeMovingView extends AbstractEdgeDraggingView {
     /**
      * @param {EdgePrimsState} st
-     * @param {number} dw
+     * @param {number} d
      */
-    applyVerticalEdgePrimitive(st, dw) {
-        this.runPrimitiveWithUndoThenRedraw(/** @type {EdgeMovingPrimsState} */ (st), edgePrims.moveVerticalEdge, dw);
-    }
-
-    /**
-     * @param {EdgePrimsState} st
-     * @param {number} dh
-     */
-    applyHorizontalEdgePrimitive(st, dh) {
-        this.runPrimitiveWithUndoThenRedraw(/** @type {EdgeMovingPrimsState} */ (st), edgePrims.moveHorizontalEdge, dh);
+    applyEdgePrimitive(st, d) {
+        this.runPrimitiveWithUndoThenRedraw(/** @type {EdgeMovingPrimsState} */ (st), edgePrims.moveEdge, d);
     }
 }
 
