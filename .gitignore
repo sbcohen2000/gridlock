@@ -1,5 +1,4 @@
 .claude
 .direnv
-CLAUDE.md
 node_modules
 www/dist
