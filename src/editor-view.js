@@ -238,7 +238,7 @@ export class AbstractEditorView extends View {
      * @param {Recycler} r
      */
     #viewNode(node, p, r) {
-        r.elem({ tag: "div", clearAttributes: true }, (nodeElem) => {
+        r.elem({ tag: "div", key: "node", clearAttributes: true }, (nodeElem) => {
             const sz = node.dims;
             const gridSpec = node.type === "Vert"
                   ? `${p.y + 1}/${p.x + 1}/span ${node.left.dims.height}/span ${sz.width}`
@@ -349,7 +349,7 @@ export class AbstractEditorView extends View {
      * @param {Recycler} recycler The recycler to add to.
      */
     viewLeaf(leaf, leafUl, recycler) {
-        recycler.elem("div", (leafElem) => {
+        recycler.elem({ tag: "div", key: "leaf" }, (leafElem) => {
             const sz = leaf.dims;
             const gridSpec = `${leafUl.y + 1}/${leafUl.x + 1}/span ${sz.height}/span ${sz.width}`;
 
@@ -719,8 +719,8 @@ export class PointerEventContext {
      * @param {AbstractEditorView} view  The editor view.
      */
     constructor(event, view) {
-        this.#event    = event;
-        this.#view     = view;
+        this.#event = event;
+        this.#view  = view;
     }
 
     /**
@@ -746,7 +746,7 @@ export class PointerEventContext {
      * @returns {point.P2}
      */
     get #gridPt() {
-        const rect = this.rootRect;
+        const rect     = this.rootRect;
         const gridW    = this.state.grid.dims.width;
         const gridH    = this.state.grid.dims.height;
         const gridColF = point.lerp(0, gridW, rect.left, this.#event.clientX, rect.right);
