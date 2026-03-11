@@ -171,9 +171,9 @@ export class ContextMenuView extends View {
      * @param {Recycler} recycler The recycler to add to.
      */
     view(recycler) {
-        recycler.elem("div", (ctxMenuRoot) => {
+        recycler.elem({ tag: "div", key: "context-menu-root" }, (ctxMenuRoot) => {
             new CommittableRecycler(ctxMenuRoot)
-                .elem("div", (screenElem) => {
+                .elem({ tag: "div", key: "context-menu-screen" }, (screenElem) => {
                     // Construct an element to sit behind the context
                     // menu, filling the entire screen, whose purpose is
                     // to detect mouse down events outside of the context
@@ -184,7 +184,7 @@ export class ContextMenuView extends View {
                         this.notify(new DismissContextMenu(this));
                     };
                 })
-                .elem("div", (menuElem) => {
+                .elem({ tag: "div", key: "context-menu" }, (menuElem) => {
                     this.#menuElem = menuElem;
                     this.#menuElemResizeObserver.disconnect();
                     this.#menuElemResizeObserver.observe(this.#menuElem);

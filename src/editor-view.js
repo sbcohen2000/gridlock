@@ -323,7 +323,7 @@ export class AbstractEditorView extends View {
         void p;
 
         const line = leaf.data.lines[rowNo];
-        recycler.elem({ tag: "div", clearChildren: true }, (lineElem) => {
+        recycler.elem({ tag: "div", key: `line-${rowNo}`, clearChildren: true }, (lineElem) => {
             lineElem.className = "editor-line";
             this.#buildLineFragments(lineElem, line);
         });
