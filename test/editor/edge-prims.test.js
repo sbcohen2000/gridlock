@@ -231,6 +231,49 @@ describe("edge-prims", () => {
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
+
+        it("can shift an edge in a more complex grid (3)", () => {
+            const src =
+                  "hellothere\n"       +
+                  "  abc  abc\n"       +
+                  "  abc\n"            +
+                  "\n"                 +
+                  "\n"                 +
+                  "  abc  abc\n"       +
+                  "\n"                 +
+                  "+-+---------+---+\n"+
+                  "| +----+----+   |\n"+
+                  "| |    |    |   |\n"+
+                  "| |    |    |   |\n"+
+                  "| +----+----+---+\n"+ // <--- this row
+                  "| |    |    |   |\n"+
+                  "| |    |    |   |\n"+
+                  "+-+----+----+---+";
+            //            ^---- and this column
+
+            const st = mkSlidingEdgeState(src);
+            edgePrims.selectEdgeUnderPoint(st, point.mkP2(7, 4), "Right");
+            edgePrims.slideVerticalEdge(st, 2);
+
+            const exp =
+                  "hellothere\n"       +
+                  "  abc  abc\n"       +
+                  "  abc\n"            +
+                  "\n"                 +
+                  "\n"                 +
+                  "  abc  abc\n"       +
+                  "\n"                 +
+                  "+-+-----------+-+\n"+
+                  "| +----+------+ |\n"+
+                  "| |    |      | |\n"+
+                  "| |    |      | |\n"+
+                  "| +----+------+-+\n"+
+                  "| |    |      | |\n"+
+                  "| |    |      | |\n"+
+                  "+-+----+------+-+";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
     });
 
     describe("slideHorizontalEdge", () => {
