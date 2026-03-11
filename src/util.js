@@ -89,3 +89,25 @@ export function showMultilineString(str) {
     const padded  = escaped.map(line => padRightToLength(line, longest));
     return pfx + linePfx + padded.join(`+\n${linePfx}`) + ");"
 }
+
+/**
+ * Find the minimum element of the given iterator of numbers, or
+ * `Infinity` if the iterator is empty.
+ *
+ * @param {IteratorObject<number>} as
+ * @returns {number}
+ */
+export function minimum(as) {
+    return as.reduce((m, a) => Math.min(m, a), Infinity);
+}
+
+/**
+ * Find the maximum element of the given iterator of numbers, or
+ * `-Infinity` if the iterator is empty.
+ *
+ * @param {IteratorObject<number>} as
+ * @returns {number}
+ */
+export function maximum(as) {
+    return as.reduce((m, a) => Math.max(m, a), -Infinity);
+}

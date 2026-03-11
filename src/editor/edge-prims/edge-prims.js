@@ -7,8 +7,8 @@
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as state from "../state-utils.js";
+import * as util from "../../util.js";
 import { EdgePrimsState, EdgeMovingPrimsState, EdgeSlidingPrimsState } from "./state.js";
-import { assert, clamp } from "../../util.js";
 
 /** @import { Inverse, CommonState, Cell } from "../common-state.d.ts" */
 
@@ -155,33 +155,52 @@ function projectTextOntoLeaves(f, g) {
  */
 function _slideEdge(st, n) {
     if(st.selection.type === "Horz") {
-        const leftWidth  = st.selection.left.dims.width;
+        const leftWidth = st.selection.left.dims.width;
 
         // Find the width of the narrowest leaf on the left side of
         // the edge.
         const leftLeaves = [...grid.leavesUnderCol(st.selection, leftWidth - 1)];
-        const leftMin = leftLeaves.reduce((w, leaf) => Math.min(w, leaf.dims.width), Infinity);
+        const leftMin = util.minimum(leftLeaves.values().map(leaf => leaf.dims.width));
 
         // Find the width of the narrowest leaf on the right side of
         // the edge.
         const rightLeaves = [...grid.leavesUnderCol(st.selection, leftWidth)];
-        const rightMin = rightLeaves.reduce((w, leaf) => Math.min(w, leaf.dims.width), Infinity);
+        const rightMin = util.minimum(rightLeaves.values().map(leaf => leaf.dims.width));
 
         // Clamp the amount we're sliding so that we can't reduce the
         // size of one of the leaves to zero.
-        n = clamp(-(leftMin - 1), n, rightMin - 1);
+        n = util.clamp(-(leftMin - 1), n, rightMin - 1);
 
         // Note that the operations we do in the argument don't
         // add/remove leaves, so there's no need to handle the return
         // value of this function.
         projectTextOntoLeaves((g) => {
-            assert(g.type === "Horz");
+            util.assert(g.type === "Horz");
             grid.modifyWidthOfLeaves(g.left,   n, leftLeaves);
             grid.modifyWidthOfLeaves(g.right, -n, rightLeaves);
             return g;
         }, st.selection);
     } else {
-        throw new Error("TODO");
+        const topHeight = st.selection.left.dims.height;
+
+        // Find the height of the shortest leaf above the edge.
+        const topLeaves = [...grid.leavesUnderRow(st.selection, topHeight - 1)];
+        const topMin = util.minimum(topLeaves.values().map(leaf => leaf.dims.height));
+
+        // Find the height of the shortest leaf below the edge.
+        const bottomLeaves = [...grid.leavesUnderRow(st.selection, topHeight)];
+        const bottomMin = util.minimum(bottomLeaves.values().map(leaf => leaf.dims.height));
+
+        // Clamp the amount we're sliding so that we can't reduce the
+        // size of the leaves to zero.
+        n = util.clamp(-(topMin - 1), n, bottomMin - 1);
+
+        projectTextOntoLeaves((g) => {
+            util.assert(g.type === "Vert");
+            grid.modifyHeightOfLeaves(g.left,   n, topLeaves);
+            grid.modifyHeightOfLeaves(g.right, -n, bottomLeaves);
+            return g;
+        }, st.selection);
     }
 }
 
