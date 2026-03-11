@@ -2,17 +2,12 @@ import * as edgePrims from "../editor/edge-prims/edge-prims.js";
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as textPrims from "../editor/text-prims/text-prims.js";
-import * as view from "../view.js";
-import { CellEditingView } from "./cell-editing-view.js";
-import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slicing-view.js";
 import { AbstractEditorView } from "../editor-view.js";
-import { TextEditingView } from "./text-editing-view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
+import { EdgePrimsState, EdgeMovingPrimsState, EdgeSlidingPrimsState } from "../editor/edge-prims/state.js";
 
 /** @import { Recycler } from "../framework.js" */
-/** @import { EdgePrimsState } from "../editor/edge-prims/state.js" */
 /** @import { Cell } from "../editor/common-state.d.ts" */
-/** @import { HistoryItem } from "./history.d.ts" */
 
 /**
  * @typedef {Object} DragState
@@ -43,13 +38,12 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
     #dragState;
 
     /**
-     * @param {view.View} parent
-     * @param {HistoryItem[]} history
+     * @param {AbstractEditorView} prev
      * @param {EdgePrimsState} eeState
      * @param {DragState} [dragState]
      */
-    constructor(parent, history, eeState, dragState) {
-        super(parent, history);
+    constructor(prev, eeState, dragState) {
+        super(prev);
         if(new.target === AbstractEdgeDraggingView) {
             throw new Error("Cannot instantiate AbstractEdgeDraggingView directly");
         }
@@ -136,7 +130,7 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
                 root.releasePointerCapture(e.pointerId);
                 const [st, inv] = textPrims.editText(this.state);
                 this.commitUndoableItem(inv);
-                this.requestReplaceEditorView(new TextEditingView(this.parent, this.history, st));
+                this.requestReplaceEditorView(this.createViewForState(st));
             }
         };
 
@@ -186,22 +180,15 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
     describeToolbarItems() {
         return standardToolbarItems(this);
     }
-
-    createTextEditingView(parent, st) { return new TextEditingView(parent, this.history, st); }
-    createCellEditingView(parent, st) { return new CellEditingView(parent, this.history, st); }
-    createVerticalCellSlicingView(parent, st) { return new VerticalCellSlicingView(parent, this.history, st); }
-    createHorizontalCellSlicingView(parent, st) { return new HorizontalCellSlicingView(parent, this.history, st); }
 }
 
 export class EdgeSlidingView extends AbstractEdgeDraggingView {
-    createEdgeEditingView(parent, st, dragState) { void parent; void st; void dragState; return this; }
-
     /**
      * @param {EdgePrimsState} st
      * @param {number} dw
      */
     applyVerticalEdgePrimitive(st, dw) {
-        this.runPrimitiveWithUndoThenRedraw(st, edgePrims.slideVerticalEdge, dw);
+        this.runPrimitiveWithUndoThenRedraw(/** @type {EdgeSlidingPrimsState} */ (st), edgePrims.slideVerticalEdge, dw);
     }
 
     /**
@@ -209,19 +196,17 @@ export class EdgeSlidingView extends AbstractEdgeDraggingView {
      * @param {number} dh
      */
     applyHorizontalEdgePrimitive(st, dh) {
-        this.runPrimitiveWithUndoThenRedraw(st, edgePrims.slideHorizontalEdge, dh);
+        this.runPrimitiveWithUndoThenRedraw(/** @type {EdgeSlidingPrimsState} */ (st), edgePrims.slideHorizontalEdge, dh);
     }
 }
 
 export class EdgeMovingView extends AbstractEdgeDraggingView {
-    createEdgeEditingView(parent, st, dragState) { void parent; void st; void dragState; return this; }
-
     /**
      * @param {EdgePrimsState} st
      * @param {number} dw
      */
     applyVerticalEdgePrimitive(st, dw) {
-        this.runPrimitiveWithUndoThenRedraw(st, edgePrims.moveVerticalEdge, dw);
+        this.runPrimitiveWithUndoThenRedraw(/** @type {EdgeMovingPrimsState} */ (st), edgePrims.moveVerticalEdge, dw);
     }
 
     /**
@@ -229,6 +214,11 @@ export class EdgeMovingView extends AbstractEdgeDraggingView {
      * @param {number} dh
      */
     applyHorizontalEdgePrimitive(st, dh) {
-        this.runPrimitiveWithUndoThenRedraw(st, edgePrims.moveHorizontalEdge, dh);
+        this.runPrimitiveWithUndoThenRedraw(/** @type {EdgeMovingPrimsState} */ (st), edgePrims.moveHorizontalEdge, dh);
     }
 }
+
+AbstractEditorView.registerViewFactory(EdgeSlidingPrimsState, (prev, st, dragState) =>
+    new EdgeSlidingView(prev, /** @type {EdgeSlidingPrimsState} */ (st), dragState));
+AbstractEditorView.registerViewFactory(EdgeMovingPrimsState, (prev, st, dragState) =>
+    new EdgeMovingView(prev, /** @type {EdgeMovingPrimsState} */ (st), dragState));

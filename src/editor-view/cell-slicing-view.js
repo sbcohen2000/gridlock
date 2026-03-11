@@ -1,43 +1,37 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as slicePrims from "../editor/slice-prims/slice-prims.js";
-import { CellEditingView } from "./cell-editing-view.js";
-import { EdgeSlidingView } from "./edge-editing-view.js";
 import { AbstractEditorView, PointerEventContext } from "../editor-view.js";
-import { TextEditingView } from "./text-editing-view.js";
-import { View } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
+import { VerticalSlicePrimsState, HorizontalSlicePrimsState } from "../editor/slice-prims/state.js";
 
 /** @import { Recycler } from "../framework.js" */
-/** @import { SlicePrimsState } from "../editor/slice-prims/state.js" */
 /** @import { Cell } from "../editor/common-state.d.ts" */
-/** @import { HistoryItem } from "./history.d.ts" */
 
 /**
  * A base class for slice cell views. Subclasses provide the direction-
  * specific preview rendering and slice prim.
  */
 class AbstractCellSlicingView extends AbstractEditorView {
-    /** @type {SlicePrimsState} */
+    /** @type {VerticalSlicePrimsState | HorizontalSlicePrimsState} */
     #scState;
 
     /** @type {point.P2 | null} */
     #hoveredPos = null;
 
     /**
-     * @param {View} parent
-     * @param {HistoryItem[]} history
-     * @param {SlicePrimsState} st
+     * @param {AbstractEditorView} prev
+     * @param {VerticalSlicePrimsState | HorizontalSlicePrimsState} st
      */
-    constructor(parent, history, st) {
-        super(parent, history);
+    constructor(prev, st) {
+        super(prev);
         if(new.target === AbstractCellSlicingView) {
             throw new Error("Cannot instantiate AbstractCellSlicingView directly");
         }
         this.#scState = st;
     }
 
-    /** @returns {SlicePrimsState} */
+    /** @returns {VerticalSlicePrimsState | HorizontalSlicePrimsState} */
     get state() {
         return this.#scState;
     }
@@ -106,22 +100,26 @@ class AbstractCellSlicingView extends AbstractEditorView {
         const leafPos = grid.posOfLeaf(this.#scState.grid, leaf);
         this.makePreviewElement(leaf, leafPos, this.#hoveredPos, recycler);
     }
-
-    createTextEditingView(parent, st) { return new TextEditingView(parent, this.history, st); }
-    createEdgeEditingView(parent, st, dragState) { return new EdgeSlidingView(parent, this.history, st, dragState); }
-    createCellEditingView(parent, st) { return new CellEditingView(parent, this.history, st); }
-    createVerticalCellSlicingView(parent, st) { return new VerticalCellSlicingView(parent, this.history, st); }
-    createHorizontalCellSlicingView(parent, st) { return new HorizontalCellSlicingView(parent, this.history, st); }
 }
 
 export class VerticalCellSlicingView extends AbstractCellSlicingView {
-    createVerticalCellSlicingView(parent, st) { void parent; void st; return this; }
+    /**
+     * @param {AbstractEditorView} prev
+     * @param {VerticalSlicePrimsState} st
+     */
+    constructor(prev, st) {
+        super(prev, st);
+    }
 
     /**
      * @param {point.P2} globalPos
      */
     sliceAt(globalPos) {
-        this.runPrimitiveWithUndoThenRedraw(this.state, slicePrims.splitCellVerticallyAtGlobalRow, globalPos);
+        this.runPrimitiveWithUndoThenRedraw(
+            /** @type {VerticalSlicePrimsState} */ (this.state),
+            slicePrims.splitCellVerticallyAtGlobalRow,
+            globalPos
+        );
     }
 
     /**
@@ -155,13 +153,23 @@ export class VerticalCellSlicingView extends AbstractCellSlicingView {
 }
 
 export class HorizontalCellSlicingView extends AbstractCellSlicingView {
-    createHorizontalCellSlicingView(parent, st) { void parent; void st; return this; }
+    /**
+     * @param {AbstractEditorView} prev
+     * @param {HorizontalSlicePrimsState} st
+     */
+    constructor(prev, st) {
+        super(prev, st);
+    }
 
     /**
      * @param {point.P2} globalPos
      */
     sliceAt(globalPos) {
-        this.runPrimitiveWithUndoThenRedraw(this.state, slicePrims.splitCellHorizontallyAtGlobalCol, globalPos);
+        this.runPrimitiveWithUndoThenRedraw(
+            /** @type {HorizontalSlicePrimsState} */ (this.state),
+            slicePrims.splitCellHorizontallyAtGlobalCol,
+            globalPos
+        );
     }
 
     /**
@@ -193,3 +201,8 @@ export class HorizontalCellSlicingView extends AbstractCellSlicingView {
         return standardToolbarItems(this, "split horizontally");
     }
 }
+
+AbstractEditorView.registerViewFactory(VerticalSlicePrimsState, (prev, st) =>
+    new VerticalCellSlicingView(prev, /** @type {VerticalSlicePrimsState} */ (st)));
+AbstractEditorView.registerViewFactory(HorizontalSlicePrimsState, (prev, st) =>
+    new HorizontalCellSlicingView(prev, /** @type {HorizontalSlicePrimsState} */ (st)));

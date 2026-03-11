@@ -5,19 +5,29 @@ import * as edgePrims from "../../src/editor/edge-prims/edge-prims.js";
 import { expect } from "chai";
 
 /**
- * Create an EdgePrimsState from a cell-grid string.
+ * Create an EdgeMovingPrimsState from a cell-grid string.
  *
  * @param {string} src
- * @returns {import("../../src/editor/edge-prims/state.js").EdgePrimsState}
+ * @returns {import("../../src/editor/edge-prims/state.js").EdgeMovingPrimsState}
  */
-function mkEdgeState(src) {
-    return edgePrims.editEdge(serialize.textEditingStateFromString(src))[0];
+function mkMovingEdgeState(src) {
+    return edgePrims.moveEdge(serialize.textEditingStateFromString(src))[0];
+}
+
+/**
+ * Create an EdgeSlidingPrimsState from a cell-grid string.
+ *
+ * @param {string} src
+ * @returns {import("../../src/editor/edge-prims/state.js").EdgeSlidingPrimsState}
+ */
+function mkSlidingEdgeState(src) {
+    return edgePrims.slideEdge(serialize.textEditingStateFromString(src))[0];
 }
 
 describe("edge-prims", () => {
     describe("moveHorizontalEdge", () => {
         it("Moves a horizontal edge down by 1", () => {
-            const st = mkEdgeState(
+            const st = mkMovingEdgeState(
                 "top\n" +
                     "bot\n" +
                     "+---+---+\n" +
@@ -37,7 +47,7 @@ describe("edge-prims", () => {
         });
 
         it("Moves a horizontal edge up by 1", () => {
-            const st = mkEdgeState(
+            const st = mkMovingEdgeState(
                 "top\n" +
                     "\n" +
                     "bot\n" +
@@ -58,7 +68,7 @@ describe("edge-prims", () => {
         });
 
         it("Does not shrink a leaf below height 1", () => {
-            const st = mkEdgeState(
+            const st = mkMovingEdgeState(
                 "top\n" +
                     "bot\n" +
                     "+---+\n" +
@@ -78,7 +88,7 @@ describe("edge-prims", () => {
 
     describe("slideVerticalEdge", () => {
         it("Can shift two empty cells", () => {
-            const st = mkEdgeState(
+            const st = mkSlidingEdgeState(
                 "\n" +
                 "\n" +
                 "+---+-+\n" +
@@ -97,7 +107,7 @@ describe("edge-prims", () => {
         });
 
         it("Won't cause a cell to have a width of zero", () => {
-            const st = mkEdgeState(
+            const st = mkSlidingEdgeState(
                 "\n" +
                 "\n" +
                 "+---+-+\n" +
@@ -117,7 +127,7 @@ describe("edge-prims", () => {
 
 
         it("Can shift text between two cells", () => {
-            const st = mkEdgeState(
+            const st = mkSlidingEdgeState(
                 "foofoo\n"  +
                 "barbar\n"  +
                 "+--+--+\n" +
@@ -138,7 +148,7 @@ describe("edge-prims", () => {
         });
 
         it("Can shift text between multiple cells", () => {
-            const st = mkEdgeState(
+            const st = mkSlidingEdgeState(
                 "abcdef\n"  +
                 "abcdef\n"  +
                 "abcdef\n"  +
@@ -180,7 +190,7 @@ describe("edge-prims", () => {
                   "| |  |  |   |\n"+
                   "+-+--+--+---+";
 
-            const st = mkEdgeState(src);
+            const st = mkSlidingEdgeState(src);
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(9, 0), "Left");
             edgePrims.slideVerticalEdge(st, -2);
 
@@ -206,7 +216,7 @@ describe("edge-prims", () => {
                   "| |  |  |   |\n"+
                   "+-+--+--+---+";
 
-            const st = mkEdgeState(src);
+            const st = mkSlidingEdgeState(src);
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(2, 1), "Right");
             edgePrims.slideVerticalEdge(st, 1);
 
@@ -234,7 +244,7 @@ describe("edge-prims", () => {
                   "| |  |  |   |\n"+
                   "+-+--+--+---+";
 
-            const st = mkEdgeState(src);
+            const st = mkSlidingEdgeState(src);
             edgePrims.selectEdgeUnderPoint(st, point.mkP2(5, 1), "Above");
             edgePrims.slideHorizontalEdge(st, 1);
 

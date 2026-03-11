@@ -6,9 +6,6 @@ import * as slicePrims from "../editor/slice-prims/slice-prims.js";
 import * as textPrims from "../editor/text-prims/text-prims.js";
 import * as util from "../util.js";
 import { SHORT_COMMIT_HASH, COMMIT_HASH } from "../commit-hash.js";
-import { CellEditingView } from "./cell-editing-view.js";
-import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slicing-view.js";
-import { TextEditingView } from "./text-editing-view.js";
 
 /** @import { AbstractEditorView } from "../editor-view.js" */
 /** @import { ToolbarDescription } from "./toolbar.js" */
@@ -45,8 +42,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         onclick: () => {
             const [st, inv] = textPrims.editText(editorView.state);
             editorView.commitUndoableItem(inv);
-            editorView.requestReplaceEditorView(
-                new TextEditingView(editorView.parent, editorView.history, st));
+            editorView.requestReplaceEditorView(editorView.createViewForState(st));
         }
     }, {
         type: "button",
@@ -56,8 +52,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         onclick: () => {
             const [st, inv] = cellPrims.editCells(editorView.state);
             editorView.commitUndoableItem(inv);
-            editorView.requestReplaceEditorView(
-                new CellEditingView(editorView.parent, editorView.history, st));
+            editorView.requestReplaceEditorView(editorView.createViewForState(st));
         }
     }, {
         type: "button",
@@ -81,10 +76,9 @@ export function standardToolbarItems(editorView, enabledLabel) {
         label: "split vertically",
         ...maybeEnabled("split vertically"),
         onclick: () => {
-            const [st, inv] = slicePrims.editSlice(editorView.state, "Vertical");
+            const [st, inv] = slicePrims.editVerticalSlice(editorView.state);
             editorView.commitUndoableItem(inv);
-            editorView.requestReplaceEditorView(
-                new VerticalCellSlicingView(editorView.parent, editorView.history, st));
+            editorView.requestReplaceEditorView(editorView.createViewForState(st));
         }
     }, {
         type: "button",
@@ -92,10 +86,9 @@ export function standardToolbarItems(editorView, enabledLabel) {
         label: "split horizontally",
         ...maybeEnabled("split horizontally"),
         onclick: () => {
-            const [st, inv] = slicePrims.editSlice(editorView.state, "Horizontal");
+            const [st, inv] = slicePrims.editHorizontalSlice(editorView.state);
             editorView.commitUndoableItem(inv);
-            editorView.requestReplaceEditorView(
-                new HorizontalCellSlicingView(editorView.parent, editorView.history, st));
+            editorView.requestReplaceEditorView(editorView.createViewForState(st));
         }
     }, {
         type: "divider",

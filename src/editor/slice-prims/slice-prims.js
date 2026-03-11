@@ -1,12 +1,12 @@
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as state from "../state-utils.js";
-import { SlicePrimsState } from "./state.js";
+import { VerticalSlicePrimsState, HorizontalSlicePrimsState } from "./state.js";
 
 /** @import { Inverse, CommonState } from "../common-state.d.ts" */
 
 /**
- * @param {SlicePrimsState} st
+ * @param {VerticalSlicePrimsState} st
  * @param {point.P2} globalPt The global point which identifies the
  *     cell to split, and the location of the split.
  */
@@ -24,13 +24,13 @@ function _splitCellVerticallyAtGlobalRow(st, globalPt) {
 }
 
 /**
- * @type {(st: SlicePrimsState, globalPt: point.P2) => Inverse<SlicePrimsState>}
+ * @type {(st: VerticalSlicePrimsState, globalPt: point.P2) => Inverse<VerticalSlicePrimsState>}
  */
 export const splitCellVerticallyAtGlobalRow =
     state.withDefaultInverse(_splitCellVerticallyAtGlobalRow, "split cell vertically");
 
 /**
- * @param {SlicePrimsState} st
+ * @param {HorizontalSlicePrimsState} st
  * @param {point.P2} globalPt The global point which identifies the
  *     cell to split, and the location of the split.
  */
@@ -49,24 +49,39 @@ function _splitCellHorizontallyAtGlobalCol(st, globalPt) {
 }
 
 /**
- * @type {(st: SlicePrimsState, globalPt: point.P2) => Inverse<SlicePrimsState>}
+ * @type {(st: HorizontalSlicePrimsState, globalPt: point.P2) => Inverse<HorizontalSlicePrimsState>}
  */
 export const splitCellHorizontallyAtGlobalCol =
     state.withDefaultInverse(_splitCellHorizontallyAtGlobalCol, "split cell horizontally");
 
 /**
  * @template {CommonState} S
- * @param { S } st
- * @param { "Vertical" | "Horizontal" } direction
- * @returns { [ SlicePrimsState, Inverse<S> ] }
+ * @param {S} st
+ * @returns {[VerticalSlicePrimsState, Inverse<S>]}
  */
-export function editSlice(st, direction) {
+export function editVerticalSlice(st) {
     const snapshot = st.clone();
 
-    return [ new SlicePrimsState(st.grid, direction), {
+    return [ new VerticalSlicePrimsState(st.grid), {
         apply: (_s) => {
             return snapshot;
         },
-        fwdDescription: "start slicing cells"
+        fwdDescription: "start slicing cells vertically"
+    } ];
+}
+
+/**
+ * @template {CommonState} S
+ * @param {S} st
+ * @returns {[HorizontalSlicePrimsState, Inverse<S>]}
+ */
+export function editHorizontalSlice(st) {
+    const snapshot = st.clone();
+
+    return [ new HorizontalSlicePrimsState(st.grid), {
+        apply: (_s) => {
+            return snapshot;
+        },
+        fwdDescription: "start slicing cells horizontally"
     } ];
 }

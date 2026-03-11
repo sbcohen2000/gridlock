@@ -6,20 +6,38 @@ import * as grid from "../../grid.js";
 
 /** @import { Cell } from "../common-state.d.ts" */
 
-export class SlicePrimsState {
+/**
+ * The editor state for vertical cell slicing.
+ */
+export class VerticalSlicePrimsState {
     /**
      * @param {grid.Grid<Cell>} g
-     * @param {"Vertical" | "Horizontal"} direction
      */
-    constructor(g, direction) {
+    constructor(g) {
         /** @type {grid.Grid<Cell>} */
         this.grid = g;
-        /** @type {"Vertical" | "Horizontal"} */
-        this.direction = direction;
     }
 
     clone() {
         const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-        return new SlicePrimsState(g, this.direction);
+        return new VerticalSlicePrimsState(g);
+    }
+}
+
+/**
+ * The editor state for horizontal cell slicing.
+ */
+export class HorizontalSlicePrimsState {
+    /**
+     * @param {grid.Grid<Cell>} g
+     */
+    constructor(g) {
+        /** @type {grid.Grid<Cell>} */
+        this.grid = g;
+    }
+
+    clone() {
+        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+        return new HorizontalSlicePrimsState(g);
     }
 }

@@ -8,7 +8,7 @@ import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as rect from "../../rect.js";
 import * as state from "../state-utils.js";
-import { EdgePrimsState } from "./state.js";
+import { EdgePrimsState, EdgeMovingPrimsState, EdgeSlidingPrimsState } from "./state.js";
 
 /** @import { Inverse, CommonState, Cell } from "../common-state.d.ts" */
 /** @import { EdgeLocation } from "./state.js" */
@@ -96,7 +96,7 @@ function _countTrailingBlankLines(leaf) {
  * the selected edge is not vertical, or there is no selected edge,
  * then this function does nothing.
  *
- * @param {EdgePrimsState} st
+ * @param {EdgeMovingPrimsState} st
  * @param {number} n
  */
 function _moveVerticalEdge(st, n) {
@@ -126,7 +126,7 @@ function _moveVerticalEdge(st, n) {
 /**
  * Move the selected vertical edge by the given number of columns.
  *
- * @type {(st: EdgePrimsState, n: number) => Inverse<EdgePrimsState>}
+ * @type {(st: EdgeMovingPrimsState, n: number) => Inverse<EdgeMovingPrimsState>}
  */
 export const moveVerticalEdge = state.withDefaultInverse(_moveVerticalEdge);
 
@@ -135,7 +135,7 @@ export const moveVerticalEdge = state.withDefaultInverse(_moveVerticalEdge);
  * the selected edge is not horizontal, or there is no selected edge,
  * then this function does nothing.
  *
- * @param {EdgePrimsState} st
+ * @param {EdgeMovingPrimsState} st
  * @param {number} n
  */
 function _moveHorizontalEdge(st, n) {
@@ -178,7 +178,7 @@ function _moveHorizontalEdge(st, n) {
 /**
  * Move the selected horizontal edge by the given number of rows.
  *
- * @type {(st: EdgePrimsState, n: number) => Inverse<EdgePrimsState>}
+ * @type {(st: EdgeMovingPrimsState, n: number) => Inverse<EdgeMovingPrimsState>}
  */
 export const moveHorizontalEdge = state.withDefaultInverse(_moveHorizontalEdge);
 
@@ -187,7 +187,7 @@ export const moveHorizontalEdge = state.withDefaultInverse(_moveHorizontalEdge);
  * the selected edge is not horizontal, or there is no selected edge,
  * then this function does nothing.
  *
- * @param {EdgePrimsState} st
+ * @param {EdgeSlidingPrimsState} st
  * @param {number} n
  */
 function _slideHorizontalEdge(st, n) {
@@ -273,7 +273,7 @@ function _slideHorizontalEdge(st, n) {
 /**
  * Slide the selected horizontal edge by the given number of rows.
  *
- * @type {(st: EdgePrimsState, n: number) => Inverse<EdgePrimsState>}
+ * @type {(st: EdgeSlidingPrimsState, n: number) => Inverse<EdgeSlidingPrimsState>}
  */
 export const slideHorizontalEdge = state.withDefaultInverse(_slideHorizontalEdge);
 
@@ -282,7 +282,7 @@ export const slideHorizontalEdge = state.withDefaultInverse(_slideHorizontalEdge
  * the selected edge is not vertical, or there is no selected edge,
  * then this function does nothing.
  *
- * @param {EdgePrimsState} st
+ * @param {EdgeSlidingPrimsState} st
  * @param {number} n
  */
 function _slideVerticalEdge(st, n) {
@@ -378,23 +378,40 @@ function _slideVerticalEdge(st, n) {
 /**
  * Slide the selected vertical edge by the given number of columns.
  *
- * @type {(st: EdgePrimsState, n: number) => Inverse<EdgePrimsState>}
+ * @type {(st: EdgeSlidingPrimsState, n: number) => Inverse<EdgeSlidingPrimsState>}
  */
 export const slideVerticalEdge = state.withDefaultInverse(_slideVerticalEdge);
 
 /**
  * @template {CommonState} S
- * @param { S } st
- * @returns { [ EdgePrimsState, Inverse<S> ] }
+ * @param {S} st
+ * @returns {[EdgeMovingPrimsState, Inverse<S>]}
  */
-export function editEdge(st) {
+export function moveEdge(st) {
     const snapshot = st.clone();
     const firstLeaf = grid.allLeaves(st.grid).next().value;
 
-    return [ new EdgePrimsState(st.grid, { edge: "Right", leaf: firstLeaf }), {
+    return [ new EdgeMovingPrimsState(st.grid, { edge: "Right", leaf: firstLeaf }), {
         apply: (_s) => {
             return snapshot;
         },
-        fwdDescription: "start editing edge"
+        fwdDescription: "start moving edge"
+    } ];
+}
+
+/**
+ * @template {CommonState} S
+ * @param {S} st
+ * @returns {[EdgeSlidingPrimsState, Inverse<S>]}
+ */
+export function slideEdge(st) {
+    const snapshot = st.clone();
+    const firstLeaf = grid.allLeaves(st.grid).next().value;
+
+    return [ new EdgeSlidingPrimsState(st.grid, { edge: "Right", leaf: firstLeaf }), {
+        apply: (_s) => {
+            return snapshot;
+        },
+        fwdDescription: "start sliding edge"
     } ];
 }

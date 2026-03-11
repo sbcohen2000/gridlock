@@ -5,10 +5,6 @@ import * as textPrims from "./editor/text-prims/text-prims.js";
 /** @import { Recycler } from "./framework.js" */
 import { CommittableRecycler } from "./framework.js";
 import { KeyViewEvent, View, ViewEvent } from "./view.js";
-import { TextPrimsState } from "./editor/text-prims/state.js";
-import { EdgePrimsState } from "./editor/edge-prims/state.js";
-import { CellPrimsState } from "./editor/cell-prims/state.js";
-import { SlicePrimsState } from "./editor/slice-prims/state.js";
 
 import binder_ring_center_url from "../www/assets/binder-ring-center.png";
 import binder_ring_end_url from "../www/assets/binder-ring-end.png";
@@ -19,6 +15,22 @@ import HistoryView from "./editor-view/history-view.js";
 /** @import { EdgeLocation } from "./editor/edge-prims/state.js" */
 /** @import { ToolbarDescription } from "./editor-view/toolbar.js" */
 /** @import { HistoryItem } from "./editor-view/history.d.ts" */
+/** @import { DragState } from "./editor-view/edge-editing-view.js" */
+
+/**
+ * @typedef {"Move" | "Slide"} EdgeDraggingMode
+ */
+
+/**
+ * An object with the same shape as `AbstractEditorView` for the
+ * purposes of bootstrapping the initial view.
+ *
+ * @typedef {{
+ *   parent: View | null,
+ *   history: HistoryItem[],
+ *   edgeDraggingMode: EdgeDraggingMode,
+ * }} InitialViewState
+ */
 
 /**
  * Group a string into a list of strings, those strings which contain
@@ -50,15 +62,15 @@ const BINDING_WIDTH = 24; //px;
  */
 export class AbstractEditorView extends View {
     /**
-     * @param {View} parent
-     * @param {HistoryItem[]} history
+     * @param {AbstractEditorView | InitialViewState} prev
      */
-    constructor(parent, history) {
-        super(parent);
+    constructor(prev) {
+        super(prev.parent);
         if(new.target === AbstractEditorView) {
             throw new Error("Cannot instantiate AbstractEditorView directly");
         }
-        this.#history = history;
+        this.#history = prev.history;
+        this.#edgeDraggingMode = prev.edgeDraggingMode;
     }
 
     /** @returns {HistoryItem[]} */
@@ -70,6 +82,40 @@ export class AbstractEditorView extends View {
      */
     get state() {
         throw new Error("Method not implemented");
+    }
+
+    /*************************************************************************/
+    /** View Factory Registry                                               **/
+
+    /**
+     * @type {Map<Function | symbol, (prev: AbstractEditorView, st: CommonState, ...args: *[]) => AbstractEditorView>}
+     */
+    static #viewFactories = new Map();
+
+    /**
+     * Register a view factory for a given state class.
+     *
+     * @param {Function | symbol} key The state class (or sentinel tag) to associate with this factory.
+     * @param {(prev: AbstractEditorView, st: CommonState, ...args: *[]) => AbstractEditorView} factory
+     */
+    static registerViewFactory(key, factory) {
+        AbstractEditorView.#viewFactories.set(key, factory);
+    }
+
+    /**
+     * Create a new view appropriate for viewing the given state,
+     * by looking up the factory registered for `st`'s class.
+     *
+     * @param {CommonState} st
+     * @param {...*} args
+     * @returns {AbstractEditorView}
+     */
+    createViewForState(st, ...args) {
+        const factory = AbstractEditorView.#viewFactories.get(st.constructor);
+        if(!factory) {
+            throw new Error(`createViewForState: no factory registered for '${st.constructor.name}'`);
+        }
+        return factory(this, st, ...args);
     }
 
     /*************************************************************************/
@@ -128,7 +174,7 @@ export class AbstractEditorView extends View {
             const [st, inv] = textPrims.editText(this.state);
             this.commitUndoableItem(inv);
             this.runPrimitiveWithUndo(st, textPrims.putPointOnGlobalPosition, ctx.flooredGridPt, true);
-            this.requestReplaceEditorView(this.createTextEditingView(this.parent, st));
+            this.requestReplaceEditorView(this.createViewForState(st));
             return true;
         } else {
             return false;
@@ -246,13 +292,16 @@ export class AbstractEditorView extends View {
         ].reduce((minD, d) => minD < d ? minD : d, distanceToBottomEdge);
 
         if(minD <= EDGE_HALO_THICK / 2) {
-            // Move to edge selection mode and select the edge.
-            const [st, inv] = edgePrims.editEdge(this.state);
+            // Create the appropriate edge state based on dragging mode.
+            const [st, inv] = this.edgeDraggingMode === "Slide"
+                ? edgePrims.slideEdge(this.state)
+                : edgePrims.moveEdge(this.state);
+
             if(!edgePrims.canSelectEdgeUnderPoint(st, ctx.leafPosition, edge)) {
                 return false;
-            } else {
-                this.commitUndoableItem(inv);
             }
+
+            this.commitUndoableItem(inv);
             edgePrims.selectEdgeUnderPoint(st, ctx.leafPosition, edge);
 
             // Capture the pointer of the root element so that the
@@ -260,7 +309,7 @@ export class AbstractEditorView extends View {
             // element if necessary.
             this._root.setPointerCapture(ctx.event.pointerId);
 
-            /** @type {import("./editor-view/edge-editing-view.js").DragState} */
+            /** @type {DragState} */
             const dragState = {
                 dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
                 dragOriginGrid: ctx.roundedGridPt,
@@ -268,7 +317,7 @@ export class AbstractEditorView extends View {
                 lastArg: 0
             };
 
-            this.requestReplaceEditorView(this.createEdgeEditingView(this.parent, st, dragState));
+            this.requestReplaceEditorView(this.createViewForState(st, dragState));
             return true;
         } else {
             return false;
@@ -629,7 +678,7 @@ export class AbstractEditorView extends View {
         const newState = top.apply(this.state);
 
         // Replace the view with one which can view the current state.
-        this.requestReplaceEditorView(this.createViewForState(this.parent, newState));
+        this.requestReplaceEditorView(this.createViewForState(newState));
     }
 
     /*************************************************************************/
@@ -643,98 +692,6 @@ export class AbstractEditorView extends View {
      */
     describeToolbarItems() {
         return [];
-    }
-
-    /**
-     * Create a new view appropriate for viewing the given state,
-     * by discriminating on the class of `st`.
-     *
-     * @param {View} parent
-     * @param {CommonState} st
-     * @returns {AbstractEditorView}
-     */
-    createViewForState(parent, st) {
-        if(st instanceof TextPrimsState) {
-            return this.createTextEditingView(parent, st);
-        } else if(st instanceof EdgePrimsState) {
-            return this.createEdgeEditingView(parent, st);
-        } else if(st instanceof CellPrimsState) {
-            return this.createCellEditingView(parent, st);
-        } else if(st instanceof SlicePrimsState) {
-            if(st.direction === "Vertical") {
-                return this.createVerticalCellSlicingView(parent, st);
-            } else {
-                return this.createHorizontalCellSlicingView(parent, st);
-            }
-        } else {
-            throw new Error(`createViewForState: unknown state type '${st.constructor.name}'`);
-        }
-    }
-
-    /**
-     * implemented a text editing view. Subclasses must implement this.
-     *
-     * @abstract
-     * @param {View} parent
-     * @param {TextPrimsState} st
-     * @returns {AbstractEditorView}
-     */
-    createTextEditingView(parent, st) {
-        void parent; void st;
-        throw new Error("Method not implemented");
-    }
-
-    /**
-     * Create an edge editing view. Subclasses must implement this.
-     *
-     * @abstract
-     * @param {View} parent
-     * @param {EdgePrimsState} st
-     * @param {import("./editor-view/edge-editing-view.js").DragState} [dragState]
-     * @returns {AbstractEditorView}
-     */
-    createEdgeEditingView(parent, st, dragState) {
-        void parent; void dragState; void st;
-        throw new Error("Method not implemented");
-    }
-
-    /**
-     * Create a cell editing view. Subclasses must implement this.
-     *
-     * @abstract
-     * @param {View} parent
-     * @param {CellPrimsState} st
-     * @returns {AbstractEditorView}
-     */
-    createCellEditingView(parent, st) {
-        void parent; void st;
-        throw new Error("Method not implemented");
-    }
-
-    /**
-     * Create a vertical cell slicing view. Subclasses must implement this.
-     *
-     * @abstract
-     * @param {View} parent
-     * @param {SlicePrimsState} st
-     * @returns {AbstractEditorView}
-     */
-    createVerticalCellSlicingView(parent, st) {
-        void parent; void st;
-        throw new Error("Method not implemented");
-    }
-
-    /**
-     * Create a horizontal cell slicing view. Subclasses must implement this.
-     *
-     * @abstract
-     * @param {View} parent
-     * @param {SlicePrimsState} st
-     * @returns {AbstractEditorView}
-     */
-    createHorizontalCellSlicingView(parent, st) {
-        void parent; void st;
-        throw new Error("Method not implemented");
     }
 
     /*************************************************************************/
@@ -836,8 +793,6 @@ export class AbstractEditorView extends View {
 
     /*************************************************************************/
     /** Edge Dragging Mode                                                  **/
-
-    /** @typedef {"Move" | "Slide"} EdgeDraggingMode */
 
     /** @type {EdgeDraggingMode} */
     #edgeDraggingMode = "Move";

@@ -7,6 +7,11 @@ import { TextEditingView } from "./editor-view/text-editing-view.js";
 import { View, RedrawViewEvent, RequestFocusViewEvent, KeyViewEvent, ViewDeletedViewEvent } from "./view.js";
 import { mkToolbarItem } from "./editor-view/toolbar.js";
 
+// Import subclass modules to trigger factory registrations.
+import "./editor-view/cell-editing-view.js";
+import "./editor-view/cell-slicing-view.js";
+import "./editor-view/edge-editing-view.js";
+
 // Reload the page when esbuild issues a change event.
 new EventSource('/esbuild').addEventListener('change', () => {
     location.reload();
@@ -89,12 +94,16 @@ function main() {
     }
 
     let initialStateStr = localStorage.getItem("editorState");
+
+    /** @type {import("./editor-view.js").InitialViewState} */
+    const initialViewState = { parent: null, history: [], edgeDraggingMode: "Move" };
+
     /** @type {AbstractEditorView} */
     let initialView;
     if(initialStateStr) {
-        initialView = new TextEditingView(null, [], serialize.textEditingStateFromString(initialStateStr));
+        initialView = new TextEditingView(initialViewState, serialize.textEditingStateFromString(initialStateStr));
     } else {
-        initialView = new TextEditingView(null, [], serialize.emptyTextEditingState());
+        initialView = new TextEditingView(initialViewState, serialize.emptyTextEditingState());
     }
 
     const topLevelView = new (class extends View {

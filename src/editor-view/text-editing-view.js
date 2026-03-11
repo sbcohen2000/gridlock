@@ -1,29 +1,25 @@
 import * as grid from "../grid.js";
 import * as textPrims from "../editor/text-prims/text-prims.js";
 import * as cellPrims from "../editor/cell-prims/cell-prims.js";
-import { CellEditingView } from "./cell-editing-view.js";
-import { EdgeSlidingView } from "./edge-editing-view.js";
-import { HorizontalCellSlicingView, VerticalCellSlicingView } from "./cell-slicing-view.js";
 import { AbstractEditorView, PointerEventContext } from "../editor-view.js";
-import { View, KeyViewEvent } from "../view.js";
+import { KeyViewEvent } from "../view.js";
 import { standardToolbarItems } from "./standard-toolbar.js";
+import { TextPrimsState } from "../editor/text-prims/state.js";
 
 /** @import { Recycler } from "../framework.js" */
-/** @import { TextPrimsState } from "../editor/text-prims/state.js" */
 /** @import { Cell } from "../editor/common-state.d.ts" */
-/** @import { HistoryItem } from "./history.d.ts" */
+/** @import { InitialViewState } from "../editor-view.js" */
 
 export class TextEditingView extends AbstractEditorView {
     /** @type {TextPrimsState} */
     #teState
 
     /**
-     * @param {View} parent
-     * @param {HistoryItem[]} history
+     * @param {AbstractEditorView | InitialViewState} prev
      * @param {TextPrimsState} [st] The initial editor state.
      */
-    constructor(parent, history, st) {
-        super(parent, history);
+    constructor(prev, st) {
+        super(prev);
         this.#teState = st;
     }
 
@@ -53,7 +49,7 @@ export class TextEditingView extends AbstractEditorView {
             this.commitUndoableItem(inv);
             st.selection.leaves.add(this.#teState.selection.leaf);
             st.selection.leaves.add(ctx.leaf);
-            this.requestReplaceEditorView(new CellEditingView(this.parent, this.history, st));
+            this.requestReplaceEditorView(this.createViewForState(st));
         } else {
             // Move the point to `gridPt`.
             this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnGlobalPosition, gridPt);
@@ -87,12 +83,6 @@ export class TextEditingView extends AbstractEditorView {
     describeToolbarItems() {
         return standardToolbarItems(this, "edit text");
     }
-
-    createTextEditingView(parent, st) { void parent; void st; return this; }
-    createEdgeEditingView(parent, st, dragState) { return new EdgeSlidingView(parent, this.history, st, dragState); }
-    createCellEditingView(parent, st) { return new CellEditingView(parent, this.history, st); }
-    createVerticalCellSlicingView(parent, st) { return new VerticalCellSlicingView(parent, this.history, st); }
-    createHorizontalCellSlicingView(parent, st) { return new HorizontalCellSlicingView(parent, this.history, st); }
 
     /**
      * Handle a keyboard event.
@@ -154,3 +144,6 @@ export class TextEditingView extends AbstractEditorView {
         return false;
     }
 }
+
+AbstractEditorView.registerViewFactory(TextPrimsState, (prev, st) =>
+    new TextEditingView(prev, /** @type {TextPrimsState} */ (st)));
