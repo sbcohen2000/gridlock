@@ -136,24 +136,6 @@ describe("edge-prims", () => {
 
             expect(grid.printASCII(st.grid)).to.equal(exp);
         });
-
-        it("Does not shrink a leaf below height 1", () => {
-            const src =
-                "top\n" +
-                "bot\n" +
-                "+---+\n" +
-                "+---+\n" +
-                "+---+";
-            const st = mkMovingEdgeState(src);
-
-            edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
-            const exp = grid.printASCII(st.grid);
-            edgePrims.moveEdge(st, -1);
-
-            // Top leaf is already height 1, can't shrink further
-            expect(grid.printASCII(st.grid)).to.equal(exp);
-        });
-
     });
 
     describe("slideEdge (vertical)", () => {

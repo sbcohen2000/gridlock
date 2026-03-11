@@ -75,15 +75,74 @@ function _selectEdgeOfNode(st, node) {
 export const selectEdgeOfNode = state.withDefaultInverse(_selectEdgeOfNode);
 
 /**
+ * Mutate the given list of lines so that it has at least `n` lines,
+ * but if the length of `lines` exceeds `n`, only those empty lines
+ * have been trimmed off.
+ *
+ * @param {number} n
+ * @param {string[]} lines
+ */
+function trimEmptyLines(n, lines) {
+    if(lines.length <= n) {
+        return;
+    }
+
+    const maxTrim = lines.length - n;
+    for(let i = 0; i < maxTrim; ++i) {
+        if(lines.at(-1) === "") {
+            lines.pop();
+        } else {
+            break;
+        }
+    }
+}
+
+/**
  * Move the selected edge by the given number of rows/columns.
  *
  * @param {EdgeMovingPrimsState} st
  * @param {number} n
  */
 function _moveEdge(st, n) {
-    void st;
-    void n;
-    throw new Error("TODO");
+    if(st.selection.type === "Horz") {
+        const leftWidth = st.selection.left.dims.width;
+        const upperLeft = grid.posOfLeaf(st.grid, st.selection);
+        const globalCol = upperLeft.x + leftWidth;
+
+        // Add space to the column just left of `globalCol`.
+        const leftLeaves = [...grid.leavesUnderCol(st.grid, globalCol - 1)];
+
+        const leftMin = util.minimum(leftLeaves.values().map(leaf => leaf.dims.width));
+        n = Math.max(-(leftMin + 1), n);
+
+        grid.modifyWidthOfLeaves(st.grid, n, leftLeaves);
+    } else {
+        const topHeight = st.selection.left.dims.height;
+        const upperLeft = grid.posOfLeaf(st.grid, st.selection);
+        const globalRow = upperLeft.y + topHeight;
+
+        // Add space to the column just above of `globalRow`.
+        const topLeaves = [...grid.leavesUnderRow(st.grid, globalRow - 1)];
+
+        const topMin = util.minimum(topLeaves.values().map(leaf => leaf.dims.height));
+        n = Math.max(-(topMin + 1), n);
+
+        grid.modifyHeightOfLeaves(st.grid, n, topLeaves);
+
+        // Add or remove lines as appropriate.
+        topLeaves.forEach(leaf => {
+            if(leaf.data.lines.length < leaf.dims.height) {
+                // There are too few lines.
+                leaf.data.lines.push(...Array.from(
+                    { length: leaf.dims.height - leaf.data.lines.length },
+                    () => ""
+                ));
+            } else if(leaf.dims.height < leaf.data.lines.length) {
+                // There are too many lines.
+                trimEmptyLines(leaf.dims.height, leaf.data.lines);
+            }
+        });
+    }
 }
 
 /**
