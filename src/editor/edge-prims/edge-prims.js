@@ -60,7 +60,7 @@ function _selectEdgeOfNode(st, node) {
     // Check that the node is in the grid by trying to find a path to
     // it.
     let path = grid.pathToNode(st.grid, node);
-    if(path !== undefined) {
+    if(path === undefined) {
         return;
     }
 
