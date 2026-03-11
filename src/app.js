@@ -36,7 +36,7 @@ class AppView extends View {
      * @param {Recycler} recycler The recycler to add to.
      */
     #viewToolbar(recycler) {
-        recycler.elem("div", (toolbarElem) => {
+        recycler.elem({ tag: "div", key: "toolbar" }, (toolbarElem) => {
             toolbarElem.className = "editor-toolbar";
 
             const descriptions = this.#editorView.describeToolbarItems();

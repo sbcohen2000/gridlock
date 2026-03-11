@@ -111,3 +111,4 @@ export function minimum(as) {
 export function maximum(as) {
     return as.reduce((m, a) => Math.max(m, a), -Infinity);
 }
+

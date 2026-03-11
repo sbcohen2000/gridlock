@@ -128,6 +128,32 @@ export class CommittableRecycler {
     }
 
     /**
+     * Check if there exists a spec item with the given tag and key.
+     *
+     * @param {string} tag
+     * @param {string} [key]
+     * @returns {boolean}
+     */
+    #hasSpecWithSameTagAndKey(tag, key) {
+        return this.#spec.find(obj => {
+            return obj.tag === tag && obj.key === key;
+        }) !== undefined;
+    }
+
+    /**
+     * Print a warning if a specification has already been issued with
+     * the same tag and key.
+     *
+     * @param {string} tag
+     * @param {string} [key]
+     */
+    #warnAboutSimilarTagsOrKeys(tag, key) {
+        if(this.#hasSpecWithSameTagAndKey(tag, key)) {
+            console.warn(`Two spec items with the same tag (${tag}${key ? `:${key}` : ""}).`);
+        }
+    }
+
+    /**
      * Construct a single element of the given tag type.
      *
      * @template {keyof HTMLElementTagNameMap} T
@@ -140,6 +166,7 @@ export class CommittableRecycler {
             settings = { tag: settings };
         }
 
+        this.#warnAboutSimilarTagsOrKeys(settings.tag, settings.key);
         this.#spec.push({ ...settings, render: (_item, e) => render(e), item: null })
         return this;
     }
@@ -172,6 +199,7 @@ export class CommittableRecycler {
             settings = { tag: settings };
         }
 
+        this.#warnAboutSimilarTagsOrKeys(settings.tag, settings.key);
         for(const item of items) {
             this.#spec.push({ ...settings, render, item });
         }

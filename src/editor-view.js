@@ -238,7 +238,7 @@ export class AbstractEditorView extends View {
      * @param {Recycler} r
      */
     #viewNode(node, p, r) {
-        r.elem({ tag: "div", key: "node", clearAttributes: true }, (nodeElem) => {
+        r.elem({ tag: "div", key: `node-${p.y}-${p.x}-${node.dims.height}-${node.dims.width}`, clearAttributes: true }, (nodeElem) => {
             const sz = node.dims;
             const gridSpec = node.type === "Vert"
                   ? `${p.y + 1}/${p.x + 1}/span ${node.left.dims.height}/span ${sz.width}`
@@ -345,13 +345,13 @@ export class AbstractEditorView extends View {
      * View a particular leaf of the grid.
      *
      * @param {grid.Leaf<Cell>} leaf The leaf to view.
-     * @param {point.P2} leafUl The position of the upper-left corner of the leaf.
+     * @param {point.P2} p The position of the upper-left corner of the leaf.
      * @param {Recycler} recycler The recycler to add to.
      */
-    viewLeaf(leaf, leafUl, recycler) {
-        recycler.elem({ tag: "div", key: "leaf" }, (leafElem) => {
+    viewLeaf(leaf, p, recycler) {
+        recycler.elem({ tag: "div", key: `leaf-${p.y}-${p.x}` }, (leafElem) => {
             const sz = leaf.dims;
-            const gridSpec = `${leafUl.y + 1}/${leafUl.x + 1}/span ${sz.height}/span ${sz.width}`;
+            const gridSpec = `${p.y + 1}/${p.x + 1}/span ${sz.height}/span ${sz.width}`;
 
             leafElem.className      = "editor-cell";
             leafElem.style.width    = `${sz.width}ch`;
@@ -370,7 +370,7 @@ export class AbstractEditorView extends View {
             return new CommittableRecycler(leafElem)
                 .view(r => {
                     for(const rowNo of leaf.data.lines.map((_, i) => i)) {
-                        this.viewLine(rowNo, leaf, leafUl, r);
+                        this.viewLine(rowNo, leaf, p, r);
                     }
                 })
                 .view(r => this.viewLeafSelection(leaf, r))
@@ -636,7 +636,7 @@ export class AbstractEditorView extends View {
      * @param {Recycler} recycler The recycler to add to.
      */
     #viewBinding(recycler) {
-        recycler.elem("div", (bindingElem) => {
+        recycler.elem({ tag: "div", key: "binding" }, (bindingElem) => {
             this.#bindingElem = bindingElem;
             this.#bindingElem.className = "editor-binding";
             this.#bindingElem.style.width = `${BINDING_WIDTH}px`;
@@ -649,7 +649,7 @@ export class AbstractEditorView extends View {
      * @param {Recycler} recycler The recycler to add to.
      */
     #viewLineNumbers(recycler) {
-        recycler.elem("div", (lineNumsElem) => {
+        recycler.elem({ tag: "div", key: "line-numbers-margin" }, (lineNumsElem) => {
             lineNumsElem.className = "editor-line-nums-margin";
 
             const nLines = this.state.grid.dims.height
