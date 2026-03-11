@@ -63,7 +63,7 @@ export function mk(width, height, data) {
  * @param {Grid<A>} g The grid to copy.
  * @param {(a: A) => A} [cloneData] How to clone the data at each leaf.
  * @returns {Grid<A>} A new `Grid`, identical to `g`, but sharing no
- *                    pointers with it.
+ *     pointers with it.
  */
 export function clone(g, cloneData = (a) => a) {
     switch(g.type) {
@@ -76,6 +76,38 @@ export function clone(g, cloneData = (a) => a) {
     }
     case "Leaf": return { ...g, dims: { ...g.dims }, data: cloneData(g.data) }
     }
+}
+
+/**
+ * Produce a deep-copy of a grid, mapping a list of nodes that we care
+ * about through the clone. That is, this function operates as an
+ * identity on both of its arguments, but of course, the arguments and
+ * the results will not be equal by reference, only by structure.
+ *
+ * The `nodes` passed to this function must occur in `g`. Otherwise,
+ * an error is thrown.
+ *
+ * @template A
+ * @param {Grid<A>} g The grid to copy.
+ * @param {Grid<A>[]} nodes The nodes to carry through the clone.
+ * @param {(a: A) => A} [cloneData] How to clone the data at each leaf.
+ * @returns {[Grid<A>, Grid<A>[]]} A new `Grid`, identical to `g`, but
+ *      sharing no pointers with it.
+ */
+export function cloneMappingNodes(g, nodes, cloneData = (a) => a) {
+    const paths = nodes.map(node => {
+        const path = pathToNode(g, node);
+        if(!path) {
+            throw new Error("No path to node in cloneMappingNodes");
+        }
+        return path;
+    });
+
+    // Clone g.
+    const newG = clone(g, cloneData);
+
+    // Find the new identity of the input nodes.
+    return [newG, paths.map(path => evaluatePath(newG, path))];
 }
 
 /**

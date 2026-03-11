@@ -21,12 +21,14 @@ export class TextPrimsState {
 
     /** @returns {TextPrimsState} */
     clone() {
-        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-        const leafPos = grid.posOfLeaf(this.grid, this.selection.leaf);
-        const newLeaf = grid.leafUnderPoint(g, leafPos);
+        const [g, [newLeaf]] = grid.cloneMappingNodes(
+            this.grid,
+            [this.selection.leaf],
+            data => ({ lines: [...data.lines] })
+        );
         return new TextPrimsState(g, {
             pt: point.mkP2(this.selection.pt.x, this.selection.pt.y),
-            leaf: newLeaf,
+            leaf: /** @type {grid.Leaf<Cell>} */ (newLeaf),
             lastGlobalCol: this.selection.lastGlobalCol
         });
     }

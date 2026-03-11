@@ -235,7 +235,7 @@ export const slideVerticalEdge = state.withDefaultInverse(_slideVerticalEdge);
  */
 export function moveEdge(st) {
     const snapshot = st.clone();
-    const firstLeaf = grid.allLeaves(st.grid).next().value;
+    const firstNode = grid.allNodes(st.grid).next().value;
 
     return [ new EdgeMovingPrimsState(st.grid, { edge: "Right", leaf: firstLeaf }), {
         apply: (_s) => {

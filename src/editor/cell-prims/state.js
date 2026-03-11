@@ -20,13 +20,11 @@ export class CellPrimsState {
 
     /** @returns {CellPrimsState} */
     clone() {
-        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-        const newLeaves = new Set(
-            [...this.selection.leaves].map(leaf => {
-                const leafPos = grid.posOfLeaf(this.grid, leaf);
-                return grid.leafUnderPoint(g, leafPos);
-            })
+        const [g, newLeaves] = grid.cloneMappingNodes(
+            this.grid,
+            [...this.selection.leaves],
+            data => ({ lines: [...data.lines] })
         );
-        return new CellPrimsState(g, { leaves: newLeaves });
+        return new CellPrimsState(g, { leaves: new Set(/** @type {grid.Leaf<Cell>[]} */ (newLeaves)) });
     }
 }

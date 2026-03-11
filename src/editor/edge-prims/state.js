@@ -49,12 +49,12 @@ export class EdgePrimsState {
      * @protected
      */
     _cloneGridAndSelection() {
-        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-
-        // Need to introduce a method in `grid` which can identify a
-        // node by its path. That way, we can identify a node in the
-        // cloned grid.
-        throw new Error("TODO");
+        const [g, [newSelection]] = grid.cloneMappingNodes(
+            this.grid,
+            [this.selection],
+            data => ({ lines: [...data.lines] })
+        );
+        return [g, /** @type {grid.Split<Cell>} */ (newSelection)];
     }
 }
 
