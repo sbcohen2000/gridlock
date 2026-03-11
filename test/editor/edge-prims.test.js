@@ -73,6 +73,7 @@ describe("edge-prims", () => {
                   "+--+--+\n" + // -+|
                   "|  |  |\n" + //   | expectation 2
                   "+--+--+";    // --+
+
             //     |     |
             //     +-----+ expectation 3
             const st = mkMovingEdgeState(src);
@@ -155,7 +156,7 @@ describe("edge-prims", () => {
 
     });
 
-    describe("slideVerticalEdge", () => {
+    describe("slideEdge (vertical)", () => {
         it("Can shift two empty cells", () => {
             const src =
                 "\n" +
@@ -349,7 +350,7 @@ describe("edge-prims", () => {
         });
     });
 
-    describe("slideHorizontalEdge", () => {
+    describe("slideEdge (horizontal)", () => {
         it("Can shift an edge in a more complex grid (1)", () => {
             const src =
                   "hellothere\n"   +
