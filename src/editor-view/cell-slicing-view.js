@@ -17,7 +17,7 @@ class AbstractCellSlicingView extends AbstractEditorView {
     #scState;
 
     /** @type {point.P2 | null} */
-    #hoveredPos = null;
+    _hoveredPos = null;
 
     /**
      * @param {AbstractEditorView} prev
@@ -55,25 +55,9 @@ class AbstractCellSlicingView extends AbstractEditorView {
      * @param {PointerEventContext} _ctx
      */
     onPointerDownInLeaf(_ctx) {
-        if(this.#hoveredPos === null) return;
-        this.sliceAt(this.#hoveredPos);
+        if(this._hoveredPos === null) return;
+        this.sliceAt(this._hoveredPos);
         this.requestRedraw();
-    }
-
-    /**
-     * Handle a pointer-move event inside a leaf element.
-     *
-     * @param {PointerEventContext} ctx
-     */
-    onPointerMoveInLeaf(ctx) {
-        const pos = ctx.roundedGridPt;
-
-        if(this.#hoveredPos === null
-           || this.#hoveredPos.x !== pos.x
-           || this.#hoveredPos.y !== pos.y) {
-            this.#hoveredPos = pos;
-            this.requestRedraw();
-        }
     }
 
     /**
@@ -95,10 +79,10 @@ class AbstractCellSlicingView extends AbstractEditorView {
     viewLeafSelection(leaf, recycler) {
         super.viewLeafSelection(leaf, recycler);
 
-        if(this.#hoveredPos === null) return;
+        if(this._hoveredPos === null) return;
 
         const leafPos = grid.posOfLeaf(this.#scState.grid, leaf);
-        this.makePreviewElement(leaf, leafPos, this.#hoveredPos, recycler);
+        this.makePreviewElement(leaf, leafPos, this._hoveredPos, recycler);
     }
 }
 
@@ -123,6 +107,22 @@ export class VerticalCellSlicingView extends AbstractCellSlicingView {
     }
 
     /**
+     * Handle a pointer-move event inside a leaf element.
+     *
+     * @param {PointerEventContext} ctx
+     */
+    onPointerMoveInLeaf(ctx) {
+        const pos = ctx.roundedGridPt;
+
+        if(this._hoveredPos === null
+           || this._hoveredPos.x !== pos.x
+           || this._hoveredPos.y !== pos.y) {
+            this._hoveredPos = pos;
+            this.requestRedraw();
+        }
+    }
+
+    /**
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
@@ -130,8 +130,8 @@ export class VerticalCellSlicingView extends AbstractCellSlicingView {
      */
     makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
         // Check if hover is within this leaf's column range
-        if(hoverGlobalPos.x < leafPos.x || hoverGlobalPos.x >= leafPos.x + leaf.dims.width) return;
-        if(hoverGlobalPos.y < leafPos.y || hoverGlobalPos.y >= leafPos.y + leaf.dims.height) return;
+        if(hoverGlobalPos.x <= leafPos.x || hoverGlobalPos.x >= leafPos.x + leaf.dims.width) return;
+        if(hoverGlobalPos.y <= leafPos.y || hoverGlobalPos.y >= leafPos.y + leaf.dims.height) return;
 
         const localRow = hoverGlobalPos.y - leafPos.y;
 
@@ -173,6 +173,22 @@ export class HorizontalCellSlicingView extends AbstractCellSlicingView {
     }
 
     /**
+     * Handle a pointer-move event inside a leaf element.
+     *
+     * @param {PointerEventContext} ctx
+     */
+    onPointerMoveInLeaf(ctx) {
+        const pos = ctx.roundedXFlooredYPt;
+
+        if(this._hoveredPos === null
+           || this._hoveredPos.x !== pos.x
+           || this._hoveredPos.y !== pos.y) {
+            this._hoveredPos = pos;
+            this.requestRedraw();
+        }
+    }
+
+    /**
      * @param {grid.Leaf<Cell>} leaf
      * @param {point.P2} leafPos
      * @param {point.P2} hoverGlobalPos
@@ -180,8 +196,8 @@ export class HorizontalCellSlicingView extends AbstractCellSlicingView {
      */
     makePreviewElement(leaf, leafPos, hoverGlobalPos, recycler) {
         // Check if hover is within this leaf's range
-        if(hoverGlobalPos.x < leafPos.x || hoverGlobalPos.x >= leafPos.x + leaf.dims.width) return;
-        if(hoverGlobalPos.y < leafPos.y || hoverGlobalPos.y >= leafPos.y + leaf.dims.height) return;
+        if(hoverGlobalPos.x <= leafPos.x || hoverGlobalPos.x >= leafPos.x + leaf.dims.width) return;
+        if(hoverGlobalPos.y <= leafPos.y || hoverGlobalPos.y >= leafPos.y + leaf.dims.height) return;
 
         const localCol = hoverGlobalPos.x - leafPos.x;
 

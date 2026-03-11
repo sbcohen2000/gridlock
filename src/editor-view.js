@@ -777,6 +777,18 @@ export class PointerEventContext {
     }
 
     /**
+     * Get the location of the event in grid coordinates, rounded to
+     * the nearest integer column, and floored to the nearest integer
+     * row.
+     *
+     * @returns {point.P2}
+     */
+    get roundedXFlooredYPt() {
+        const pt = this.#gridPt;
+        return point.mkP2(Math.round(pt.x), Math.floor(pt.y));
+    }
+
+    /**
      * The client bounding rectangle of the editor root element.
      *
      * @returns {DOMRect}
