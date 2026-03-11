@@ -460,6 +460,17 @@ export function* allNodesWithPosition(g, p) {
 }
 
 /**
+ * Collect all nodes in a grid.
+ *
+ * @template A
+ * @param {Grid<A>} g
+ * @returns {IteratorObject<Grid<A>>}
+ */
+export function allNodes(g) {
+    return allNodesWithPosition(g).map(([n, _]) => n);
+}
+
+/**
  * Collect all leaves in a grid.
  *
  * @template A
@@ -467,8 +478,7 @@ export function* allNodesWithPosition(g, p) {
  * @returns {IteratorObject<Leaf<A>>}
  */
 export function allLeaves(g) {
-    return /** @type{IteratorObject<Leaf<A>>} */ (allNodesWithPosition(g).flatMap(([n, _]) =>
-        n.type === "Leaf" ? [n] : []));
+    return allNodes(g).filter(n => n.type === "Leaf");
 }
 
 /**
@@ -566,6 +576,62 @@ export function parentChain(g, focus) {
         }
     };
     return go(g);
+}
+
+/**
+ * A path from root to node in a grid.n
+ *
+ * @typedef {"Left" | "Right"} GridPathSegment
+ * @typedef {GridPathSegment[]} GridPath
+ */
+
+/**
+ * @template A
+ * @param {Grid<A>} g The grid
+ * @param {Grid<A>} focus The node to to find a path to in `g`.
+ * @returns {GridPath | undefined} Returns the path to `focus`, or
+ *     `undefined` if `focus` isn't in the tree.
+ */
+export function pathToNode(g, focus) {
+    const chain = parentChain(g, focus);
+    if(!chain) return undefined;
+
+    let last = focus;
+    return chain.map(n => {
+        /** @type {GridPathSegment} */
+        let dir;
+        if(n.left === last) {
+            dir = "Left";
+        } else {
+            dir = "Right";
+        }
+        last = n;
+        return dir;
+    }).reverse();
+}
+
+/**
+ * Evaluate a `path` in grid `g`.
+ *
+ * @template A
+ * @param {Grid<A>} g The grid
+ * @param {GridPath} path The path to evaluate.
+ * @returns {Grid<A>}
+ */
+export function evaluatePath(g, path) {
+    for(const seg of path) {
+        if(g.type === "Leaf") {
+            return g;
+        }
+
+        if(seg === "Left") {
+            g = g.left;
+        } else {
+            g = g.right;
+        }
+    }
+
+    return g;
 }
 
 /**

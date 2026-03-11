@@ -959,6 +959,28 @@ describe("leavesUnderRow", () => {
     });
 });
 
+describe("pathToNode / evaluatePath", () => {
+    it("evaluatePath(g, pathToNode(g, node)) === node for any node in the grid", () => {
+        fc.assert(
+            fc.property(
+                arbg.grid.tree.chain(g => {
+                    const nodeCount = [...grid.allNodes(g)].length;
+                    return fc.integer({ min: 0, max: nodeCount - 1 })
+                        .map(i => ({ g, i }));
+                }),
+                ({ g, i }) => {
+                    // Look up the node at assertion time so `node` is always
+                    // a live reference from the current (possibly shrunk) `g`.
+                    const node = [...grid.allNodes(g)][i];
+                    const path = grid.pathToNode(g, node);
+                    expect(path).to.not.be.undefined;
+                    expect(grid.evaluatePath(g, path)).to.equal(node);
+                }
+            )
+        );
+    });
+});
+
 describe("modifyHeightOfLeaves", () => {
     it("Grows a single leaf that spans the full width", () => {
         const g = grid.parseASCII(
