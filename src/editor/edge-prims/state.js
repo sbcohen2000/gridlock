@@ -21,7 +21,7 @@ import * as grid from "../../grid.js";
 export class EdgePrimsState {
     /**
      * @param {grid.Grid<Cell>} g
-     * @param {{ edge: CanonicalEdgeLocation, leaf: grid.Leaf<Cell> }} selection
+     * @param {grid.Split<Cell>} selection
      */
     constructor(g, selection) {
         if(new.target === EdgePrimsState) {
@@ -29,7 +29,7 @@ export class EdgePrimsState {
         }
         /** @type {grid.Grid<Cell>} */
         this.grid = g;
-        /** @type {{ edge: CanonicalEdgeLocation, leaf: grid.Leaf<Cell> }} */
+        /** @type {grid.Split<Cell>} */
         this.selection = selection;
     }
 
@@ -42,17 +42,19 @@ export class EdgePrimsState {
     }
 
     /**
-     * Clone the grid and find the corresponding selection leaf in the
+     * Clone the grid and find the corresponding selection node in the
      * new grid. Subclasses use this to implement `clone()`.
      *
-     * @returns {[grid.Grid<Cell>, { edge: CanonicalEdgeLocation, leaf: grid.Leaf<Cell> }]}
+     * @returns {[grid.Grid<Cell>, grid.Split<Cell>]}
      * @protected
      */
     _cloneGridAndSelection() {
         const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-        const leafPos = grid.posOfLeaf(this.grid, this.selection.leaf);
-        const newLeaf = grid.leafUnderPoint(g, leafPos);
-        return [g, { edge: this.selection.edge, leaf: newLeaf }];
+
+        // Need to introduce a method in `grid` which can identify a
+        // node by its path. That way, we can identify a node in the
+        // cloned grid.
+        throw new Error("TODO");
     }
 }
 
@@ -62,7 +64,7 @@ export class EdgePrimsState {
 export class EdgeMovingPrimsState extends EdgePrimsState {
     /**
      * @param {grid.Grid<Cell>} g
-     * @param {{ edge: CanonicalEdgeLocation, leaf: grid.Leaf<Cell> }} selection
+     * @param {grid.Split<Cell>} selection
      */
     constructor(g, selection) {
         super(g, selection);
@@ -80,7 +82,7 @@ export class EdgeMovingPrimsState extends EdgePrimsState {
 export class EdgeSlidingPrimsState extends EdgePrimsState {
     /**
      * @param {grid.Grid<Cell>} g
-     * @param {{ edge: CanonicalEdgeLocation, leaf: grid.Leaf<Cell> }} selection
+     * @param {grid.Split<Cell>} selection
      */
     constructor(g, selection) {
         super(g, selection);

@@ -532,9 +532,8 @@ export function debugCheckGridDimsConsistency(g) {
  * @param {Grid<A>} g The root of the grid.
  * @param {Grid<A>} focus The focused child of `g`.
  * @returns {Split<A>[] | undefined} A list of grids, in the first of
- *                        which is the parent of `focus`, and the last
- *                        of which is `g`.  If `focus` is not a child
- *                        of `g`, then undefined is returned.
+ *     which is the parent of `focus`, and the last of which is `g`.
+ *     If `focus` is not a child of `g`, then undefined is returned.
  */
 export function parentChain(g, focus) {
     /**
