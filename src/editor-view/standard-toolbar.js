@@ -7,7 +7,7 @@ import * as textPrims from "../editor/text-prims/text-prims.js";
 import * as util from "../util.js";
 import { SHORT_COMMIT_HASH, COMMIT_HASH } from "../commit-hash.js";
 
-/** @import { AbstractEditorView } from "../editor-view.js" */
+/** @import { AbstractEditorView, InitialViewState } from "../editor-view.js" */
 /** @import { ToolbarDescription } from "./toolbar.js" */
 
 import edit_text_icon_url from "../../www/assets/edit-text-icon.png"
@@ -137,7 +137,12 @@ export function standardToolbarItems(editorView, enabledLabel) {
                     cmenu.label("examples"),
                     cmenu.button("example 1"),
                     cmenu.button("example 2"),
-                    cmenu.button("example 3")
+                    cmenu.button("example 3"),
+                    cmenu.divider(),
+                    cmenu.button("clear", () => {
+                        const freshView = editorView.createViewForState(serialize.emptyTextEditingState());
+                        editorView.requestReplaceEditorView(freshView);
+                    })
                 ]
             };
             editorView.notify(new cmenu.OpenContextMenu(editorView, menuDescr));
