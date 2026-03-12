@@ -341,6 +341,8 @@ export function putPointOnPrevGlobalLine(st, stayInCell) {
  * @returns {Inverse<TextPrimsState>}
  */
 export function putPointOnNextGlobalCol(st) {
+    const oldGlobalCol = st.selection.lastGlobalCol;
+
     if(pointAtEndOfGlobalLine(st)) {
         return id;
     }
@@ -361,8 +363,16 @@ export function putPointOnNextGlobalCol(st) {
         return putPointOnGlobalPosition(st, globalPt);
     } else {
         // Advance the point locally.
-        const globalPt = findGlobalPoint(st);
-        return putPointOnGlobalPosition(st, point.offset(globalPt, point.mkV2(1, 0)));
+        st.selection.pt.x += 1;
+        _updateLastGlobalCol(st);
+        return {
+            fwdDescription: "put point on next column",
+            apply(st) {
+                st.selection.pt.x -= 1;
+                st.selection.lastGlobalCol = oldGlobalCol;
+                return st;
+            }
+        };
     }
 }
 

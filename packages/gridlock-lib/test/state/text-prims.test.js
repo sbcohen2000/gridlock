@@ -324,6 +324,60 @@ describe("text-prims", () => {
         });
     });
 
+    describe("putPointOnNextGlobalCol", () => {
+        it("Can put the point after the last character in a cell", () => {
+            const src =
+                  "xyzw\n"            +
+                  "\n"                +
+                  "+---+---------+\n" +
+                  "+---+---------+\n" +
+                  "+---+---------+";
+
+            const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
+
+            textPrims.putPointOnGlobalPosition(st, point.mkOrigin(), false);
+            for(let i = 0; i < 4; ++i) {
+                textPrims.putPointOnNextGlobalCol(st);
+            }
+            textPrims.insertString(st, "X");
+
+            const exp =
+                  "xyzwX\n"            +
+                  "\n"                 +
+                  "+----+---------+\n" +
+                  "+----+---------+\n" +
+                  "+----+---------+";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
+        it("Can advance the point into a new cell", () => {
+            const src =
+                  "xyzw\n"            +
+                  "\n"                +
+                  "+---+---------+\n" +
+                  "+---+---------+\n" +
+                  "+---+---------+";
+
+            const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
+
+            textPrims.putPointOnGlobalPosition(st, point.mkOrigin(), false);
+            for(let i = 0; i < 5; ++i) { // <- This line is the only difference from the previous test!
+                textPrims.putPointOnNextGlobalCol(st);
+            }
+            textPrims.insertString(st, "X");
+
+            const exp =
+                  "xyzwX\n"           +
+                  "\n"                +
+                  "+---+---------+\n" +
+                  "+---+---------+\n" +
+                  "+---+---------+";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+    });
+
     describe("putPointOnNextGlobalLine", () => {
         it("Does the `right` thing on a large document", () => {
             const src =
