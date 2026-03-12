@@ -1,8 +1,10 @@
-import { expect } from "chai";
-import * as grid from "../src/grid.js";
-import * as point from "../src/point.js";
 import * as arbg from "./arbitrary-grid.js";
 import * as fc from "fast-check";
+import * as grid from "../src/grid.js";
+import * as point from "../src/point.js";
+import * as rect from "../src/rect.js";
+import { expect } from "chai";
+
 describe("transposeLines", () => {
     it("Can transpose the empty list", () => {
         expect(grid.transposeLines([])).to.deep.equal([]);
@@ -522,79 +524,6 @@ describe("reassociateLeaves", () => {
     });
 });
 
-describe("checkLeavesAdjacent", () => {
-    it("Detects horizontally adjacent leaves", () => {
-        const g = grid.parseASCII(
-            "+-+--+\n" +
-            "|a| b|\n" +
-            "+-+--+"
-        );
-        const a = grid.leafWithLabel(g, "a");
-        const b = grid.leafWithLabel(g, "b");
-        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.ok;
-        expect(grid.checkLeavesAdjacent(g, b, a)).to.be.ok;
-    });
-
-    it("Detects vertically adjacent leaves", () => {
-        const g = grid.parseASCII(
-            "+--+\n" +
-            "|a |\n" +
-            "+--+\n" +
-            "|b |\n" +
-            "+--+"
-        );
-        const a = grid.leafWithLabel(g, "a");
-        const b = grid.leafWithLabel(g, "b");
-        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.ok;
-        expect(grid.checkLeavesAdjacent(g, b, a)).to.be.ok;
-    });
-
-    it("Rejects non-adjacent leaves", () => {
-        const g = grid.parseASCII(
-            "+-+-+-+\n" +
-            "|a|b|c|\n" +
-            "+-+-+-+"
-        );
-        const a = grid.leafWithLabel(g, "a");
-        const c = grid.leafWithLabel(g, "c");
-        expect(grid.checkLeavesAdjacent(g, a, c)).to.be.null;
-    });
-
-    it("Rejects touching leaves with matching dimensions", () => {
-        const g = grid.parseASCII(
-            "+--+--+\n" +
-            "|a |b |\n" +
-            "|  +--+\n" +
-            "|  |c |\n" +
-            "+--+--+"
-        );
-        const a = grid.leafWithLabel(g, "a");
-        const b = grid.leafWithLabel(g, "b");
-        const c = grid.leafWithLabel(g, "c");
-        expect(grid.checkLeavesAdjacent(g, a, b)).to.be.null;
-        expect(grid.checkLeavesAdjacent(g, a, c)).to.be.null;
-        expect(grid.checkLeavesAdjacent(g, b, c)).to.be.ok;
-    });
-
-    it("Any grid with more than one leaf has at least one adjacent pair", () => {
-        fc.assert(
-            fc.property(arbg.grid.tree, (g) => {
-                const leaves = [...grid.allLeaves(g)];
-                fc.pre(leaves.length >= 2);
-
-                for (let i = 0; i < leaves.length; ++i) {
-                    for (let j = i + 1; j < leaves.length; ++j) {
-                        if (grid.checkLeavesAdjacent(g, leaves[i], leaves[j])) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            })
-        );
-    });
-});
-
 describe("mergeLeaves", () => {
     it("Can merge the leaves in a tree with only two leaves", () => {
         const src =
@@ -611,7 +540,7 @@ describe("mergeLeaves", () => {
               "|     |\n" +
               "+-----+";
 
-        const [_, g1] = grid.mergeLeaves(g, la, lb);
+        const [_, g1] = grid.mergeLeaves(g, [la, lb], null);
         expect(grid.printASCII(g1)).to.equal(exp);
     });
 
@@ -645,7 +574,7 @@ describe("mergeLeaves", () => {
             "|     |  |\n" +
             "+-----+--+";
 
-        const [_l1, g1] = grid.mergeLeaves(g, lc, le);
+        const [_l1, g1] = grid.mergeLeaves(g, [lc, le], null);
         expect(grid.printASCII(g1)).to.equal(exp1);
 
         // ----------------------------------------------------------
@@ -658,7 +587,7 @@ describe("mergeLeaves", () => {
             "|     |  |\n" +
             "+-----+--+";
 
-        const [_l2, g2] = grid.mergeLeaves(g1, lb, ld);
+        const [_l2, g2] = grid.mergeLeaves(g1, [lb, ld], null);
         expect(grid.printASCII(g2)).to.equal(exp2);
 
         // ----------------------------------------------------------
@@ -671,32 +600,38 @@ describe("mergeLeaves", () => {
             "|        |\n" +
             "+--------+";
 
-        const [_l3, g3] = grid.mergeLeaves(g2, lf, lg);
+        const [_l3, g3] = grid.mergeLeaves(g2, [lf, lg], null);
         expect(grid.printASCII(g3)).to.equal(exp3);
     });
 
-    it("Merging an adjacent pair reduces the leaf count by one", () => {
+    it("Merging leaves preserves grid consistency", () => {
         fc.assert(
-            fc.property(arbg.grid.tree, (g) => {
-                const leaves = [...grid.allLeaves(g)];
-                fc.pre(leaves.length >= 2);
+            fc.property(
+                arbg.grid.tree.chain((g) => {
+                    const leaves = [...grid.allLeaves(g)];
+                    return fc.shuffledSubarray(leaves).chain(someLeaves => fc.constant([g, someLeaves]))
+                }),
+                ([g, someLeaves]) => {
+                    const nLeaves = [...grid.allLeaves(g)].length;
 
-                // Find an adjacent pair.
-                for (let i = 0; i < leaves.length; ++i) {
-                    for (let j = i + 1; j < leaves.length; ++j) {
-                        if (grid.checkLeavesAdjacent(g, leaves[i], leaves[j])) {
-                            const [_, merged] = grid.mergeLeaves(g, leaves[i], leaves[j]);
-                            const newLeaves = [...grid.allLeaves(merged)];
-                            expect(newLeaves).to.have.lengthOf(leaves.length - 1);
-                            return;
-                        }
-                    }
-                }
+                    // Given a grid, and some subset of the leaves of
+                    // the grid,
+                    const r = grid.outerRectangleOfLeaves(g, someLeaves.values());
 
-                // The adjacency property test guarantees we never reach here.
-                expect.fail("No adjacent pair found");
-            })
-        );
+                    // If the leaves form a rectangle,
+                    fc.pre(grid.rectangleCoversLeaves(g, someLeaves.values(), r));
+
+                    // Then merging the leaves should result in
+                    // another well-formed grid.
+                    const [newLeaf, newGrid] = grid.mergeLeaves(g, someLeaves, null);
+
+                    expect(grid.debugCheckGridDimsConsistency(newGrid)).to.be.true;
+
+                    expect(newLeaf.dims.width).to.equal(rect.width(r));
+                    expect(newLeaf.dims.height).to.equal(rect.height(r));
+
+                    expect([...grid.allLeaves(newGrid)].length).to.equal(nLeaves - someLeaves.length + 1);
+                }));
     });
 });
 
