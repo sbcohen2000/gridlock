@@ -57,7 +57,11 @@ export function describeToolbar(editorView) {
         disabled: !(editorView instanceof view.CellEditingView) ||
             !cellPrims.canMergeSelectedCells(editorView.state),
         onclick: () => {
-            console.log("TODO (merge cells)");
+            if(!(editorView instanceof view.CellEditingView)) {
+                return;
+            }
+
+            editorView.runPrimitiveWithUndoThenRedraw(editorView.state, cellPrims.mergeSelectedCells);
         }
     }, {
         type: "button",

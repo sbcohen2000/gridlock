@@ -9,7 +9,7 @@ import * as point from "../../point.js";
 import * as state from "../state-utils.js";
 import { CellPrimsState } from "./state.js";
 
-/** @import { Inverse, CommonState } from "../common-state.d.ts" */
+/** @import { Inverse, CommonState, Cell } from "../common-state.d.ts" */
 
 /**
  * Add the leaf under the given `pt` to the selection.
@@ -59,8 +59,22 @@ export function canMergeSelectedCells(st) {
  * @param {CellPrimsState} st
  */
 function _mergeSelectedCells(st) {
-    void st;
-    throw new Error("TODO");
+    const rect = grid.outerRectangleOfLeaves(st.grid, st.selection.leaves.values());
+
+    if(!grid.rectangleCoversLeaves(st.grid, st.selection.leaves.values(), rect)) {
+        return;
+    }
+
+    /** @type {grid.Leaf<Cell>} */
+    let newSelectedLeaf;
+    const newGrid = state.projectTextOntoLeaves((g) => {
+        const [newLeaf, newGrid] = grid.mergeLeaves(g, [...st.selection.leaves], { lines: [] });
+        newSelectedLeaf = newLeaf;
+        return newGrid;
+    }, st.grid);
+
+    st.grid = newGrid;
+    st.selection.leaves = new Set([newSelectedLeaf]);
 }
 
 /**

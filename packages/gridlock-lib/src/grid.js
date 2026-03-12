@@ -1257,7 +1257,7 @@ export function reassociateLeaves(leaves, width, height) {
  * @param {Leaf<A>[]} leaves The leaves to merge.
  * @param {A} data The data of this new leaf.
  * @param {string} [label] The label of this new leaf.
- * @returns {[Leaf<A> | null, Grid<A>]} The new leaf, and the new grid.
+ * @returns {[Leaf<A>, Grid<A>]} The new leaf, and the new grid.
  */
 export function mergeLeaves(g, leaves, data, label) {
 
