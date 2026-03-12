@@ -8,35 +8,33 @@ const {
 
 import { SHORT_COMMIT_HASH, COMMIT_HASH } from "./commit-hash.js";
 
-import edit_text_icon_url from "../../www/assets/edit-text-icon.png"
-import info_icon_url from "../../www/assets/info-icon.png"
-import load_icon_url from "../../www/assets/load-icon.png";
-import merge_cells_icon_url from "../../www/assets/merge-cells-icon.png"
-import move_guide_icon_url from "../../www/assets/move-guide-icon.png"
-import save_icon_url from "../../www/assets/save-icon.png";
-import select_cells_icon_url from "../../www/assets/select-cells-icon.png";
-import slide_guide_icon_url from "../../www/assets/slide-guide-icon.png"
+import edit_text_icon_url          from "../../www/assets/edit-text-icon.png"
+import info_icon_url               from "../../www/assets/info-icon.png"
+import load_icon_url               from "../../www/assets/load-icon.png";
+import merge_cells_icon_url        from "../../www/assets/merge-cells-icon.png"
+import move_guide_icon_url         from "../../www/assets/move-guide-icon.png"
+import save_icon_url               from "../../www/assets/save-icon.png";
+import select_cells_icon_url       from "../../www/assets/select-cells-icon.png";
+import slide_guide_icon_url        from "../../www/assets/slide-guide-icon.png"
 import split_horizontally_icon_url from "../../www/assets/split-horizontally-icon.png";
-import split_vertically_icon_url from "../../www/assets/split-vertically-icon.png";
-import trim_edge_icon_url from "../../www/assets/trim-edge-icon.png";
+import split_vertically_icon_url   from "../../www/assets/split-vertically-icon.png";
+import trim_edge_icon_url          from "../../www/assets/trim-edge-icon.png";
+import { HorizontalCellSlicingView, VerticalCellSlicingView } from "gridlock-lib/dist/view/cell-slicing-view.js";
 
 /**
  * Build the standard set of toolbar items for an editor view.
  *
  * @param {view.AbstractEditorView} editorView The editor view to build toolbar items for.
- * @param {string} [enabledLabel] If provided, the button with this label
- *     will be enabled.
  * @returns {view.toolbar.ToolbarDescription[]}
  */
-export function standardToolbarItems(editorView, enabledLabel) {
-    /** @param {string} label */
-    const maybeEnabled = (label) => label === enabledLabel ? { enabled: true } : {};
+export function describeToolbar(editorView) {
+    const constr = editorView.constructor;
 
     return [{
         type: "button",
         iconSrc: edit_text_icon_url,
         label: "edit text",
-        ...maybeEnabled("edit text"),
+        enabled: constr === view.TextEditingView,
         onclick: () => {
             const [st, inv] = textPrims.editText(editorView.state);
             editorView.commitUndoableItem(inv);
@@ -46,7 +44,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         type: "button",
         iconSrc: select_cells_icon_url,
         label: "select cells",
-        ...maybeEnabled("select cells"),
+        enabled: constr === view.CellEditingView,
         onclick: () => {
             const [st, inv] = cellPrims.editCells(editorView.state);
             editorView.commitUndoableItem(inv);
@@ -56,7 +54,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         type: "button",
         iconSrc: merge_cells_icon_url,
         label: "merge cells",
-        ...maybeEnabled("merge cells"),
+        enabled: false,
         onclick: () => {
             console.log("TODO (merge cells)");
         }
@@ -64,7 +62,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         type: "button",
         iconSrc: trim_edge_icon_url,
         label: "trim edge",
-        ...maybeEnabled("trim edge"),
+        enabled: false,
         onclick: () => {
             console.log("TODO (trim edge)");
         }
@@ -72,7 +70,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         type: "button",
         iconSrc: split_vertically_icon_url,
         label: "split vertically",
-        ...maybeEnabled("split vertically"),
+        enabled: constr === VerticalCellSlicingView,
         onclick: () => {
             const [st, inv] = slicePrims.editVerticalSlice(editorView.state);
             editorView.commitUndoableItem(inv);
@@ -82,7 +80,7 @@ export function standardToolbarItems(editorView, enabledLabel) {
         type: "button",
         iconSrc: split_horizontally_icon_url,
         label: "split horizontally",
-        ...maybeEnabled("split horizontally"),
+        enabled: constr === HorizontalCellSlicingView,
         onclick: () => {
             const [st, inv] = slicePrims.editHorizontalSlice(editorView.state);
             editorView.commitUndoableItem(inv);
@@ -116,7 +114,6 @@ export function standardToolbarItems(editorView, enabledLabel) {
         type: "button",
         iconSrc: save_icon_url,
         label: "save",
-        ...maybeEnabled("save"),
         onclick: () => {
             const serialized = state.serialize.printCommonState(editorView.state);
             console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
@@ -126,7 +123,6 @@ export function standardToolbarItems(editorView, enabledLabel) {
         type: "button",
         label: "load",
         iconSrc: load_icon_url,
-        ...maybeEnabled("load"),
         onclick: (e) => {
             /** @type {view.cmenu.ContextMenuDescription} */
             const menuDescr = {
@@ -151,7 +147,6 @@ export function standardToolbarItems(editorView, enabledLabel) {
         type: "button",
         label: "about",
         iconSrc: info_icon_url,
-        ...maybeEnabled("about"),
         onclick: (e) => {
             /** @type {view.cmenu.ContextMenuDescription} */
             const menuDescr = {

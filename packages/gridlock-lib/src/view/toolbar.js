@@ -1,4 +1,4 @@
-import { CommittableRecycler } from "../framework/index.js";
+import * as framework from "../framework/index.js";
 
 /**
  * @typedef {Object} ToolbarButtonDescription
@@ -24,66 +24,83 @@ import { CommittableRecycler } from "../framework/index.js";
  */
 
 /**
- * Construct or update an HTML element suitable for putting in the view toolbar.
+ * Build a button element in the given recycler.
  *
  * @param {ToolbarButtonDescription} descr
- * @param {HTMLSpanElement} buttonElem
+ * @param {framework.UncommittableRecycler} r
  */
-function mkToolbarButton(descr, buttonElem) {
+function viewToolbarButton(descr, r) {
+    r.elem("div", buttonElem => {
 
-    buttonElem.className = "editor-button";
-    if(descr.enabled ?? false) {
-        buttonElem.classList.add("editor-button-enabled");
-    }
+        buttonElem.className = "editor-button";
+        if(descr.enabled ?? false) {
+            buttonElem.classList.add("editor-button-enabled");
+        }
 
-    if(descr.iconSrc) {
-        new CommittableRecycler(buttonElem)
-            .elem("img", (iconImg) => {
-                iconImg.className = "editor-button-icon";
-                iconImg.src = descr.iconSrc;
-                iconImg.width  = 18;
-                iconImg.height = 18;
-            })
-            .commit();
-    } else {
-        buttonElem.innerText = descr.label ?? "button";
-    }
+        if(descr.iconSrc) {
+            new framework.CommittableRecycler(buttonElem)
+                .elem("img", (iconImg) => {
+                    iconImg.className = "editor-button-icon";
+                    iconImg.src = descr.iconSrc;
+                    iconImg.width  = 18;
+                    iconImg.height = 18;
+                })
+                .commit();
+        } else {
+            buttonElem.innerText = descr.label ?? "button";
+        }
 
-    buttonElem.onclick = descr.onclick ?? (() => {});
+        buttonElem.onclick = descr.onclick ?? (() => {});
+    });
 }
 
 /**
- * Construct or update an HTML element suitable for putting in the
- * view toolbar.
+ * Build a spacer element in the given recycler.
  *
  * @param {ToolbarSpacerDescription} _descr
- * @param {HTMLSpanElement} spacerElem
+ * @param {framework.UncommittableRecycler} r
  */
-function mkToolbarSpacer(_descr, spacerElem) {
-    spacerElem.className = "editor-toolbar-spacer";
+function viewToolbarSpacer(_descr, r) {
+    r.elem("div", spacerElem => {
+        spacerElem.className = "editor-toolbar-spacer";
+    });
 }
 
 /**
- * Construct or update an HTML element suitable for putting in the
- * view toolbar.
+ * Build a toolbar divider element in the given recycler.
  *
  * @param {ToolbarDividerDescription} _descr
- * @param {HTMLSpanElement} dividerElem
+ * @param {framework.UncommittableRecycler} r
  */
-function mkToolbarDivider(_descr, dividerElem) {
-    dividerElem.className = "editor-toolbar-divider";
+function viewToolbarDivider(_descr, r) {
+    r.elem("div", dividerElem => {
+        dividerElem.className = "editor-toolbar-divider";
+    })
 }
 
 /**
- * Construct or update an HTML element representing the given description.
+ * Build a toolbar item in the given recycler.
  *
  * @param {ToolbarDescription} descr
- * @param {HTMLSpanElement} elem
+ * @param {framework.UncommittableRecycler} r
  */
-export function mkToolbarItem(descr, elem) {
+function viewToolbarItem(descr, r) {
     switch(descr.type) {
-    case "button":  return mkToolbarButton(descr, elem);
-    case "spacer":  return mkToolbarSpacer(descr, elem);
-    case "divider": return mkToolbarDivider(descr, elem);
+    case "button":  return viewToolbarButton(descr, r);
+    case "spacer":  return viewToolbarSpacer(descr, r);
+    case "divider": return viewToolbarDivider(descr, r);
     }
+}
+
+/**
+ * Build a toolbar in the given recycler.
+ *
+ * @param {ToolbarDescription[]} descr
+ * @param {framework.UncommittableRecycler} r
+ */
+export function ViewToolbar(descr, r) {
+    r.elem("div", toolbarElem => {
+        new framework.CommittableRecycler(toolbarElem)
+            .views(descr, (d, r) => viewToolbarItem(d, r));
+    });
 }
