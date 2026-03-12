@@ -207,6 +207,22 @@ export class CommittableRecycler {
     }
 
     /**
+     * Pass the `Recycler` to a view function which adds additional
+     * elements, for each element in `items`.
+     *
+     * @template A
+     * @param {Iterable<A>} items
+     * @param {(a: A, r: UncommittableRecycler) => void} f
+     * @returns {CommittableRecycler}
+     */
+    views(items, f) {
+        for(const item of items) {
+            f(item, new UncommittableRecycler(this));
+        }
+        return this;
+    }
+
+    /**
      * Commit the specified elements to our `parent`.
      */
     commit() {

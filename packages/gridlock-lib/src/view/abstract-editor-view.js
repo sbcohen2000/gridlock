@@ -367,10 +367,8 @@ export class AbstractEditorView extends AbstractView {
             }
 
             return new CommittableRecycler(leafElem)
-                .view(r => {
-                    for(const rowNo of leaf.data.lines.map((_, i) => i)) {
-                        this.viewLine(rowNo, leaf, p, r);
-                    }
+                .views(leaf.data.lines.map((_, i) => i), (rowNo, r) => {
+                    this.viewLine(rowNo, leaf, p, r);
                 })
                 .view(r => this.viewLeafSelection(leaf, r))
                 .commit();
@@ -404,13 +402,11 @@ export class AbstractEditorView extends AbstractView {
                 this._root = gridRoot;
 
                 new CommittableRecycler(gridRoot)
-                    .view(r => {
-                        for(const [node, p] of grid.allNodesWithPosition(this.state.grid)) {
-                            if(node.type === "Leaf") {
-                                this.viewLeaf(node, p, r);
-                            } else {
-                                this.#viewNode(node, p, r);
-                            }
+                    .views(grid.allNodesWithPosition(this.state.grid), ([node, p], r) => {
+                        if(node.type === "Leaf") {
+                            this.viewLeaf(node, p, r);
+                        } else {
+                            this.#viewNode(node, p, r);
                         }
                     })
                     .commit();
