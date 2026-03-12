@@ -8,30 +8,30 @@ const {
 
 import { SHORT_COMMIT_HASH, COMMIT_HASH } from "./commit-hash.js";
 
-import edit_text_icon_url          from "../../www/assets/edit-text-icon.png"
-import info_icon_url               from "../../www/assets/info-icon.png"
-import load_icon_url               from "../../www/assets/load-icon.png";
-import merge_cells_icon_url        from "../../www/assets/merge-cells-icon.png"
-import move_guide_icon_url         from "../../www/assets/move-guide-icon.png"
-import save_icon_url               from "../../www/assets/save-icon.png";
-import select_cells_icon_url       from "../../www/assets/select-cells-icon.png";
-import slide_guide_icon_url        from "../../www/assets/slide-guide-icon.png"
-import split_horizontally_icon_url from "../../www/assets/split-horizontally-icon.png";
-import split_vertically_icon_url   from "../../www/assets/split-vertically-icon.png";
-import trim_edge_icon_url          from "../../www/assets/trim-edge-icon.png";
-import { HorizontalCellSlicingView, VerticalCellSlicingView } from "gridlock-lib/dist/view/cell-slicing-view.js";
+import edit_text_icon_url          from "../www/assets/edit-text-icon.png"
+import info_icon_url               from "../www/assets/info-icon.png"
+import load_icon_url               from "../www/assets/load-icon.png";
+import merge_cells_icon_url        from "../www/assets/merge-cells-icon.png"
+import move_guide_icon_url         from "../www/assets/move-guide-icon.png"
+import save_icon_url               from "../www/assets/save-icon.png";
+import select_cells_icon_url       from "../www/assets/select-cells-icon.png";
+import slide_guide_icon_url        from "../www/assets/slide-guide-icon.png"
+import split_horizontally_icon_url from "../www/assets/split-horizontally-icon.png";
+import split_vertically_icon_url   from "../www/assets/split-vertically-icon.png";
+import trim_edge_icon_url          from "../www/assets/trim-edge-icon.png";
 
 /**
  * Build the standard set of toolbar items for an editor view.
  *
  * @param {view.AbstractEditorView} editorView The editor view to build toolbar items for.
- * @returns {view.toolbar.ToolbarDescription[]}
+ * @returns {view.toolbar.ToolbarItemDescription[]}
  */
 export function describeToolbar(editorView) {
     const constr = editorView.constructor;
 
     return [{
         type: "button",
+        key: "edit-text-button",
         iconSrc: edit_text_icon_url,
         label: "edit text",
         enabled: constr === view.TextEditingView,
@@ -42,6 +42,7 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "button",
+        key: "select-cells-button",
         iconSrc: select_cells_icon_url,
         label: "select cells",
         enabled: constr === view.CellEditingView,
@@ -52,6 +53,7 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "button",
+        key: "merge-cells-button",
         iconSrc: merge_cells_icon_url,
         label: "merge cells",
         enabled: false,
@@ -60,6 +62,7 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "button",
+        key: "trim-edge-button",
         iconSrc: trim_edge_icon_url,
         label: "trim edge",
         enabled: false,
@@ -68,9 +71,10 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "button",
+        key: "split-vertically-button",
         iconSrc: split_vertically_icon_url,
         label: "split vertically",
-        enabled: constr === VerticalCellSlicingView,
+        enabled: constr === view.VerticalCellSlicingView,
         onclick: () => {
             const [st, inv] = slicePrims.editVerticalSlice(editorView.state);
             editorView.commitUndoableItem(inv);
@@ -78,9 +82,10 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "button",
+        key: "split-horizontally-button",
         iconSrc: split_horizontally_icon_url,
         label: "split horizontally",
-        enabled: constr === HorizontalCellSlicingView,
+        enabled: constr === view.HorizontalCellSlicingView,
         onclick: () => {
             const [st, inv] = slicePrims.editHorizontalSlice(editorView.state);
             editorView.commitUndoableItem(inv);
@@ -88,8 +93,10 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "divider",
+        key: "divider-1",
     }, {
         type: "button",
+        key: "move-guide-button",
         iconSrc: move_guide_icon_url,
         label: "move guides",
         enabled: editorView.edgeDraggingMode === "Move",
@@ -99,6 +106,7 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "button",
+        key: "slide-guide-button",
         iconSrc: slide_guide_icon_url,
         label: "slide guides",
         enabled: editorView.edgeDraggingMode === "Slide",
@@ -108,10 +116,13 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "divider",
+        key: "divider-2",
     }, {
         type: "spacer",
+        key: "spacer-1",
     }, {
         type: "button",
+        key: "save-button",
         iconSrc: save_icon_url,
         label: "save",
         onclick: () => {
@@ -121,6 +132,7 @@ export function describeToolbar(editorView) {
         },
     }, {
         type: "button",
+        key: "load-button",
         label: "load",
         iconSrc: load_icon_url,
         onclick: (e) => {
@@ -142,10 +154,12 @@ export function describeToolbar(editorView) {
             editorView.notify(new view.cmenu.OpenContextMenu(editorView, menuDescr));
         },
     }, {
-        type: "divider"
+        type: "divider",
+        key: "divier-3",
     }, {
         type: "button",
         label: "about",
+        key: "about-button",
         iconSrc: info_icon_url,
         onclick: (e) => {
             /** @type {view.cmenu.ContextMenuDescription} */

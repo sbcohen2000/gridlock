@@ -2,6 +2,7 @@ import { view, state, framework } from "gridlock-lib";
 
 import binder_ring_center_url from "../www/assets/binder-ring-center.png";
 import binder_ring_end_url from "../www/assets/binder-ring-end.png";
+import { describeToolbar } from "./toolbar.js";
 
 // Reload the page when esbuild issues a change event.
 new EventSource('/esbuild').addEventListener('change', () => {
@@ -69,10 +70,16 @@ class AppView extends view.AbstractView {
                 img.style.right = `0`;
                 if(idx < nCenters) {
                     // Draw a center.
-                    img.src = binder_ring_center_url;
+
+                    if(img.getAttribute("src") !== binder_ring_center_url) {
+                        img.src = binder_ring_center_url;
+                    }
                 } else {
                     // Draw the end cap.
-                    img.src = binder_ring_end_url;
+
+                    if(img.getAttribute("src") !== binder_ring_end_url) {
+                        img.src = binder_ring_end_url;
+                    }
                 }
             })
             .commit();
@@ -109,6 +116,7 @@ class AppView extends view.AbstractView {
      * @param {framework.Recycler} r The recycler to add to.
      */
     view(r) {
+        r.view(r => view.toolbar.ViewToolbar(describeToolbar(this.#editorView), r))
         r.elem({ tag: "div", key: "editor-box" }, e => {
             e.className = "editor-box";
             new framework.CommittableRecycler(e)
@@ -283,7 +291,7 @@ function main() {
 
             r.commit();
 
-            // console.log(RecycleStatistics.report());
+            // console.log(framework.RecycleStatistics.report());
             return document.body;
         }
     })(null, initialView);
