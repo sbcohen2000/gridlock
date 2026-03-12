@@ -196,6 +196,10 @@
     border-radius: 2px;
 }
 
+.editor-button-disabled {
+    filter: opacity(50%) saturate(0%);
+}
+
 .editor-toolbar-spacer {
     flex-grow: 1;
 }

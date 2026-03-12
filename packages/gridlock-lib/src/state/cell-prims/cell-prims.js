@@ -40,6 +40,35 @@ function _selectLeafUnderPoint(st, pt, clear) {
 export const selectLeafUnderPoint = state.withDefaultInverse(_selectLeafUnderPoint);
 
 /**
+ * Check if the given selection of cells is valid for merging. A
+ * selection can be merged if the cells form a rectangle with no gaps.
+ *
+ * @param {CellPrimsState} st
+ * @returns {boolean} `true` if the selection can be merged, and false
+ *     otherwise.
+ */
+export function canMergeSelectedCells(st) {
+    if(st.selection.leaves.size <= 1) return false;
+    const rect = grid.outerRectangleOfLeaves(st.grid, st.selection.leaves.values());
+    return grid.rectangleCoversLeaves(st.grid, st.selection.leaves.values(), rect);
+}
+
+/**
+ * Merge the selected cells.
+ *
+ * @param {CellPrimsState} st
+ */
+function _mergeSelectedCells(st) {
+    void st;
+    throw new Error("TODO");
+}
+
+/**
+ * Merge the selected cells.
+ */
+export const mergeSelectedCells = state.withDefaultInverse(_mergeSelectedCells);
+
+/**
  * @template {CommonState} S
  * @param { S } st
  * @returns { [ CellPrimsState, Inverse<S> ] }

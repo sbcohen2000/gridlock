@@ -14,4 +14,17 @@ export const PRIMITIVES = [
         const: false,
         description: "Select the leaf under a global point"
     },
+    {
+        function: prims.canMergeSelectedCells,
+        args: [],
+        const: true,
+        retty: "boolean",
+        description: "Check if the selected cells can be merged into a single cell"
+    },
+    {
+        function: prims.mergeSelectedCells,
+        args: [],
+        const: false,
+        description: "Merge the selected cells"
+    }
 ];

@@ -11,8 +11,10 @@ interface ToolbarButtonDescription extends BaseToolbarItemDescription {
     iconSrc?: string,
     /** The button's label. */
     label?: string;
-    /** Whether or not the button is enabled. */
+    /** Whether or not the button should be shown as enabled. */
     enabled?: boolean;
+    /** Whether or not the button should be shown as disabled. */
+    disabled?: boolean;
     /** What should happen when the button is clicked. */
     onclick?: (e: MouseEvent) => void;
 }
@@ -42,6 +44,10 @@ function viewToolbarButton(descr: ToolbarButtonDescription, r: framework.Uncommi
         buttonElem.className = "editor-button";
         if(descr.enabled ?? false) {
             buttonElem.classList.add("editor-button-enabled");
+        }
+
+        if(descr.disabled ?? false) {
+            buttonElem.classList.add("editor-button-disabled");
         }
 
         if(descr.iconSrc) {

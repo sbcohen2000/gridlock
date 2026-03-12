@@ -27,14 +27,12 @@ import trim_edge_icon_url          from "../www/assets/trim-edge-icon.png";
  * @returns {view.toolbar.ToolbarItemDescription[]}
  */
 export function describeToolbar(editorView) {
-    const constr = editorView.constructor;
-
     return [{
         type: "button",
         key: "edit-text-button",
         iconSrc: edit_text_icon_url,
         label: "edit text",
-        enabled: constr === view.TextEditingView,
+        enabled: editorView instanceof view.TextEditingView,
         onclick: () => {
             const [st, inv] = textPrims.editText(editorView.state);
             editorView.commitUndoableItem(inv);
@@ -45,7 +43,7 @@ export function describeToolbar(editorView) {
         key: "select-cells-button",
         iconSrc: select_cells_icon_url,
         label: "select cells",
-        enabled: constr === view.CellEditingView,
+        enabled: editorView instanceof view.CellEditingView,
         onclick: () => {
             const [st, inv] = cellPrims.editCells(editorView.state);
             editorView.commitUndoableItem(inv);
@@ -56,7 +54,8 @@ export function describeToolbar(editorView) {
         key: "merge-cells-button",
         iconSrc: merge_cells_icon_url,
         label: "merge cells",
-        enabled: false,
+        disabled: !(editorView instanceof view.CellEditingView) ||
+            !cellPrims.canMergeSelectedCells(editorView.state),
         onclick: () => {
             console.log("TODO (merge cells)");
         }
@@ -74,7 +73,7 @@ export function describeToolbar(editorView) {
         key: "split-vertically-button",
         iconSrc: split_vertically_icon_url,
         label: "split vertically",
-        enabled: constr === view.VerticalCellSlicingView,
+        enabled: editorView instanceof view.VerticalCellSlicingView,
         onclick: () => {
             const [st, inv] = slicePrims.editVerticalSlice(editorView.state);
             editorView.commitUndoableItem(inv);
@@ -85,7 +84,7 @@ export function describeToolbar(editorView) {
         key: "split-horizontally-button",
         iconSrc: split_horizontally_icon_url,
         label: "split horizontally",
-        enabled: constr === view.HorizontalCellSlicingView,
+        enabled: editorView instanceof view.HorizontalCellSlicingView,
         onclick: () => {
             const [st, inv] = slicePrims.editHorizontalSlice(editorView.state);
             editorView.commitUndoableItem(inv);

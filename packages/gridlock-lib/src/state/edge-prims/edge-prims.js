@@ -153,58 +153,6 @@ function _moveEdge(st, n) {
 export const moveEdge = state.withDefaultInverse(_moveEdge);
 
 /**
- * Given a function `f` which knows how to mutate the structure of the
- * grid, remember the text in the leaves underneath `f`, call `f`,
- * then restore the text to the leaves.
- *
- * @param {(grid: grid.Grid<Cell>) => grid.Grid<Cell>} f
- * @param {grid.Grid<Cell>} g
- * @returns {grid.Grid<Cell>}
- */
-function projectTextOntoLeaves(f, g) {
-    // Construct a rectangle of characters to hold the text
-    const text = Array.from({ length: g.dims.height }, () =>
-        Array.from({ length: g.dims.width }, () => null));
-
-    /**
-     * @param {[grid.Leaf<Cell>, point.P2]} positionedLeaf
-     */
-    const projOntoText = (positionedLeaf) => {
-        const [leaf, pos] = positionedLeaf;
-        for(let i = 0; i < leaf.data.lines.length; ++i) {
-            const line = leaf.data.lines[i];
-            const row = i + pos.y;
-            text[row].splice(pos.x, line.length, ...Array.from(line));
-        }
-    }
-
-    // Project the leaf text onto `text`.
-    grid.allLeavesWithPosition(g).forEach(projOntoText);
-    const newG = f(g);
-
-    /**
-     * @param {[grid.Leaf<Cell>, point.P2]} positionedLeaf
-     */
-    const projOntoLeaves = (positionedLeaf) => {
-        const [leaf, pos] = positionedLeaf;
-        leaf.data.lines = [];
-        for(let i = 0; i < leaf.dims.height; ++i) {
-            const row = i + pos.y;
-            const line = text[row].slice(pos.x, pos.x + leaf.dims.width)
-                  .map(c => c ?? " ")
-                  .join("")
-                  .trimEnd();
-            leaf.data.lines.push(line);
-       }
-   }
-
-    // Project the text back onto the leaves.
-    grid.allLeavesWithPosition(newG).forEach(projOntoLeaves);
-
-    return newG;
-}
-
-/**
  * Slide the selected edge by the given number of rows/columns. If the
  * selected edge is not horizontal, or there is no selected edge, then
  * this function does nothing.
@@ -233,7 +181,7 @@ function _slideEdge(st, n) {
         // Note that the operations we do in the argument don't
         // add/remove leaves, so there's no need to handle the return
         // value of this function.
-        projectTextOntoLeaves((g) => {
+        state.projectTextOntoLeaves((g) => {
             util.assert(g.type === "Horz");
             grid.modifyWidthOfLeaves(g.left,   n, leftLeaves);
             grid.modifyWidthOfLeaves(g.right, -n, rightLeaves);
@@ -254,7 +202,7 @@ function _slideEdge(st, n) {
         // size of the leaves to zero.
         n = util.clamp(-(topMin - 1), n, bottomMin - 1);
 
-        projectTextOntoLeaves((g) => {
+        state.projectTextOntoLeaves((g) => {
             util.assert(g.type === "Vert");
             grid.modifyHeightOfLeaves(g.left,   n, topLeaves);
             grid.modifyHeightOfLeaves(g.right, -n, bottomLeaves);
