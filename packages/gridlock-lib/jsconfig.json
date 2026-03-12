@@ -1,0 +1,14 @@
+{
+    "extends": "../../jsconfig.base.json",
+    "compilerOptions": {
+        "declaration": true,
+        "emitDeclarationOnly": true,
+        "outDir": "dist",
+        "declarationMap": true
+    },
+    "include": [
+        "src/**/*.js",
+        "src/**/*.d.ts",
+        "test/**/*.js"
+    ]
+}

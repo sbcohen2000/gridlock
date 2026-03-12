@@ -1,23 +1,15 @@
 {
-    "name": "gridlock",
-    "version": "1.0.0",
-    "description": "A grid-based editor for plain text",
-    "main": "index.js",
+    "name": "gridlock-monorepo",
+    "private": true,
     "type": "module",
+    "workspaces": [
+        "packages/gridlock-lib",
+        "packages/gridlock-web-client"
+    ],
     "scripts": {
-        "build": "scripts/build.sh /",
-        "watch": "esbuild src/app.js src/app.css --loader:.png=file --public-path=dist --sourcemap=inline --bundle --outdir=www/dist --watch --servedir=www",
-        "clean": "rm -rf www/dist",
-        "test": "mocha --recursive",
-        "typecheck": "tsc -p jsconfig.typecheck.json"
-    },
-    "author": "Sam Cohen",
-    "license": "ISC",
-    "devDependencies": {
-        "chai": "^6.2.2",
-        "esbuild": "^0.27.3",
-        "fast-check": "^4.5.3",
-        "jsdom": "^28.1.0",
-        "mocha": "^11.3.0"
+        "test": "npm run test --workspaces --if-present",
+        "clean": "npm run clean --workspaces",
+        "build": "scripts/build-web-client.sh /",
+        "typecheck": "npm run typecheck --workspaces"
     }
 }

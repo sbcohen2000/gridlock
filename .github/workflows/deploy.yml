@@ -24,13 +24,13 @@ jobs:
 
       - run: npm ci
 
-      - run: scripts/build.sh /${{ github.event.repository.name }}/
+      - run: scripts/build-web-client.sh /${{ github.event.repository.name }}/
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: www
+          path: packages/gridlock-web-client/www
 
       - uses: actions/deploy-pages@v4
         id: deployment

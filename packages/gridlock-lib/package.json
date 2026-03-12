@@ -1,0 +1,24 @@
+{
+    "name": "gridlock-lib",
+    "version": "1.0.0",
+    "description": "Primitives for Gridlock, a grid-based editor for plain text",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "type": "module",
+    "scripts": {
+        "test": "mocha --recursive",
+        "watch": "esbuild src/index.js --outfile=dist/index.js --format=esm --watch --bundle",
+        "build": "esbuild src/index.js --outfile=dist/index.js --format=esm --bundle && tsc -p jsconfig.typecheck.json",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc -p jsconfig.typecheck.json"
+    },
+    "author": "Sam Cohen",
+    "license": "ISC",
+    "devDependencies": {
+        "chai": "^6.2.2",
+        "esbuild": "^0.27.3",
+        "fast-check": "^4.5.3",
+        "jsdom": "^28.1.0",
+        "mocha": "^11.3.0"
+    }
+}
