@@ -135,7 +135,54 @@ describe("edge-prims", () => {
 
             expect(grid.printASCII(st.grid)).to.equal(exp);
         });
+
+        it("Doesn't permit cells to be reduced to zero height", () => {
+            const src =
+                "top\n" +
+                "\n" +
+                "bot\n" +
+                "+---+---+\n" +
+                "|   |   |\n" +
+                "+---+   |\n" +
+                "+---+---+";
+            const st = mkMovingEdgeState(src);
+
+            edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Below");
+            edgePrims.moveEdge(st, -2);
+
+            const exp =
+                "+---+---+\n" +
+                "+---+   |\n" +
+                "+---+---+";
+
+            expect(grid.printASCII(st.grid)).to.equal(exp);
+        });
     });
+
+    describe("moveEdge (vertical)", () => {
+        it("Doesn't permit cells to be reduced to zero width", () => {
+            const src =
+                "top\n" +
+                "\n" +
+                "bot\n" +
+                "+---+---+\n" +
+                "|   |   |\n" +
+                "+---+   |\n" +
+                "+---+---+";
+            const st = mkMovingEdgeState(src);
+
+            edgePrims.selectEdgeUnderPoint(st, point.mkP2(0, 0), "Right");
+            edgePrims.moveEdge(st, -10);
+
+            const exp =
+                  "++---+\n" +
+                  "||   |\n" +
+                  "++   |\n" +
+                  "++---+";
+
+            expect(grid.printASCII(st.grid)).to.equal(exp);
+        });
+    })
 
     describe("slideEdge (vertical)", () => {
         it("Can shift two empty cells", () => {

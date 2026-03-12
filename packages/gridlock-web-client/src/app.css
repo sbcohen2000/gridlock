@@ -127,7 +127,8 @@
     height: 1em;
     outline: 1px solid rgba(0, 0, 0, 0.03);
     outline-offset: -0.5px;
-    white-space: preserve;
+    white-space: preserve nowrap;
+    overflow: clip;
 }
 
 .editor-space-fragment {

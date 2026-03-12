@@ -113,7 +113,7 @@ function _moveEdge(st, n) {
         const leftLeaves = [...grid.leavesUnderCol(st.grid, globalCol - 1)];
 
         const leftMin = util.minimum(leftLeaves.values().map(leaf => leaf.dims.width));
-        n = Math.max(-(leftMin + 1), n);
+        n = Math.max(-(leftMin - 1), n);
 
         grid.modifyWidthOfLeaves(st.grid, n, leftLeaves);
     } else {
@@ -125,7 +125,7 @@ function _moveEdge(st, n) {
         const topLeaves = [...grid.leavesUnderRow(st.grid, globalRow - 1)];
 
         const topMin = util.minimum(topLeaves.values().map(leaf => leaf.dims.height));
-        n = Math.max(-(topMin + 1), n);
+        n = Math.max(-(topMin - 1), n);
 
         grid.modifyHeightOfLeaves(st.grid, n, topLeaves);
 
