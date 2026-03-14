@@ -44,7 +44,9 @@ export interface CellPath {
  * @param [label] The label to associate with this cell.
  */
 export function mk<A>(width: number, height: number, data?: A, label?: string): Grid<A> {
-    const extras = { data, label };
+    const extras: Partial<{ data: A, label: string }> = {};
+    if(data !== undefined) extras.data = data;
+    if(label !== undefined) extras.label = label;
 
     return {
         type: "Grid",
@@ -52,8 +54,7 @@ export function mk<A>(width: number, height: number, data?: A, label?: string): 
             {
                 type: "Row",
                 height,
-                cells: [{ type: "Cell", width }],
-                ...extras
+                cells: [{ type: "Cell", width, ...extras }],
             }
         ]
     }
@@ -277,8 +278,12 @@ export function transposeLines(lines: string[]): string[] {
  * @throws If a parse error occured
  */
 function parseCell(lines: string[]): Cell<void> {
-    const width = lines.reduce((len, line) => Math.max(len, line.length), 0);
-    const label = lines.map(line => line.trimEnd()).join("\n").trim();
+    // We subtract 1 here to account for the extra vertical border.
+    const width = lines.reduce((len, line) => Math.max(len, line.length), 0) - 1;
+    const label = lines
+        .slice(1, -1)                          // Remove horizontal borders
+        .map(line => line.slice(1, -1).trim()) // Remove vertical borders
+        .join("\n").trim();                    // Remove newlines
     const cell: Cell<void> = {
         type: "Cell",
         width,
@@ -321,21 +326,20 @@ function parseRow(cols: string[]): Row<void> {
     expectVertEdge(cols.at( 0));
     expectVertEdge(cols.at(-1));
 
-    // Remove the first column.
-    cols = cols.slice(1);
-
     // Split the row into cells, parsing each one.
     const cells: Cell<void>[] = [];
     let chunkBegin = 0;
-    for(let i = 0; i < cols.length; ++i) {
+    for(let i = 1; i < cols.length; ++i) {
         const col = cols[i];
         if(col.match(vertEdgeRe)) {
-            cells.push(parseCell(transposeLines(cols.slice(chunkBegin, i))));
+            const chunk = cols.slice(chunkBegin, i + 1);
+            cells.push(parseCell(transposeLines(chunk)));
             chunkBegin = i;
         }
     }
 
-    return { type: "Row", cells, height: cols[0].length };
+    // We subtract 1 here to account for the extra horizontal border.
+    return { type: "Row", cells, height: cols[0].length - 1 };
 }
 
 /**
@@ -372,16 +376,14 @@ export function parseASCII(src: string): Grid<void> {
     expectHorzEdge(lines.at( 0));
     expectHorzEdge(lines.at(-1));
 
-    // Remove the first edge.
-    lines = lines.slice(1);
-
     // Split the lines into chunks, parsing each one.
     const rows: Row<void>[] = [];
     let chunkBegin = 0;
-    for(let i = 0; i < rows.length; ++i) {
+    for(let i = 1; i < lines.length; ++i) {
         const line = lines[i];
         if(line.match(horzEdgeRe)) {
-            rows.push(parseRow(transposeLines(lines.slice(chunkBegin, i))));
+            const chunk = lines.slice(chunkBegin, i + 1);
+            rows.push(parseRow(transposeLines(chunk)));
             chunkBegin = i;
         }
     }
@@ -395,8 +397,19 @@ export function parseASCII(src: string): Grid<void> {
  *
  * @param g The grid.
  */
-export function* allPositionedCells<A>(g: Grid<A>): IteratorObject<[CellPath, rect.Rect]> {
-    throw new Error("TODO");
+export function* allPositionedCells<A>(g: Grid<A>): Generator<[CellPath, rect.Rect]> {
+    let x = 0;
+    let y = 0;
+    for(let rowNo = 0; rowNo < g.rows.length; ++rowNo) {
+        const row = g.rows[rowNo];
+        x = 0;
+        for(let colNo = 0; colNo < row.cells.length; ++colNo) {
+            const cell = row.cells[colNo];
+            yield [{ rowNo, colNo }, rect.fromXYWH(x, y, cell.width, row.height)];
+            x += cell.width;
+        }
+        y += row.height;
+    }
 }
 
 /**
@@ -415,7 +428,7 @@ export function* allPositionedCellsOnRow<A>(g: Grid<A>, rowNo: number): Iterator
  *
  * @param g The grid.
  */
-export function* allCells<A>(g: Grid<A>): IteratorObject<CellPath> {
+export function allCells<A>(g: Grid<A>): IteratorObject<CellPath> {
     return allPositionedCells(g).map(([c, _]) => c);
 }
 

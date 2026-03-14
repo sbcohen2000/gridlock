@@ -57,7 +57,7 @@ describe("printASCII", () => {
                     cells: [
                         {
                             type: "Cell",
-                            width: 2
+                            width: 3
                         },
                         {
                             type: "Cell",
@@ -145,7 +145,7 @@ describe("parseASCII", () => {
             rows: [
                 {
                     type: "Row",
-                    height: 2,
+                    height: 1,
                     cells: [
                         {
                             type: "Cell",
@@ -155,7 +155,7 @@ describe("parseASCII", () => {
                 },
                 {
                     type: "Row",
-                    height: 2,
+                    height: 1,
                     cells: [
                         {
                             type: "Cell",
