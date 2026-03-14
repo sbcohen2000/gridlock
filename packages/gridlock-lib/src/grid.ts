@@ -1,85 +1,120 @@
 import * as point from "./point.js";
 import * as rect from "./rect.js";
 
-/**
- * @typedef {{
- *   width:  number;
- *   height: number;
- * }} Size
- */
+interface Grid<A> {
+    type: "Grid";
+    rows: Row<A>[];
+}
+
+interface Row<A> {
+    type: "Row";
+    height: number;
+    cells: Cell<A>[];
+}
+
+interface Cell<A> {
+    type: "Cell";
+    width: number;
+    label?: string;
+    data?: A;
+};
+
+type AnyGridObj<A> = Grid<A> | Row<A> | Cell<A>;
+
+type GridObjOfType<A, K extends AnyGridObj<A>["type"]> = K extends "Grid" ? Grid<A> : (K extends "Row" ? Row<A> : Cell<A>);
 
 /**
- * @template A
- * @typedef {{
- *   type:      "Vert" | "Horz";
- *   dims:      Size;
- *   left:      Grid<A>;
- *   right:     Grid<A>;
- * }} Split
- */
-
-/**
- * @template A
- * @typedef {{
- *   type:    "Leaf";
- *   dims:    Size;
- *   label?:  string;
- *   data?:   A
- * }} Leaf
- */
-
-/**
- * @template A
- * @typedef {Split<A> | Leaf<A>} Grid<A>;
- */
-
-/**
- * Construct a new `GridSquare` with the provided dimensions.
+ * Construct a new `Grid` with the provided dimensions.
  *
  * @template A
- * @param {number} width The width of the `GridSquare`.
- * @param {number} height The height of the `GridSquare`.
- * @param {A} [data] The data to associate with this leaf.
- * @returns {Leaf<A>}
+ * @param width The width of the `GridSquare`.
+ * @param height The height of the `GridSquare`.
+ * @param [data] The data to associate with this cell.
+ * @param [label] The label to associate with this cell.
  */
-export function mk(width, height, data) {
-    /** @type {Leaf<A>} */
-    const leaf = {
-        type: "Leaf",
-        dims: { width, height },
-    };
+export function mk<A>(width: number, height: number, data?: A, label?: string): Grid<A> {
+    const extras = { data, label };
 
-    if(data !== undefined) {
-        leaf.data = data;
+    return {
+        type: "Grid",
+        rows: [
+            {
+                type: "Row",
+                height,
+                cells: [{ type: "Cell", width }],
+                ...extras
+            }
+        ]
+    }
+}
+
+/**
+ * Find a positioned rectangle which covers the grid.
+ *
+ * @param g The grid.
+ * @returns A rectangle covering the grid.
+ */
+export function rectOfGrid<A>(g: Grid<A>): rect.Rect {
+    const firstCell = g.rows[0].cells[0];
+    const lastCell  = g.rows.at(-1).cells.at(-1);
+    return rect.unions(rectOfCell(g, firstCell), rectOfCell(g, lastCell));
+}
+
+/**
+ * Find a positioned rectangle which covers the given row.
+ *
+ * @param g The grid.
+ * @param row The row whose position and size to find.
+ */
+export function rectOfRow<A>(g: Grid<A>, row: Row<A>): rect.Rect {
+    const firstCell = row.cells[0];
+    const lastCell  = row.cells.at(-1);
+    return rect.unions(rectOfCell(g, firstCell), rectOfCell(g, lastCell));
+}
+
+/**
+ * Find a positioned rectangle which covers the given cell.
+ *
+ * @param g The grid.
+ * @param cell The cell whose position and size to find.
+ */
+export function rectOfCell<A>(g: Grid<A>, cell: Cell<A>): rect.Rect {
+    const path = pathToCell(g, cell);
+    let yTop = 0;
+    for(let i = 0; i < path.row; ++i) {
+        yTop += g.rows[i].height;
     }
 
-    return leaf;
+    const theRow = g.rows[path.row];
+    let xLeft = 0;
+    for(let i = 0; i < path.col; ++i) {
+        xLeft += theRow.cells[i].width;
+    }
+    const theCell = theRow.cells[path.col];
+
+    return {
+        left: xLeft,
+        top: yTop,
+        right: xLeft + theCell.width,
+        bottom: yTop + theRow.height
+    };
 }
 
 /**
  * Produce a deep-copy of a grid.
  *
  * @template A
- * @param {Grid<A>} g The grid to copy.
- * @param {(a: A) => A} [cloneData] How to clone the data at each leaf.
- * @returns {Grid<A>} A new `Grid`, identical to `g`, but sharing no
+ * @param g The grid to copy.
+ * @param [cloneData] How to clone the data at each leaf.
+ * @returns A new `Grid`, identical to `g`, but sharing no
  *     pointers with it.
  */
-export function clone(g, cloneData = (a) => a) {
-    switch(g.type) {
-    case "Vert":
-    case "Horz": return {
-        ...g,
-        dims: { ...g.dims },
-        left: clone(g.left, cloneData),
-        right: clone(g.right, cloneData)
-    }
-    case "Leaf": return { ...g, dims: { ...g.dims }, data: cloneData(g.data) }
-    }
+export function clone<A>(g: Grid<A>, cloneData: ((a: A) => A) = (a) => a): Grid<A> {
+    throw new Error("TODO");
 }
 
 /**
- * Produce a deep-copy of a grid, mapping a list of nodes that we care
+ * Produce a deep-copy of a grid, mapping a list of cells that we care
  * about through the clone. That is, this function operates as an
  * identity on both of its arguments, but of course, the arguments and
  * the results will not be equal by reference, only by structure.
@@ -88,65 +123,27 @@ export function clone(g, cloneData = (a) => a) {
  * an error is thrown.
  *
  * @template A
- * @param {Grid<A>} g The grid to copy.
- * @param {Grid<A>[]} nodes The nodes to carry through the clone.
- * @param {(a: A) => A} [cloneData] How to clone the data at each leaf.
- * @returns {[Grid<A>, Grid<A>[]]} A new `Grid`, identical to `g`, but
- *      sharing no pointers with it.
+ * @param g The grid to copy.
+ * @param rows The rows to pass through.
+ * @param cells The cells to pass through.
+ * @returns The new grid, along with the passed-through rows and cells.
  */
-export function cloneMappingNodes(g, nodes, cloneData = (a) => a) {
-    const paths = nodes.map(node => {
-        const path = pathToNode(g, node);
-        if(!path) {
-            throw new Error("No path to node in cloneMappingNodes");
-        }
-        return path;
-    });
+export function cloneMappingNodes<A>(
+    g: Grid<A>, rows: Row<A>[] = [],
+    cells: Cell<A>[] = [],
+    cloneData: ((a: A) => A) = (a) => a
+): { rows: Row<A>[], cells: Cell<A>[], g: Grid<A> } {
+    const rowPaths  = rows.map(row => pathToRow(g, row));
+    const cellPaths = cells.map(cell => pathToCell(g, cell));
 
     // Clone g.
     const newG = clone(g, cloneData);
 
     // Find the new identity of the input nodes.
-    return [newG, paths.map(path => evaluatePath(newG, path))];
-}
-
-/**
- * Compute the partition point of a `Split`.
- *
- * @template A
- * @param {Split<A>} s The split whose partition to calculate.
- * @returns {number}
- */
-export function partition(s) {
-    return s.type === "Vert" ? s.left.dims.height : s.left.dims.width;
-}
-
-/**
- * Recalculate the dimensions of all of the `Split` nodes in a grid.
- * This function must be used with care, because it does not make any
- * effort to enforce the invariant that the child dimensions match up
- * with the parents; it forces the property to hold when you're
- * already positive that it does.
- *
- * @template A
- * @param {Grid<A>} g The grid whose intermediate dimensions to
- *     recalculate.
- */
-export function recalculateSplitDimensions(g) {
-    switch(g.type) {
-    case "Vert": {
-        recalculateSplitDimensions(g.left);
-        recalculateSplitDimensions(g.right);
-        g.dims.width = g.left.dims.width;
-        g.dims.height = g.left.dims.height + g.right.dims.height;
-    } break;
-    case "Horz": {
-        recalculateSplitDimensions(g.left);
-        recalculateSplitDimensions(g.right);
-        g.dims.width = g.left.dims.width + g.right.dims.width;
-        g.dims.height = g.left.dims.height;
-    } break;
-    case "Leaf": return;
+    return {
+        rows: rowPaths.map(path => evaluatePath(newG, path!)!),
+        cells: cellPaths.map(path => evaluatePath(newG, path!)!),
+        g: newG
     }
 }
 
@@ -173,16 +170,18 @@ export function recalculateSplitDimensions(g) {
  * of 4 units, and the _left_ child has a width of 2 units.
  *
  * @template A
- * @param {Grid<A>} g The grid.
- * @returns {string} A string representation of the grid.
+ * @param g The grid.
+ * @returns A string representation of the grid.
  */
-export function printASCII(g) {
+export function printASCII<A>(g: Grid<A>): string {
+    const outerRect = rectOfGrid(g);
+
     // Build a 2d array of characters with the same size as the
     // dimensions of the outermost grid node.
     const chars = [];
-    for(let i = 0; i <= g.dims.height; ++i) {
+    for(let i = 0; i <= rect.height(outerRect); ++i) {
         const row = [];
-        for(let j = 0; j <= g.dims.width; ++j) {
+        for(let j = 0; j <= rect.width(outerRect); ++j) {
             row.push(' ');
         }
         chars.push(row);
@@ -190,12 +189,8 @@ export function printASCII(g) {
 
     /**
      * Draw a character `c` in `chars` at the position `x`, `y`.
-     *
-     * @param {number} x
-     * @param {number} y
-     * @param {string} c
      */
-    const drawPoint = (x, y, c) => {
+    const drawPoint = (x: number, y: number, c: string) => {
         const cur = chars[y][x];
         if(cur === "+") return;
 
@@ -209,63 +204,40 @@ export function printASCII(g) {
 
     /**
      * Draw a horizontal line in `chars`.
-     *
-     * @param {number} xBegin
-     * @param {number} xEnd
-     * @param {number} y
      */
-    const drawHorzLine = (xBegin, xEnd, y) => {
+    const drawHorzLine = (xBegin: number, xEnd: number, y: number) => {
         for(let x = xBegin; x <= xEnd; ++x) drawPoint(x, y, '-');
     }
 
     /**
      * Draw a vertical line in `chars`.
-     *
-     * @param {number} x
-     * @param {number} yBegin
-     * @param {number} yEnd
      */
-    const drawVertLine = (x, yBegin, yEnd) => {
+    const drawVertLine = (x: number, yBegin: number, yEnd: number) => {
         for(let y = yBegin; y <= yEnd; ++y) drawPoint(x, y, '|');
     }
 
     /**
      * Draw a square in `chars`.
-     *
-     * @param {number} xBegin
-     * @param {number} yBegin
-     * @param {number} xEnd
-     * @param {number} yEnd
      */
-    const drawSquare = (xBegin, yBegin, xEnd, yEnd) => {
-        drawVertLine(xBegin, yBegin, yEnd);
-        drawHorzLine(xBegin, xEnd, yBegin);
-        drawVertLine(xEnd, yBegin, yEnd);
-        drawHorzLine(xBegin, xEnd, yEnd);
+    const drawRect = (r: rect.Rect) => {
+        drawVertLine(r.left, r.top, r.right);
+        drawHorzLine(r.left, r.right, r.top);
+        drawVertLine(r.right, r.top, r.bottom);
+        drawHorzLine(r.left, r.right, r.bottom);
     }
 
-    /**
-     * @param {Grid<A>} g The current node in the grid.
-     * @param {point.P2} topLeft The top-left corner of the current context.
-     */
-    const go = (g, topLeft) => {
-        switch (g.type) {
-        case "Vert": {
-            drawHorzLine(topLeft.x, topLeft.x + g.dims.width, topLeft.y + partition(g));
-            go(g.left, topLeft);
-            go(g.right, point.offset(topLeft, point.mkV2(0, partition(g))));
-        } break;
-        case "Horz": {
-            drawVertLine(topLeft.x + partition(g), topLeft.y, topLeft.y + g.dims.height);
-            go(g.left, topLeft);
-            go(g.right, point.offset(topLeft, point.mkV2(partition(g), 0)));
-        } break;
-        case "Leaf": break;
+    let y = 0;
+    for(const row of g.rows) {
+        let x = 0;
+        for(const cell of row.cells) {
+            drawVertLine(x, y, y + row.height);
+            x += cell.width;
         }
+        drawHorzLine(0, rect.width(outerRect), y);
+        y += row.height;
     }
 
-    go(g, point.mkOrigin());
-    drawSquare(0, 0, g.dims.width, g.dims.height);
+    drawRect(outerRect);
 
     // Produce an output string from the array.
     return chars.map(row => row.join("")).join("\n");
@@ -274,11 +246,11 @@ export function printASCII(g) {
 /**
  * Transpose a list of lines into a list of columns.
  *
- * @param {string[]} lines The lines to transpose
- * @returns {string[]} The columns.
+ * @param lines The lines to transpose
+ * @returns The columns.
  * @throws When the input is not rectangular.
  */
-export function transposeLines(lines) {
+export function transposeLines(lines: string[]): string[] {
     if(lines.length === 0) {
         return [];
     }
@@ -567,79 +539,33 @@ export function debugCheckGridDimsConsistency(g) {
 }
 
 /**
- * Find a list of `Grid`s, each element a node which must be traversed
- * to go from node `grid` to node `focus`.
- *
- * @template A
- * @param {Grid<A>} g The root of the grid.
- * @param {Grid<A>} focus The focused child of `g`.
- * @returns {Split<A>[] | undefined} A list of grids, in the first of
- *     which is the parent of `focus`, and the last of which is `g`.
- *     If `focus` is not a child of `g`, then undefined is returned.
+ * A path from root to a row or leaf in a grid.
  */
-export function parentChain(g, focus) {
-    /**
-     * @type {Split<A>[]}
-     */
-    const out = [];
-    /**
-     * @param {Grid<A>} g
-     * @returns {Split<A>[] | undefined}
-     */
-    const go = (g) => {
-        if(g === focus) {
-            return out;
-        } else {
-            switch(g.type) {
-            case "Horz":
-            case "Vert": {
-                let chain = go(g.left);
-                if(chain === undefined) {
-                    chain = go(g.right);
-                }
+type Path<A, K extends AnyGridObj<A>["type"]> =
+  K extends "Grid" ? { kind: "Grid" }
+  : (K extends "Row" ? { kind: "Row", row: number }
+  : { kind: "Cell", row: number, col: number });
 
-                if(chain !== undefined) {
-                    chain.push(g);
-                }
-                return chain;
-            }
-            case "Leaf": return undefined;
-            }
-        }
-    };
-    return go(g);
+/**
+ * Find the path to the given row in the grid.
+ *
+ * @param g The grid
+ * @param row The row.
+ * @returns A path, or `undefined` if the `cell` couldn't be found in `g`.
+ */
+export function pathToRow<A>(g: Grid<A>, row: Row<A>): Path<A, "Row"> | undefined {
+    throw new Error("TODO");
 }
 
 /**
- * A path from root to node in a grid.n
+ * Find the path to the given cell in the grid.
  *
- * @typedef {"Left" | "Right"} GridPathSegment
- * @typedef {GridPathSegment[]} GridPath
+ * @param g The grid
+ * @param cell The cell.
+ * @returns A path, or `undefined` if the `cell` couldn't be found in `g`.
  */
-
-/**
- * @template A
- * @param {Grid<A>} g The grid
- * @param {Grid<A>} focus The node to to find a path to in `g`.
- * @returns {GridPath | undefined} Returns the path to `focus`, or
- *     `undefined` if `focus` isn't in the tree.
- */
-export function pathToNode(g, focus) {
-    const chain = parentChain(g, focus);
-    if(!chain) return undefined;
-
-    let last = focus;
-    return chain.map(n => {
-        /** @type {GridPathSegment} */
-        let dir;
-        if(n.left === last) {
-            dir = "Left";
-        } else {
-            dir = "Right";
-        }
-        last = n;
-        return dir;
-    }).reverse();
+export function pathToCell<A>(g: Grid<A>, cell: Cell<A>): Path<A, "Cell"> | undefined {
+    throw new Error("TODO");
 }
 
 /**
@@ -648,68 +574,14 @@ export function pathToNode(g, focus) {
  * @template A
  * @param {Grid<A>} g The grid
  * @param {GridPath} path The path to evaluate.
- * @returns {Grid<A>}
+ * @returns The element that the path refers to, or `undefined`
+ *     if the path isn't valid for this grid.
  */
-export function evaluatePath(g, path) {
-    for(const seg of path) {
-        if(g.type === "Leaf") {
-            return g;
-        }
-
-        if(seg === "Left") {
-            g = g.left;
-        } else {
-            g = g.right;
-        }
-    }
-
-    return g;
-}
-
-/**
- * Test if the given node is inside the given grid.
- *
- * @template A
- * @param {Grid<A>} g     The grid.
- * @param {Grid<A>} focus The node to check is in `g`.
- * @returns {boolean}
- */
-export function nodeIsInTree(g, focus) {
-    return parentChain(g, focus) !== undefined;
-}
-
-/**
- * Find the position of the top-left corner of a node in the grid.
- *
- * @template A
- * @param {Grid<A>} g The grid.
- * @param {Grid<A>} focus The node we'd like to find the position of.
- * @returns {point.P2 | undefined} The position of the top-left
- *                                 corner, or `undefined` if the
- *                                 `focus`ed node couldn't be found.
- */
-export function posOfLeaf(g, focus) {
-    let p = point.mkOrigin();
-    const chain = parentChain(g, focus);
-    if(chain === undefined) {
-        return undefined;
-    }
-
-    let last = focus;
-    for(const split of chain) {
-        if(split.right === last) {
-            // We've come from the right, so we need to
-            // offset `p`.
-            const ofs = split.type === "Vert"
-                  ? point.mkV2(0, split.left.dims.height)
-                  : point.mkV2(split.left.dims.width, 0);
-            p = point.offset(p, ofs);
-        }
-
-        last = split;
-    }
-
-    return p;
+export function evaluatePath<A, K extends AnyGridObj<A>["type"]>(
+    g: Grid<A>,
+    path: Path<A, K>
+): GridObjOfType<A, K> | undefined {
+    throw new Error("TODO");
 }
 
 /**

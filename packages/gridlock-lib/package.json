@@ -15,6 +15,7 @@
     "author": "Sam Cohen",
     "license": "ISC",
     "devDependencies": {
+        "@types/mocha": "^10.0.10",
         "chai": "^6.2.2",
         "esbuild": "^0.27.3",
         "fast-check": "^4.5.3",
