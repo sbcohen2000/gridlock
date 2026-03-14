@@ -63,3 +63,21 @@ export function unions(...rects) {
 export function upperLeft(r) {
     return point.mkP2(r.left, r.top);
 }
+
+/**
+ * Create a new rectangle from the coordinates of its upper-left
+ * corner, and its width and height.
+ *
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ */
+export function fromXYWH(x, y, w, h) {
+    return {
+        left: x,
+        top: y,
+        right: x + w,
+        bottom: y + h
+    }
+}

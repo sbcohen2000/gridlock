@@ -1,7 +1,7 @@
 import * as point from "./point.js";
 import * as rect from "./rect.js";
 
-interface Grid<A> {
+export interface Grid<A> {
     type: "Grid";
     rows: Row<A>[];
 }
@@ -19,9 +19,20 @@ interface Cell<A> {
     data?: A;
 };
 
-type AnyGridObj<A> = Grid<A> | Row<A> | Cell<A>;
+/**
+ * The location of a row in the grid.
+ */
+export interface RowPath {
+    rowNo: number;
+}
 
-type GridObjOfType<A, K extends AnyGridObj<A>["type"]> = K extends "Grid" ? Grid<A> : (K extends "Row" ? Row<A> : Cell<A>);
+/**
+ * The location of a cell in the grid.
+ */
+export interface CellPath {
+    rowNo: number;
+    colNo: number;
+}
 
 /**
  * Construct a new `Grid` with the provided dimensions.
@@ -55,21 +66,42 @@ export function mk<A>(width: number, height: number, data?: A, label?: string): 
  * @returns A rectangle covering the grid.
  */
 export function rectOfGrid<A>(g: Grid<A>): rect.Rect {
-    const firstCell = g.rows[0].cells[0];
-    const lastCell  = g.rows.at(-1).cells.at(-1);
-    return rect.unions(rectOfCell(g, firstCell), rectOfCell(g, lastCell));
+    const lastRowNo = g.rows.length - 1;
+    const lastColNo = g.rows[lastRowNo].cells.length - 1;
+    return rect.unions(rectOfCell(g, { rowNo: 0, colNo: 0 }), rectOfCell(g, { rowNo: lastRowNo, colNo: lastColNo }));
 }
 
 /**
  * Find a positioned rectangle which covers the given row.
  *
  * @param g The grid.
- * @param row The row whose position and size to find.
+ * @param row The row whose outer rectangle to calculate.
  */
-export function rectOfRow<A>(g: Grid<A>, row: Row<A>): rect.Rect {
-    const firstCell = row.cells[0];
-    const lastCell  = row.cells.at(-1);
-    return rect.unions(rectOfCell(g, firstCell), rectOfCell(g, lastCell));
+export function rectOfRow<A>(g: Grid<A>, row: RowPath): rect.Rect {
+    const lastColNo = g.rows[row.rowNo].cells.length - 1;
+    return rect.unions(rectOfCell(g, { ...row, colNo: 0 }), rectOfCell(g, { ...row, colNo: lastColNo }));
+}
+
+/**
+ * Lookup a row by its path in the grid.
+ *
+ * @param g The grid.
+ * @param row The row path to lookup.
+ * @returns The row, or `undefined` if the path is invalid.
+ */
+export function lookupRow<A>(g: Grid<A>, row: RowPath): Row<A> {
+    return g.rows[row.rowNo];
+}
+
+/**
+ * Lookup a cell by its path in the grid.
+ *
+ * @param g The grid
+ * @param cell The cell path to lookup.
+ * @returns The cell, or `undefined` if the path is invalid.
+ */
+export function lookupCell<A>(g: Grid<A>, cell: CellPath): Cell<A> {
+    return g.rows[cell.rowNo]?.cells[cell.colNo];
 }
 
 /**
@@ -78,19 +110,18 @@ export function rectOfRow<A>(g: Grid<A>, row: Row<A>): rect.Rect {
  * @param g The grid.
  * @param cell The cell whose position and size to find.
  */
-export function rectOfCell<A>(g: Grid<A>, cell: Cell<A>): rect.Rect {
-    const path = pathToCell(g, cell);
+export function rectOfCell<A>(g: Grid<A>, cell: CellPath): rect.Rect {
     let yTop = 0;
-    for(let i = 0; i < path.row; ++i) {
+    for(let i = 0; i < cell.rowNo; ++i) {
         yTop += g.rows[i].height;
     }
 
-    const theRow = g.rows[path.row];
+    const theRow = g.rows[cell.rowNo];
     let xLeft = 0;
-    for(let i = 0; i < path.col; ++i) {
+    for(let i = 0; i < cell.colNo; ++i) {
         xLeft += theRow.cells[i].width;
     }
-    const theCell = theRow.cells[path.col];
+    const theCell = theRow.cells[cell.colNo];
 
     return {
         left: xLeft,
@@ -111,40 +142,6 @@ export function rectOfCell<A>(g: Grid<A>, cell: Cell<A>): rect.Rect {
  */
 export function clone<A>(g: Grid<A>, cloneData: ((a: A) => A) = (a) => a): Grid<A> {
     throw new Error("TODO");
-}
-
-/**
- * Produce a deep-copy of a grid, mapping a list of cells that we care
- * about through the clone. That is, this function operates as an
- * identity on both of its arguments, but of course, the arguments and
- * the results will not be equal by reference, only by structure.
- *
- * The `nodes` passed to this function must occur in `g`. Otherwise,
- * an error is thrown.
- *
- * @template A
- * @param g The grid to copy.
- * @param rows The rows to pass through.
- * @param cells The cells to pass through.
- * @returns The new grid, along with the passed-through rows and cells.
- */
-export function cloneMappingNodes<A>(
-    g: Grid<A>, rows: Row<A>[] = [],
-    cells: Cell<A>[] = [],
-    cloneData: ((a: A) => A) = (a) => a
-): { rows: Row<A>[], cells: Cell<A>[], g: Grid<A> } {
-    const rowPaths  = rows.map(row => pathToRow(g, row));
-    const cellPaths = cells.map(cell => pathToCell(g, cell));
-
-    // Clone g.
-    const newG = clone(g, cloneData);
-
-    // Find the new identity of the input nodes.
-    return {
-        rows: rowPaths.map(path => evaluatePath(newG, path!)!),
-        cells: cellPaths.map(path => evaluatePath(newG, path!)!),
-        g: newG
-    }
 }
 
 /**
@@ -398,7 +395,7 @@ export function parseASCII(src: string): Grid<void> {
  *
  * @param g The grid.
  */
-export function* allPositionedCells<A>(g: Grid<A>): IteratorObject<[Cell<A>, rect.Rect]> {
+export function* allPositionedCells<A>(g: Grid<A>): IteratorObject<[CellPath, rect.Rect]> {
     throw new Error("TODO");
 }
 
@@ -407,9 +404,9 @@ export function* allPositionedCells<A>(g: Grid<A>): IteratorObject<[Cell<A>, rec
  * a rectangle describing their position and size.
  *
  * @param g The grid.
- * @param row The row.
+ * @param rowNo The row number.
  */
-export function* allPositionedCellsOnRow<A>(g: Grid<A>, row: Row<A>): IteratorObject<[Cell<A>, rect.Rect]> {
+export function* allPositionedCellsOnRow<A>(g: Grid<A>, rowNo: number): IteratorObject<[CellPath, rect.Rect]> {
     throw new Error("TODO");
 }
 
@@ -418,7 +415,7 @@ export function* allPositionedCellsOnRow<A>(g: Grid<A>, row: Row<A>): IteratorOb
  *
  * @param g The grid.
  */
-export function* allCells<A>(g: Grid<A>): IteratorObject<Cell<A>> {
+export function* allCells<A>(g: Grid<A>): IteratorObject<CellPath> {
     return allPositionedCells(g).map(([c, _]) => c);
 }
 
@@ -428,7 +425,7 @@ export function* allCells<A>(g: Grid<A>): IteratorObject<Cell<A>> {
  *
  * @param g The grid.n
  */
-export function* allPositionedRows<A>(g: Grid<A>): IteratorObject<[Row<A>, rect.Rect]> {
+export function* allPositionedRows<A>(g: Grid<A>): IteratorObject<[RowPath, rect.Rect]> {
     throw new Error("TODO");
 }
 
@@ -440,8 +437,8 @@ export function* allPositionedRows<A>(g: Grid<A>): IteratorObject<[Row<A>, rect.
  * @param g
  * @param label
  */
-export function cellWithLabel<A>(g: Grid<A>, label: string): Cell<A> | undefined {
-    return allCells(g).find(l => l.label === label);
+export function cellWithLabel<A>(g: Grid<A>, label: string): CellPath | undefined {
+    return allCells(g).find(c => lookupCell(g, c).label === label);
 }
 
 /**
@@ -468,60 +465,16 @@ export function debugCheckGridDimsConsistency<A>(g: Grid<A>): boolean {
 }
 
 /**
- * A path from root to a row or leaf in a grid.
- */
-type Path<A, K extends AnyGridObj<A>["type"]> =
-  K extends "Grid" ? { kind: "Grid" }
-  : (K extends "Row" ? { kind: "Row", row: number }
-  : { kind: "Cell", row: number, col: number });
-
-/**
- * Find the path to the given row in the grid.
- *
- * @param g The grid
- * @param row The row.
- * @returns A path, or `undefined` if the `cell` couldn't be found in `g`.
- */
-export function pathToRow<A>(g: Grid<A>, row: Row<A>): Path<A, "Row"> | undefined {
-    throw new Error("TODO");
-}
-
-/**
- * Find the path to the given cell in the grid.
- *
- * @param g The grid
- * @param cell The cell.
- * @returns A path, or `undefined` if the `cell` couldn't be found in `g`.
- */
-export function pathToCell<A>(g: Grid<A>, cell: Cell<A>): Path<A, "Cell"> | undefined {
-    throw new Error("TODO");
-}
-
-/**
- * Evaluate a `path` in grid `g`.
- *
- * @template A
- * @param {Grid<A>} g The grid
- * @param {GridPath} path The path to evaluate.
- * @returns The element that the path refers to, or `undefined`
- *     if the path isn't valid for this grid.
- */
-export function evaluatePath<A, K extends AnyGridObj<A>["type"]>(
-    g: Grid<A>,
-    path: Path<A, K>
-): GridObjOfType<A, K> | undefined {
-    throw new Error("TODO");
-}
-
-/**
  * Modify the height of a row.
  *
  * @param g The grid.
+ * @param row The row whose height to modify.
  * @param n The amount to modify the height.
  */
-export function modifyHeightOfRow<A>(row: Row<A>, n: number) {
-    n = Math.max(-(row.height - 1), n);
-    row.height += n;
+export function modifyHeightOfRow<A>(g: Grid<A>, row: RowPath, n: number) {
+    const theRow = lookupRow(g, row);
+    n = Math.max(-(theRow.height - 1), n);
+    theRow.height += n;
 }
 
 /**
@@ -532,12 +485,12 @@ export function modifyHeightOfRow<A>(row: Row<A>, n: number) {
  *
  * @template A
  * @param {Grid<A>} g The root node of the grid.
- * @param {Cell<A>[]} cells The cells whose width to modify.
+ * @param {CellPath[]} cells The cells whose width to modify.
  * @param {number}  n The amount to expand horizontally.
  */
-export function modifyWidthOfCells<A>(g: Grid<A>, cells: Cell<A>[], n: number) {
+export function modifyWidthOfCells<A>(g: Grid<A>, cells: CellPath[], n: number) {
     // Find the position of each leaf.
-    const positioned: [Cell<A>, rect.Rect][] = cells.map(cell => [cell, rectOfCell(g, cell)]);
+    const positioned: [CellPath, rect.Rect][] = cells.map(cell => [cell, rectOfCell(g, cell)]);
 
     // Sort the leaves by increasing `y` position.
     positioned.sort(([_cA, rectA], [_cB, rectB]) => rectA.top - rectB.top);
@@ -550,7 +503,11 @@ export function modifyWidthOfCells<A>(g: Grid<A>, cells: Cell<A>[], n: number) {
             throw new Error("vertically overlapping cells passed to modifyWidthOfCells");
         }
         y += rect.height(rect);
-        cell.width += n;
+
+        {
+            const theCell = lookupCell(g, cell);
+            theCell.width += n;
+        }
     }
 
     const gridHeight = rect.height(rectOfGrid(g));
@@ -588,8 +545,20 @@ export function cellUnderPoint<A>(g: Grid<A>, p: point.P2): Cell<A> | undefined 
  * Given references to leaves which must be adjacent on a single row,
  * or occupy entire rows, merge all of the cells into a single new
  * cell with the provided `data` and `label`.
+ *
+ * @returns The new cell.
  */
-export function mergeCells<A>(g: Grid<A>, cells: Cell<A>[], data: A, label?: string) {
+export function mergeCells<A>(g: Grid<A>, cells: CellPath[], data: A, label?: string): CellPath {
+    throw new Error("TODO");
+}
+
+/**
+ * Test if the provided cells can be merged into a single cell.
+ *
+ * @returns `true` if a merge operation is valid for the provided
+   cells, and `false` otherwise.
+ */
+export function canMergeCells<A>(g: Grid<A>, cells: CellPath[]): boolean {
     throw new Error("TODO");
 }
 
@@ -601,8 +570,7 @@ export function mergeCells<A>(g: Grid<A>, cells: Cell<A>[], data: A, label?: str
  */
 export function splitCell<A>(
     g: Grid<A>,
-    rowNo: number,
-    cellNo: number,
+    cell: CellPath,
     splitCol: number,
     splitData: (a: A) => [A, A] = (a => [a, a]),
     splitLabel: (label: string) => [string, string] = (label => [label, label])
@@ -618,7 +586,7 @@ export function splitCell<A>(
  */
 export function splitRow<A>(
     g: Grid<A>,
-    rowNo: number,
+    row: RowPath,
     splitRow: number,
     splitData: (a: A) => [A, A] = (a => [a, a]),
     splitLabel: (label: string) => [string, string] = (label => [label, label])
