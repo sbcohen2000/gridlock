@@ -1,6 +1,6 @@
 import * as arbg from "./arbitrary-grid.js";
 import * as fc from "fast-check";
-import * as grid from "../src/grid.js";
+import * as grid from "../src/grid";
 import * as point from "../src/point.js";
 import * as rect from "../src/rect.js";
 import { expect } from "chai";
@@ -175,10 +175,10 @@ describe("parseASCII", () => {
               "+-+---+";
 
         const g = grid.parseASCII(src);
-        const a = grid.cellWithLabel(g, "a");
+        const a = grid.cellWithLabel(g, "a")!;
         expect(grid.lookupCell(g, a).width).to.equal(2);
 
-        const b = grid.cellWithLabel(g, "b");
+        const b = grid.cellWithLabel(g, "b")!;
         expect(grid.lookupCell(g, b).width).to.equal(4);
 
         const c = grid.cellWithLabel(g, "c");
@@ -197,7 +197,7 @@ describe("parseASCII", () => {
                 reporter(out) {
                     if(!out.failed) return;
                     const genericErrorMessage = fc.defaultReportMessage(out);
-                    const src0 = grid.printASCII(out.counterexample[0]);
+                    const src0 = grid.printASCII(out.counterexample![0]);
                     const g1   = grid.parseASCII(src0);
                     const src1 = grid.printASCII(g1);
 
@@ -240,10 +240,10 @@ describe("rectOfCell", () => {
             "+-+-+";
 
         const g = grid.parseASCII(src);
-        const a = grid.cellWithLabel(g, "a");
-        const b = grid.cellWithLabel(g, "b");
-        const c = grid.cellWithLabel(g, "c");
-        const d = grid.cellWithLabel(g, "d");
+        const a = grid.cellWithLabel(g, "a")!;
+        const b = grid.cellWithLabel(g, "b")!;
+        const c = grid.cellWithLabel(g, "c")!;
+        const d = grid.cellWithLabel(g, "d")!;
 
         expect(grid.rectOfCell(g, a)).to.deep.equal(rect.fromXYWH(0, 0, 2, 2));
         expect(grid.rectOfCell(g, b)).to.deep.equal(rect.fromXYWH(2, 0, 2, 2));
@@ -293,8 +293,8 @@ describe("mergeCells", () => {
               "+-+---+";
 
         const g = grid.parseASCII(src);
-        const la = grid.cellWithLabel(g, "a");
-        const lb = grid.cellWithLabel(g, "b");
+        const la = grid.cellWithLabel(g, "a")!;
+        const lb = grid.cellWithLabel(g, "b")!;
 
         const exp =
               "+-----+\n" +
@@ -316,11 +316,11 @@ describe("mergeCells", () => {
             "+-----+--+";
 
         const g  = grid.parseASCII(src);
-        const la = grid.cellWithLabel(g, "a");
-        const lb = grid.cellWithLabel(g, "b");
-        const lc = grid.cellWithLabel(g, "c");
-        const lg = grid.cellWithLabel(g, "g");
-        const lh = grid.cellWithLabel(g, "h");
+        const la = grid.cellWithLabel(g, "a")!;
+        const lb = grid.cellWithLabel(g, "b")!;
+        const lc = grid.cellWithLabel(g, "c")!;
+        const lg = grid.cellWithLabel(g, "g")!;
+        const lh = grid.cellWithLabel(g, "h")!;
 
 
         // ----------------------------------------------------------
@@ -461,7 +461,7 @@ describe("splitCell", () => {
             "+-+---+"
         );
 
-        const b = grid.cellWithLabel(g, "b");
+        const b = grid.cellWithLabel(g, "b")!;
         grid.splitCell(g, b, 1);
 
         const exp =
@@ -482,7 +482,7 @@ describe("splitCell", () => {
             "+-----+--+"
         );
 
-        const cell = grid.cellWithLabel(g, "a");
+        const cell = grid.cellWithLabel(g, "a")!;
         grid.splitCell(g, cell, 3);
 
         const exp =
@@ -653,8 +653,8 @@ describe("modifyWidthOfCells", () => {
             "+-----+"
         );
 
-        const a = grid.cellWithLabel(g, "a");
-        const c = grid.cellWithLabel(g, "c");
+        const a = grid.cellWithLabel(g, "a")!;
+        const c = grid.cellWithLabel(g, "c")!;
 
         grid.modifyWidthOfCells(g, [a, c], -1);
 
@@ -680,8 +680,8 @@ describe("modifyWidthOfCells", () => {
             "+-----+"
         );
 
-        const b = grid.cellWithLabel(g, "b");
-        const c = grid.cellWithLabel(g, "c");
+        const b = grid.cellWithLabel(g, "b")!;
+        const c = grid.cellWithLabel(g, "c")!;
 
         grid.modifyWidthOfCells(g, [b, c], -1);
 
@@ -707,7 +707,7 @@ describe("modifyWidthOfCells", () => {
             "+-----+"
         );
 
-        const b = grid.cellWithLabel(g, "b");
+        const b = grid.cellWithLabel(g, "b")!;
 
         expect(() => grid.modifyWidthOfCells(g, [b], -1)).to.throw;
     });
@@ -722,9 +722,9 @@ describe("modifyWidthOfCells", () => {
             "+-----+"
         );
 
-        const a = grid.cellWithLabel(g, "a");
-        const b = grid.cellWithLabel(g, "b");
-        const c = grid.cellWithLabel(g, "c");
+        const a = grid.cellWithLabel(g, "a")!;
+        const b = grid.cellWithLabel(g, "b")!;
+        const c = grid.cellWithLabel(g, "c")!;
 
         expect(() => grid.modifyWidthOfCells(g, [a, b, c], -1)).to.throw;
     });
@@ -739,8 +739,8 @@ describe("modifyWidthOfCells", () => {
             "+-----+"
         );
 
-        const a = grid.cellWithLabel(g, "a");
-        const c = grid.cellWithLabel(g, "c");
+        const a = grid.cellWithLabel(g, "a")!;
+        const c = grid.cellWithLabel(g, "c")!;
 
         grid.modifyWidthOfCells(g, [a, c], -4);
 
