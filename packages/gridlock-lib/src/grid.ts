@@ -6,18 +6,18 @@ export interface Grid<A> {
     rows: Row<A>[];
 }
 
-interface Row<A> {
+export interface Row<A> {
     type: "Row";
     height: number;
     cells: Cell<A>[];
 }
 
-interface Cell<A> {
+export interface Cell<A> {
     type: "Cell";
     width: number;
     label?: string;
     data?: A;
-};
+}
 
 /**
  * The location of a row in the grid.
@@ -218,7 +218,7 @@ export function printASCII<A>(g: Grid<A>): string {
      * Draw a square in `chars`.
      */
     const drawRect = (r: rect.Rect) => {
-        drawVertLine(r.left, r.top, r.right);
+        drawVertLine(r.left, r.top, r.bottom);
         drawHorzLine(r.left, r.right, r.top);
         drawVertLine(r.right, r.top, r.bottom);
         drawHorzLine(r.left, r.right, r.bottom);

@@ -34,7 +34,7 @@ describe("printASCII", () => {
         expect(act).to.equal(exp);
     });
 
-    it("Can print a more complex tree", () => {
+    it("Can print a more complex grid", () => {
         const act = grid.printASCII({
             type: "Grid",
             rows: [
@@ -185,9 +185,9 @@ describe("parseASCII", () => {
         expect(c).to.be.undefined;
     });
 
-    it("It can parse trees printed by printASCII", () => {
+    it("Can parse grids printed by printASCII", () => {
         fc.assert(
-            fc.property(arbg.grid.tree, (g0) => {
+            fc.property(arbg.arbGrid, (g0) => {
                 const src0 = grid.printASCII(g0);
                 const g1 = grid.parseASCII(src0);
                 const src1 = grid.printASCII(g1);
@@ -211,7 +211,7 @@ describe("parseASCII", () => {
 describe("arbitrary-grid", () => {
     it("Produces grids with consistent dimensions", () => {
         fc.assert(
-            fc.property(arbg.grid.tree, (g) => {
+            fc.property(arbg.arbGrid, (g) => {
                 expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
             })
         )
@@ -286,7 +286,7 @@ describe("cellUnderPoint", () => {
 });
 
 describe("mergeCells", () => {
-    it("Can merge the cells in a tree with only two cells", () => {
+    it("Can merge cells in a two-cell grid", () => {
         const src =
               "+-+---+\n" +
               "|a| b |\n" +
@@ -305,7 +305,7 @@ describe("mergeCells", () => {
         expect(grid.printASCII(g)).to.equal(exp);
     });
 
-    it("Can merge the cells in a tree with many cells", () => {
+    it("Can merge the cells in a grid with many cells", () => {
         let src =
             "+--+--+--+\n" +
             "|a |b |c |\n" +
@@ -366,7 +366,7 @@ describe("mergeCells", () => {
     it("Merging cells preserves grid consistency", () => {
         fc.assert(
             fc.property(
-                arbg.grid.tree.chain((g) => {
+                arbg.arbGrid.chain((g) => {
                     const cells = [...grid.allCells(g)];
                     return fc.shuffledSubarray(cells).chain(someCells => fc.constant([g, someCells]))
                 }),
