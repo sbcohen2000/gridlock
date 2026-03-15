@@ -1,4 +1,5 @@
 import * as grid from "../grid.js";
+import * as rect from "../rect.js";
 import { editText } from "./text-prims/text-prims.js";
 
 /** @import { CommonState, Cell } from "./common-state.d.ts" */
@@ -42,22 +43,25 @@ export function emptyTextEditingState() {
  */
 export function printCommonState(st) {
     const g = st.grid;
+    const outerRect = grid.rectOfGrid(g);
+    const h = rect.height(outerRect);
+    const w = rect.width(outerRect);
 
     // Build a 2d array of characters with the same size as the grid.
     const chars = [];
-    for(let i = 0; i < g.dims.height; ++i) {
+    for(let i = 0; i < h; ++i) {
         const row = [];
-        for(let j = 0; j < g.dims.width; ++j) {
+        for(let j = 0; j < w; ++j) {
             row.push(' ');
         }
         chars.push(row);
     }
 
-    const leaves = grid.allLeavesWithPosition(g);
-    for(const [leaf, p] of leaves) {
+    for(const [cellPath, cellRect] of grid.allPositionedCells(g)) {
+        const cell = grid.lookupCell(g, cellPath);
         let row = 0;
-        for(const line of leaf.data.lines) {
-            chars[p.y + row].splice(p.x, line.length, ...line);
+        for(const line of cell.data.lines) {
+            chars[cellRect.top + row].splice(cellRect.left, line.length, ...line);
             ++row;
         }
     }
@@ -83,11 +87,12 @@ export function parseCellGrid(src) {
 
     const g = /** @type {grid.Grid<Cell>} */ (grid.parseASCII(gridPart.join("\n")));
 
-    const leaves = grid.allLeavesWithPosition(g);
-    for(const [leaf, p] of leaves) {
-        leaf.data = { lines: [] };
-        for(let row = p.y; row < p.y + leaf.dims.height; ++row) {
-            leaf.data.lines.push(srcLines[row].slice(p.x, p.x + leaf.dims.width).trimEnd());
+    for(const [cellPath, cellRect] of grid.allPositionedCells(g)) {
+        const cell = grid.lookupCell(g, cellPath);
+        const h = rect.height(cellRect);
+        cell.data = { lines: [] };
+        for(let row = cellRect.top; row < cellRect.top + h; ++row) {
+            cell.data.lines.push(srcLines[row].slice(cellRect.left, cellRect.right).trimEnd());
         }
     }
 

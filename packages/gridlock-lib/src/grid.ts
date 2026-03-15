@@ -517,6 +517,13 @@ export function modifyHeightOfRow<A>(g: Grid<A>, row: RowPath, n: number) {
 }
 
 /**
+ * Remove all rows with height 0 from the grid.
+ */
+export function removeEmptyRows<A>(g: Grid<A>) {
+    g.rows = g.rows.filter(row => row.height > 0);
+}
+
+/**
  * Atomically modify the width of a list of cells. The cells provided
  * must span the entire vertical height of the grid with no overlap.
  *

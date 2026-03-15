@@ -4,13 +4,14 @@
  * @module text-prims
  */
 
+export { IdInverse };
 import * as grid from "../../grid.js";
 import * as point from "../../point.js";
+import * as rect from "../../rect.js";
 import * as state from "../state-utils.js";
-import { id, IdInverse } from "../state-utils.js";
-export { IdInverse };
 import * as util from "../../util.js";
 import { TextPrimsState } from "./state.js";
+import { id, IdInverse } from "../state-utils.js";
 
 /** @import { Inverse, CommonState, Cell } from "../common-state.d.ts" */
 
@@ -22,43 +23,6 @@ import { TextPrimsState } from "./state.js";
 function _updateLastGlobalCol(st) {
     const globalCol = findGlobalPoint(st).x;
     st.selection.lastGlobalCol = globalCol;
-}
-
-/**
- * Mutate the editor state so that it has a single selection
- * into the given `leaf` at position `pt`.
- *
- * @param {TextPrimsState}  st             The current editor state.
- * @param {grid.Leaf<Cell>} leaf           The leaf to select.
- * @param {point.P2}        pt             The point within the `leaf` to select.
- * @param {number} [newGlobalCol] The new global column position. If
- *    omitted, it is unchanged.
- * @returns {boolean} `true` if the state was modified, `false` otherwise.
- */
-function _putPointOnLocalPosition(st, leaf, pt, newGlobalCol) {
-    // Ensure that the row and column are within bounds of the line.
-    pt.y = util.clamp(0, pt.y, leaf.data.lines.length - 1);
-    pt.x = util.clamp(0, pt.x, leaf.data.lines[pt.y].length);
-
-    // Check if we're already at this position
-    if(st.selection.leaf === leaf &&
-       st.selection.pt.x === pt.x &&
-       st.selection.pt.y === pt.y &&
-       (newGlobalCol === undefined || st.selection.lastGlobalCol === newGlobalCol)) {
-        return false;
-    }
-
-    st.selection = {
-        ...st.selection,
-        leaf,
-        pt
-    };
-
-    if(newGlobalCol !== undefined) {
-        st.selection.lastGlobalCol = newGlobalCol;
-    }
-
-    return true;
 }
 
 /**
@@ -116,10 +80,9 @@ class PutPointOnGlobalPositionInverse  {
 
 /**
  * Mutate the editor state, setting the selection to the given global
- * point. If there isn't a leaf under the global point, this function
- * does nothing.
+ * point.
  *
- * Note that the last leaf on a global line effectively has an extra
+ * Note that the last cell on a global line effectively has an extra
  * column, since it is possible to select the character after the last
  * letter on a column.
  *
@@ -131,74 +94,64 @@ class PutPointOnGlobalPositionInverse  {
  * @returns {Inverse<TextPrimsState>}
  */
 export function putPointOnGlobalPosition(st, pt, updateGlobalCol) {
-    const oldGlobalCol = st.selection.lastGlobalCol;
-    const oldGlobalPt  = findGlobalPoint(st);
-
-    pt.x = util.clamp(0, pt.x, st.grid.dims.width);
-    pt.y = util.clamp(0, pt.y, st.grid.dims.height);
-
     if(updateGlobalCol === undefined) {
         updateGlobalCol = true;
     }
 
-    const leaves = [...grid.leavesUnderRow(st.grid, pt.y)];
+    const oldGlobalCol = st.selection.lastGlobalCol;
+    const oldGlobalPt  = findGlobalPoint(st);
 
-    // Find the leaf underneath the x-position of the point, or the
-    // last leaf, if the point is entirely to the right of the grid.
+    const outerRect = grid.rectOfGrid(st.grid);
 
-    // Note that it is guaranteed that the leaves are returned in
-    // ascending order of `x` position.
-    let x = 0;
-    /** @type{grid.Leaf<Cell> | undefined} */
-    let theLeaf;
-    for(let i = 0; i < leaves.length; ++i) {
-        const leaf = leaves[i];
-        const isLast = i == leaves.length - 1;
+    const clamped = point.mkP2(
+        util.clamp(0, pt.x, rect.width(outerRect) - 1),
+        util.clamp(0, pt.y, rect.height(outerRect) - 1)
+    );
 
-        if(isLast || (x <= pt.x && pt.x < x + leaf.dims.width)) {
-            theLeaf = leaf;
-            break;
-        }
+    const cell = grid.cellUnderPoint(st.grid, clamped);
+    const cellRect = grid.rectOfCell(st.grid, cell);
+    const relPos = point.offset(clamped, point.mkV2(-cellRect.left, -cellRect.top));
 
-        x += leaf.dims.width;
+    st.selection.cell = cell;
+    st.selection.pt = relPos;
+    if(updateGlobalCol) {
+        st.selection.lastGlobalCol = pt.x;
     }
 
-    if(!theLeaf) return id;
-
-    const leafPos    = grid.posOfLeaf(st.grid, theLeaf);
-    const relLeafPos = point.mkP2(pt.x - leafPos.x, pt.y - leafPos.y);
-    const didMove    = _putPointOnLocalPosition(st, theLeaf, relLeafPos, updateGlobalCol ? pt.x : undefined);
-
-    if(didMove) {
-        return new PutPointOnGlobalPositionInverse(pt, oldGlobalPt, oldGlobalCol);
-    } else {
-        return id;
+    if(clamped.x < pt.x) {
+        // Put the point past the last row on the line.
+        st.selection.pt.x += 1;
     }
+
+    return new PutPointOnGlobalPositionInverse(pt, oldGlobalPt, oldGlobalCol);
 }
 
 /**
- * Find the maximum length of any line in a leaf.
+ * Find the maximum length of any line in a cell.
  *
- * @param {grid.Leaf<Cell>} leaf
+ * @param {grid.Cell<Cell>} cell
  * @returns {number}
  */
-function _maximumLineLength(leaf) {
-    return leaf.data.lines.reduce((a, l) => Math.max(a, l.length), 0);
+function _maximumLineLength(cell) {
+    return cell.data.lines.reduce((a, l) => Math.max(a, l.length), 0);
 }
 
 /**
  * Expand the `leaf` horizontally to fit its textual content, but only
  * if necessary.
  *
- * @param {grid.Grid<Cell>} g    The root of the grid.
- * @param {grid.Leaf<Cell>} leaf The leaf to expand.
+ * @param {grid.Grid<Cell>} g    The grid.
+ * @param {grid.CellPath}   cell The leaf to expand.
  */
-function _expandLeafWidthIfNecessary(g, leaf) {
-    const dW = _maximumLineLength(leaf) - leaf.dims.width;
-    if(0 < dW) {
-        const globalCol = grid.posOfLeaf(g, leaf).x + leaf.dims.width - 1;
-        const leaves = [...grid.leavesUnderCol(g, globalCol)];
-        grid.modifyWidthOfLeaves(g, dW, leaves);
+function _expandLeafWidthIfNecessary(g, cell) {
+    const theCell = grid.lookupCell(g, cell);
+    const n = _maximumLineLength(theCell) - theCell.width;
+    if(0 < n) {
+        // TODO: We should find the set of leaves using smarter method
+        // which prefers leaves with no content.
+        const globalCol = grid.rectOfCell(g, cell).left;
+        const cells = [...grid.cellsUnderGlobalX(g, globalCol)];
+        grid.modifyWidthOfCells(g, cells, n);
     }
 }
 
@@ -208,15 +161,12 @@ function _expandLeafWidthIfNecessary(g, leaf) {
  *
  * @param {TextPrimsState} st The editor state.
  * @returns {point.P2} The location of the single selection, in global
- *                     coordinates.
+ *   coordinates.
  */
 export function findGlobalPoint(st) {
-    const leafPos = grid.posOfLeaf(st.grid, st.selection.leaf);
-    if(leafPos === undefined) {
-        return point.mkP2(st.selection.pt.x, st.selection.pt.y);
-    }
+    const cellRect = grid.rectOfCell(st.grid, st.selection.cell);
     return point.offset(
-        leafPos,
+        rect.upperLeft(cellRect),
         point.mkV2(st.selection.pt.x, st.selection.pt.y)
     );
 }
@@ -347,17 +297,17 @@ export function putPointOnNextGlobalCol(st) {
         return id;
     }
 
-    const localLine = st.selection.leaf.data.lines[st.selection.pt.y];
+    const theCell = grid.lookupCell(st.grid, st.selection.cell);
+    const localLine = theCell.data.lines[st.selection.pt.y];
     const atEndOfLocalLine = st.selection.pt.x === localLine.length;
 
     if(atEndOfLocalLine) {
         // Skip ahead to the beginning of the next leaf.
-
-        const upperLeft = grid.posOfLeaf(st.grid, st.selection.leaf);
+        const upperLeft = rect.upperLeft(grid.rectOfCell(st.grid, st.selection.cell));
         // Offset the leaf's upper left by the full width of the leaf
         // and the local row number.
         const globalPt  = point.offset(upperLeft, point.mkV2(
-            st.selection.leaf.dims.width,
+            theCell.width,
             st.selection.pt.y
         ));
         return putPointOnGlobalPosition(st, globalPt);
@@ -379,7 +329,7 @@ export function putPointOnNextGlobalCol(st) {
 /**
  * Put the point directly to the left of the current point, if
  * possible, even if the previous column is not part of the current
- * leaf.
+ * cell.
  *
  * @param {TextPrimsState} st The editor state.
  * @returns {Inverse<TextPrimsState>}
@@ -407,14 +357,15 @@ export function pointAtEndOfGlobalLine(st) {
     // Check that we're at the end of our own local line.
     const localRow  = st.selection.pt.y;
     const localCol  = st.selection.pt.x;
-    const localLine = st.selection.leaf.data.lines[localRow];
+    const theCell = grid.lookupCell(st.grid, st.selection.cell);
+    const localLine = theCell.data.lines[localRow];
     if(localLine.length !== localCol) {
         return false;
     }
 
     // Check that there's no cell to the right of us.
     const globalPt = findGlobalPoint(st);
-    return undefined === grid.leafUnderPoint(
+    return undefined === grid.cellUnderPoint(
         st.grid,
         point.offset(globalPt, point.mkV2(1, 0))
     );
@@ -450,17 +401,14 @@ export function pointOnFirstGlobalLine(st) {
  * @returns {boolean}
  */
 export function pointOnLastGlobalLine(st) {
+    const rowHeight = grid.lookupRow(st.grid, st.selection.cell).height;
+
     // Check that we're on the last row of our local cell.
-    if(st.selection.pt.y < st.selection.leaf.dims.height - 1) {
+    if(st.selection.pt.y < rowHeight - 1) {
         return false;
     }
 
-    // Check that there's no cell below us.
-    const globalPt = findGlobalPoint(st);
-    return undefined === grid.leafUnderPoint(
-        st.grid,
-        point.offset(globalPt, point.mkV2(0, 1))
-    );
+    return st.selection.cell.rowNo === st.grid.rows.length - 1;
 }
 
 /*****************************************************************************/
@@ -479,12 +427,10 @@ export function globalLineIsEmpty(st) {
 
 /**
  * @typedef {Object} TextOnGlobalLineIterItem
- * @property {number} globalCol The global column of the
- *     first letter of the line of text in `leaf`.
- * @property {number} localRow  The local row number of
- *     the line in the `leaf`.
- * @property {string} text      The text on the local line of `leaf`.
- * @property {grid.Leaf<Cell>} leaf The leaf.
+ * @property {number}        globalCol The global column of the first letter of the line of text in `leaf`.
+ * @property {number}        localRow  The local row number of the line in the `leaf`.
+ * @property {string}        text      The text on the local line of `leaf`.
+ * @property {grid.CellPath} cell      The cell.
  */
 
 /**
@@ -496,18 +442,19 @@ export function globalLineIsEmpty(st) {
  * given global row as an iterator object.
  *
  * @param {TextPrimsState} st
- * @param {number} row
+ * @param {number} globalRow
  * @returns {TextOnGlobalLineIter}
  */
-function _extractGlobalLine(st, row) {
-    return grid.leavesUnderRow(st.grid, row).map(leaf => {
-        const leafPos = grid.posOfLeaf(st.grid, leaf);
-        const localRow = row - leafPos.y;
+function _extractGlobalLine(st, globalRow) {
+    return grid.cellsUnderGlobalY(st.grid, globalRow).map(cell => {
+        const cellRect = grid.rectOfCell(st.grid, cell);
+        const theCell = grid.lookupCell(st.grid, cell);
+        const localRow = globalRow - cellRect.top;
         return {
-            globalCol: leafPos.x,
+            globalCol: cellRect.left,
             localRow,
-            text: leaf.data.lines[localRow],
-            leaf
+            text: theCell.data.lines[localRow],
+            cell
         };
     });
 }
@@ -584,13 +531,14 @@ function _killLine(st) {
     // `afterPointer`.
     for(let i = textSegments.length - 1; i >= 0; --i) {
         const seg = textSegments[i];
+        const segCell = grid.lookupCell(st.grid, seg.cell);
 
         if(seg.globalCol <= globalCol) {
             // Split off the text before the cursor, since that should
             // remain on the current line.
             let localCol = globalCol - seg.globalCol;
-            seg.leaf.data.lines[seg.localRow] =
-                seg.leaf.data.lines[seg.localRow].slice(0, localCol);
+            segCell.data.lines[seg.localRow] =
+                segCell.data.lines[seg.localRow].slice(0, localCol);
 
             afterPointer = textSegments.slice(i);
             afterPointer[0].text = seg.text.slice(localCol);
@@ -601,7 +549,8 @@ function _killLine(st) {
             // the new line.
             for(let j = 1; j < afterPointer.length; ++j) {
                 const rightSeg = afterPointer[j];
-                rightSeg.leaf.data.lines[rightSeg.localRow] = "";
+                const rightSegCell = grid.lookupCell(st.grid, rightSeg.cell);
+                rightSegCell.data.lines[rightSeg.localRow] = "";
             }
             break;
         }
@@ -619,26 +568,24 @@ function _killLine(st) {
  */
 function _removeGlobalLine(st) {
     // Don't remove the last line - editor must have at least one line
-    if(st.grid.dims.height === 1) {
+    if(rect.height(grid.rectOfGrid(st.grid)) === 1) {
         return false;
     }
 
     const globalPt = findGlobalPoint(st);
-    const leaves = [...grid.leavesUnderRow(st.grid, globalPt.y)];
-    for(const leaf of leaves) {
-        const leafPos = grid.posOfLeaf(st.grid, leaf);
-        const relRow  = globalPt.y - leafPos.y;
-        leaf.data.lines.splice(relRow, 1);
+    const cells = [...grid.cellsUnderGlobalY(st.grid, globalPt.y)];
+    for(const cell of cells) {
+        const cellRect = grid.rectOfCell(st.grid, cell);
+        const relRow   = globalPt.y - cellRect.top;
+        grid.lookupCell(st.grid, cell).data.lines.splice(relRow, 1);
     }
 
-    // Modify the leaf heights, now that we've removed a line from
-    // each.
-    grid.modifyHeightOfLeaves(st.grid, -1, leaves);
+    // Modify the row height, now that we've removed a line.
+    // All cells on the row share the same row, so use the first cell's rowNo.
+    grid.modifyHeightOfRow(st.grid, cells[0], -1);
+    grid.removeEmptyRows(st.grid);
 
-    const [newGrid, _removedLeaves] = grid.removeEmptyLeaves(st.grid);
-    st.grid = newGrid;
-
-    // We need to set the selection here again since the selected leaf
+    // We need to set the selection here again since the selected cell
     // might now be gone. Ensure we don't go to a negative row.
     const newRow = Math.max(0, globalPt.y - 1);
     putPointOnGlobalPosition(st, point.mkP2(0, newRow));
@@ -700,10 +647,11 @@ export const removeGlobalNewline = state.withDefaultInverse(
 export const removeString = state.withDefaultInverse(
     (/** @type {TextPrimsState} */ st, /** @type {number} */ n) => {
         const sel = st.selection;
+        const theCell = grid.lookupCell(st.grid, sel.cell);
 
         const row    = sel.pt.y;
         const col    = sel.pt.x;
-        const line   = sel.leaf.data.lines[row];
+        const line   = theCell.data.lines[row];
 
         if(line === "" || sel.pt.x === 0) return;
 
@@ -712,7 +660,7 @@ export const removeString = state.withDefaultInverse(
 
         const before = line.slice(0, col - n);
         const after  = line.slice(col);
-        sel.leaf.data.lines[row] = before + after;
+        theCell.data.lines[row] = before + after;
 
         // Move the cursor left by the number of characters removed.
         sel.pt.x -= n;
@@ -740,15 +688,15 @@ export const insertGlobalNewline = state.withDefaultInverse(
 
         const afterPointer = _killLine(st);
 
-        const leaves = [...grid.leavesUnderRow(st.grid, globalRow)];
+        const cells = [...grid.cellsUnderGlobalY(st.grid, globalRow)];
         // Make room under under `globalRow` for the new lines.
-        for(const leaf of leaves) {
-            const leafPos = grid.posOfLeaf(st.grid, leaf);
-            const localRow = globalRow - leafPos.y;
-            leaf.data.lines.splice(localRow + 1, 0, "");
+        for(const cell of cells) {
+            const cellRect = grid.rectOfCell(st.grid, cell);
+            const localRow = globalRow - cellRect.top;
+            grid.lookupCell(st.grid, cell).data.lines.splice(localRow + 1, 0, "");
         }
 
-        grid.modifyHeightOfLeaves(st.grid, 1, leaves);
+        grid.modifyHeightOfRow(st.grid, cells[0], 1);
 
         const newRow = globalRow + 1;
         _spreadTextOnGlobalRow(st, newRow, 0, afterPointer.values());
@@ -773,12 +721,13 @@ export const insertString = state.withDefaultInverse(
 
         if(s.length === 0) return;
 
-        const row    = st.selection.pt.y;
-        const col    = st.selection.pt.x;
-        const line   = st.selection.leaf.data.lines[row];
-        const before = line.slice(0, col);
-        const after  = line.slice(col);
-        st.selection.leaf.data.lines[row] = before + s + after;
+        const theCell = grid.lookupCell(st.grid, st.selection.cell);
+        const row     = st.selection.pt.y;
+        const col     = st.selection.pt.x;
+        const line    = theCell.data.lines[row];
+        const before  = line.slice(0, col);
+        const after   = line.slice(col);
+        theCell.data.lines[row] = before + s + after;
 
         if(advancePoint) {
             // Advance the cursor by the length of the string.
@@ -786,7 +735,7 @@ export const insertString = state.withDefaultInverse(
             _updateLastGlobalCol(st);
         }
 
-        _expandLeafWidthIfNecessary(st.grid, st.selection.leaf);
+        _expandLeafWidthIfNecessary(st.grid, st.selection.cell);
     },
     "insert string"
 );
@@ -804,40 +753,41 @@ export const insertString = state.withDefaultInverse(
  *    will determine the text to insert.
  */
 export function _spreadTextOnGlobalRow(st, row, col, textIter) {
-    const leaves = [...grid.leavesUnderRow(st.grid, row)];
-    util.assert(leaves.length > 0);
+    const cells = [...grid.cellsUnderGlobalY(st.grid, row)];
+    util.assert(cells.length > 0);
 
-    // Find the index of the leaf in `leaves` under the current column.
-    let i = leaves.length - 1;
+    // Find the index of the cell in `cells` under the current column.
+    let i = cells.length - 1;
     for(; i > 0; --i) {
-        const leafCol  = grid.posOfLeaf(st.grid, leaves[i]).x;
-        if(leafCol <= col) {
+        const cellCol = grid.rectOfCell(st.grid, cells[i]).left;
+        if(cellCol <= col) {
             break;
         }
     }
 
-    // Spread the text in `textIter` into the leaves to the right
+    // Spread the text in `textIter` into the cells to the right
     // (inclusive) of `i`.
-    for(let j = i; j < leaves.length; ++j) {
-        const leaf     = leaves[j];
-        const leafPos  = grid.posOfLeaf(st.grid, leaves[j]);
-        const localRow = row - leafPos.y;
+    for(let j = i; j < cells.length; ++j) {
+        const cell     = cells[j];
+        const cellRect = grid.rectOfCell(st.grid, cell);
+        const theCell  = grid.lookupCell(st.grid, cell);
+        const localRow = row - cellRect.top;
 
-        const isLast = j === leaves.length - 1;
+        const isLast = j === cells.length - 1;
         if(isLast) {
             // Then, put the rest of the text of `textIter` into this
-            // leaf, even if `textIter` consists of multiple entries.
+            // cell, even if `textIter` consists of multiple entries.
             const remainingText = _concatenatePositionedText(textIter);
-            leaf.data.lines[localRow] += remainingText;
-            _expandLeafWidthIfNecessary(st.grid, leaf);
+            theCell.data.lines[localRow] += remainingText;
+            _expandLeafWidthIfNecessary(st.grid, cell);
         } else {
             const nextText = textIter.next();
             if(nextText.done) {
                 return;
             }
 
-            leaf.data.lines[localRow] += nextText.value.text;
-            _expandLeafWidthIfNecessary(st.grid, leaf);
+            theCell.data.lines[localRow] += nextText.value.text;
+            _expandLeafWidthIfNecessary(st.grid, cell);
         }
     }
 }
@@ -849,11 +799,11 @@ export function _spreadTextOnGlobalRow(st, row, col, textIter) {
  */
 export function editText(st) {
     const snapshot = st.clone();
-    const firstLeaf = grid.allLeaves(st.grid).next().value;
+    const [firstCell] = grid.allCells(st.grid).take(1);
 
     return [ new TextPrimsState(st.grid, {
         pt: point.mkP2(0, 0),
-        leaf: firstLeaf,
+        cell: firstCell,
         lastGlobalCol: 0
     }), {
         apply: (_s) => {

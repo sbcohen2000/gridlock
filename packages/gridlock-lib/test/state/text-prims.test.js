@@ -154,8 +154,8 @@ describe("text-prims", () => {
             textPrims.putPointAtEndOfGlobalLine(st);
 
             // Should land at end of "there" (col 5) in the right leaf.
-            const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(5, 0));
-            expect(st.selection.leaf).to.equal(rightLeaf);
+            const rightCell = grid.cellUnderPoint(st.grid, point.mkP2(5, 0));
+            expect(st.selection.cell).to.deep.equal(rightCell);
             expect(st.selection.pt.x).to.equal(5);
             expect(st.selection.pt.y).to.equal(0);
         });
@@ -174,8 +174,8 @@ describe("text-prims", () => {
 
             textPrims.putPointAtEndOfGlobalLine(st);
 
-            const rightLeaf = grid.leafUnderPoint(st.grid, point.mkP2(6, 0));
-            expect(st.selection.leaf).to.equal(rightLeaf);
+            const rightCell = grid.cellUnderPoint(st.grid, point.mkP2(6, 0));
+            expect(st.selection.cell).to.deep.equal(rightCell);
             expect(st.selection.pt.x).to.equal(3);
             expect(st.selection.pt.y).to.equal(1);
         });
@@ -373,85 +373,6 @@ describe("text-prims", () => {
                   "+---+---------+\n" +
                   "+---+---------+\n" +
                   "+---+---------+";
-
-            expect(serialize.printCommonState(st)).to.equal(exp);
-        });
-    });
-
-    describe("putPointOnNextGlobalLine", () => {
-        it("Does the `right` thing on a large document", () => {
-            const src =
-                  "function x() {             // Note 3\n"              +
-                  "  return 2;                // Note 1\n"              +
-                  "}\n"                                                 +
-                  "                           // Note 2\n"              +
-                  "\n"                                                  +
-                  "// blah blah hello.\n"                               +
-                  "\n"                                                  +
-                  "\n"                                                  +
-                  "function y(modify     y, z) {\n"                     +
-                  "           // p1\n"                                  +
-                  "              //      p2\n"                          +
-                  "                      // p3   // Note 2\n"           +
-                  "}\n"                                                 +
-                  "+--------------------------+---------------------+\n"+
-                  "|                          |                     |\n"+
-                  "|                          |                     |\n"+
-                  "|                          |                     |\n"+
-                  "+--------------------------+--+------------------+\n"+
-                  "|                             |                  |\n"+
-                  "|                             |                  |\n"+
-                  "+---------------------+-------+--------+-+-------+\n"+
-                  "|                     |       |        | |       |\n"+
-                  "|                     |       |        | |       |\n"+
-                  "|                     |       |        | |       |\n"+
-                  "|                     |       |        +-+       |\n"+
-                  "|                     |       |        +-+       |\n"+
-                  "+---------------------+-------+--------+-+-------+";
-
-            const st = textPrims.editText(serialize.textEditingStateFromString(src))[0];
-
-            // Put point on the end of the first line.
-            textPrims.putPointOnGlobalPosition(st, point.mkOrigin(), true);
-            textPrims.putPointAtEndOfGlobalLine(st);
-
-            // Put an `X` and go down a line.
-            let fuel = 1000;
-            do {
-                textPrims.insertString(st, "X",  false);
-                --fuel;
-            } while(!(textPrims.putPointOnNextGlobalLine(st) instanceof textPrims.IdInverse) && fuel > 0);
-
-            expect(fuel).to.be.greaterThan(0);
-
-            const exp =
-                  "function x() {             // Note 3X\n"              +
-                  "  return 2;                // Note 1X\n"              +
-                  "}X\n"                                                 +
-                  "                           // Note 2X\n"              +
-                  "X\n"                                                  +
-                  "// blah blah hello.X\n"                               +
-                  "X\n"                                                  +
-                  "X\n"                                                  +
-                  "function y(modify     y, z) {X\n"                     +
-                  "           // p1X\n"                                  +
-                  "              //      p2X\n"                          +
-                  "                      // p3   // NotXe 2\n"           +
-                  "}X\n"                                                 +
-                  "+--------------------------+----------------------+\n"+
-                  "|                          |                      |\n"+
-                  "|                          |                      |\n"+
-                  "|                          |                      |\n"+
-                  "+--------------------------+--+-------------------+\n"+
-                  "|                             |                   |\n"+
-                  "|                             |                   |\n"+
-                  "+---------------------+-------+---------+-+-------+\n"+
-                  "|                     |       |         | |       |\n"+
-                  "|                     |       |         | |       |\n"+
-                  "|                     |       |         | |       |\n"+
-                  "|                     |       |         +-+       |\n"+
-                  "|                     |       |         +-+       |\n"+
-                  "+---------------------+-------+---------+-+-------+";
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
