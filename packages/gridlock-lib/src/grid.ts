@@ -142,7 +142,19 @@ export function rectOfCell<A>(g: Grid<A>, cell: CellPath): rect.Rect {
  *     pointers with it.
  */
 export function clone<A>(g: Grid<A>, cloneData: ((a: A) => A) = (a) => a): Grid<A> {
-    throw new Error("TODO");
+    return {
+        type: "Grid",
+        rows: g.rows.map(row => ({
+            type: "Row",
+            height: row.height,
+            cells: row.cells.map(cell => {
+                const c: Cell<A> = { type: "Cell", width: cell.width };
+                if (cell.label !== undefined) c.label = cell.label;
+                if (cell.data !== undefined) c.data = cloneData(cell.data);
+                return c;
+            })
+        }))
+    };
 }
 
 /**
@@ -419,8 +431,16 @@ export function* allPositionedCells<A>(g: Grid<A>): Generator<[CellPath, rect.Re
  * @param g The grid.
  * @param rowNo The row number.
  */
-export function* allPositionedCellsOnRow<A>(g: Grid<A>, rowNo: number): IteratorObject<[CellPath, rect.Rect]> {
-    throw new Error("TODO");
+export function* allPositionedCellsOnRow<A>(g: Grid<A>, rowNo: number): Generator<[CellPath, rect.Rect]> {
+    let y = 0;
+    for (let i = 0; i < rowNo; ++i) y += g.rows[i].height;
+    const row = g.rows[rowNo];
+    let x = 0;
+    for (let colNo = 0; colNo < row.cells.length; ++colNo) {
+        const cell = row.cells[colNo];
+        yield [{ rowNo, colNo }, rect.fromXYWH(x, y, cell.width, row.height)];
+        x += cell.width;
+    }
 }
 
 /**
@@ -438,8 +458,14 @@ export function allCells<A>(g: Grid<A>): IteratorObject<CellPath> {
  *
  * @param g The grid.n
  */
-export function* allPositionedRows<A>(g: Grid<A>): IteratorObject<[RowPath, rect.Rect]> {
-    throw new Error("TODO");
+export function* allPositionedRows<A>(g: Grid<A>): Generator<[RowPath, rect.Rect]> {
+    const gridWidth = g.rows[0]?.cells.reduce((sum, cell) => sum + cell.width, 0) ?? 0;
+    let y = 0;
+    for (let rowNo = 0; rowNo < g.rows.length; ++rowNo) {
+        const row = g.rows[rowNo];
+        yield [{ rowNo }, rect.fromXYWH(0, y, gridWidth, row.height)];
+        y += row.height;
+    }
 }
 
 /**
@@ -508,24 +534,30 @@ export function modifyWidthOfCells<A>(g: Grid<A>, cells: CellPath[], n: number) 
     // Sort the leaves by increasing `y` position.
     positioned.sort(([_cA, rectA], [_cB, rectB]) => rectA.top - rectB.top);
 
-    // Ensure that there are no gaps, and that the cell cover the
+    // Ensure that there are no gaps, and that the cells cover the
     // entire height of the grid.
     let y = 0;
-    for(const [cell, rect] of positioned) {
-        if(rect.left < y) {
+    for(const [_cell, r] of positioned) {
+        if(r.top < y) {
             throw new Error("vertically overlapping cells passed to modifyWidthOfCells");
         }
-        y += rect.height(rect);
-
-        {
-            const theCell = lookupCell(g, cell);
-            theCell.width += n;
-        }
+        y += rect.height(r);
     }
 
     const gridHeight = rect.height(rectOfGrid(g));
     if(y !== gridHeight) {
         throw new Error("the cells passed to modifyWidthOfCells do not cover the grid");
+    }
+
+    // Clamp n so no cell shrinks below width 1.
+    for(const [cell, _r] of positioned) {
+        const theCell = lookupCell(g, cell);
+        n = Math.max(-(theCell.width - 1), n);
+    }
+
+    // Apply the clamped delta to all cells.
+    for(const [cell, _r] of positioned) {
+        lookupCell(g, cell).width += n;
     }
 }
 
@@ -533,16 +565,56 @@ export function modifyWidthOfCells<A>(g: Grid<A>, cells: CellPath[], n: number) 
  * Find all of the cells which are underneath global row `y`. The
  * cells are returned in order of ascending `x`-position.
  */
-export function* cellsUnderGlobalRow<A>(g: Grid<A>, y: number): IteratorObject<Cell<A>> {
-    throw new Error("TODO");
+/**
+ * Find the row in `g` that contains global y-coordinate `y`.
+ */
+function rowUnderGlobalY<A>(g: Grid<A>, y: number): RowPath | undefined {
+    let rowTop = 0;
+    for (let rowNo = 0; rowNo < g.rows.length; ++rowNo) {
+        const row = g.rows[rowNo];
+        if (y >= rowTop && y < rowTop + row.height) {
+            return { rowNo };
+        }
+        rowTop += row.height;
+    }
+    return undefined;
+}
+
+export function* cellsUnderGlobalY<A>(g: Grid<A>, y: number): IteratorObject<CellPath> {
+    const rp = rowUnderGlobalY(g, y);
+    if (rp === undefined) return;
+    const row = g.rows[rp.rowNo];
+    for (let colNo = 0; colNo < row.cells.length; ++colNo) {
+        yield { rowNo: rp.rowNo, colNo };
+    }
 }
 
 /**
  * Find all of the cells which are underneath column `x`. The cells
  * are returned in order of ascending `y`-position.
  */
-export function* cellsUnderGlobalCol<A>(g: Grid<A>, x: number): IteratorObject<Cell<A>> {
-    throw new Error("TODO");
+/**
+ * Find the column index in `row` that contains global x-coordinate `x`.
+ */
+function colUnderGlobalX<A>(row: Row<A>, x: number): number | undefined {
+    let colLeft = 0;
+    for (let colNo = 0; colNo < row.cells.length; ++colNo) {
+        const cell = row.cells[colNo];
+        if (x >= colLeft && x < colLeft + cell.width) {
+            return colNo;
+        }
+        colLeft += cell.width;
+    }
+    return undefined;
+}
+
+export function* cellsUnderGlobalX<A>(g: Grid<A>, x: number): Generator<CellPath> {
+    for (let rowNo = 0; rowNo < g.rows.length; ++rowNo) {
+        const colNo = colUnderGlobalX(g.rows[rowNo], x);
+        if (colNo !== undefined) {
+            yield { rowNo, colNo };
+        }
+    }
 }
 
 
@@ -550,8 +622,12 @@ export function* cellsUnderGlobalCol<A>(g: Grid<A>, x: number): IteratorObject<C
  * Find the cell in `g` under the point `p`, or `undefined` if there
  * is no cell underneath `p`.
  */
-export function cellUnderPoint<A>(g: Grid<A>, p: point.P2): Cell<A> | undefined {
-    throw new Error("TODO");
+export function cellUnderPoint<A>(g: Grid<A>, p: point.P2): CellPath | undefined {
+    const rp = rowUnderGlobalY(g, p.y);
+    if (rp === undefined) return undefined;
+    const colNo = colUnderGlobalX(g.rows[rp.rowNo], p.x);
+    if (colNo === undefined) return undefined;
+    return { rowNo: rp.rowNo, colNo };
 }
 
 /**
@@ -588,7 +664,22 @@ export function splitCell<A>(
     splitData: (a: A) => [A, A] = (a => [a, a]),
     splitLabel: (label: string) => [string, string] = (label => [label, label])
 ) {
-    throw new Error("TODO");
+    const theCell = lookupCell(g, cell);
+    const leftCell: Cell<A> = { type: "Cell", width: splitCol };
+    const rightCell: Cell<A> = { type: "Cell", width: theCell.width - splitCol };
+
+    if (theCell.data !== undefined) {
+        const [l, r] = splitData(theCell.data);
+        leftCell.data = l;
+        rightCell.data = r;
+    }
+    if (theCell.label !== undefined) {
+        const [l, r] = splitLabel(theCell.label);
+        leftCell.label = l;
+        rightCell.label = r;
+    }
+
+    g.rows[cell.rowNo].cells.splice(cell.colNo, 1, leftCell, rightCell);
 }
 
 /**
@@ -600,9 +691,28 @@ export function splitCell<A>(
 export function splitRow<A>(
     g: Grid<A>,
     row: RowPath,
-    splitRow: number,
+    splitAt: number,
     splitData: (a: A) => [A, A] = (a => [a, a]),
     splitLabel: (label: string) => [string, string] = (label => [label, label])
 ) {
-    throw new Error("TODO");
+    const theRow = g.rows[row.rowNo];
+
+    const topCells: Cell<A>[] = theRow.cells.map(cell => {
+        const c: Cell<A> = { type: "Cell", width: cell.width };
+        if (cell.data !== undefined) c.data = splitData(cell.data)[0];
+        if (cell.label !== undefined) c.label = splitLabel(cell.label)[0];
+        return c;
+    });
+
+    const bottomCells: Cell<A>[] = theRow.cells.map(cell => {
+        const c: Cell<A> = { type: "Cell", width: cell.width };
+        if (cell.data !== undefined) c.data = splitData(cell.data)[1];
+        if (cell.label !== undefined) c.label = splitLabel(cell.label)[1];
+        return c;
+    });
+
+    const topRow: Row<A> = { type: "Row", height: splitAt, cells: topCells };
+    const bottomRow: Row<A> = { type: "Row", height: theRow.height - splitAt, cells: bottomCells };
+
+    g.rows.splice(row.rowNo, 1, topRow, bottomRow);
 }

@@ -268,20 +268,20 @@ describe("cellUnderPoint", () => {
         const d = grid.cellWithLabel(g, "d");
 
         // Points in 'a' (top-left, width=2, height=2)
-        expect(grid.cellUnderPoint(g, point.mkP2(0, 0))).to.equal(a);
-        expect(grid.cellUnderPoint(g, point.mkP2(1, 1))).to.equal(a);
+        expect(grid.cellUnderPoint(g, point.mkP2(0, 0))).to.deep.equal(a);
+        expect(grid.cellUnderPoint(g, point.mkP2(1, 1))).to.deep.equal(a);
 
         // Points in 'b' (top-right, starts at x=2)
-        expect(grid.cellUnderPoint(g, point.mkP2(2, 0))).to.equal(b);
-        expect(grid.cellUnderPoint(g, point.mkP2(3, 1))).to.equal(b);
+        expect(grid.cellUnderPoint(g, point.mkP2(2, 0))).to.deep.equal(b);
+        expect(grid.cellUnderPoint(g, point.mkP2(3, 1))).to.deep.equal(b);
 
         // Points in 'c' (bottom-left, starts at y=2)
-        expect(grid.cellUnderPoint(g, point.mkP2(0, 2))).to.equal(c);
-        expect(grid.cellUnderPoint(g, point.mkP2(1, 3))).to.equal(c);
+        expect(grid.cellUnderPoint(g, point.mkP2(0, 2))).to.deep.equal(c);
+        expect(grid.cellUnderPoint(g, point.mkP2(1, 3))).to.deep.equal(c);
 
         // Points in 'd' (bottom-right, starts at x=2, y=2)
-        expect(grid.cellUnderPoint(g, point.mkP2(2, 2))).to.equal(d);
-        expect(grid.cellUnderPoint(g, point.mkP2(3, 3))).to.equal(d);
+        expect(grid.cellUnderPoint(g, point.mkP2(2, 2))).to.deep.equal(d);
+        expect(grid.cellUnderPoint(g, point.mkP2(3, 3))).to.deep.equal(d);
     });
 });
 
@@ -496,7 +496,7 @@ describe("splitCell", () => {
     });
 });
 
-describe("cellsUnderGlobalRow", () => {
+describe("cellsUnderGlobalY", () => {
     it("Returns the root cell when querying a single-cell grid", () => {
         const g = grid.parseASCII(
             "+--+\n" +
@@ -505,13 +505,13 @@ describe("cellsUnderGlobalRow", () => {
             "+--+"
         );
 
-        const cells = [...grid.cellsUnderGlobalRow(g, 0)];
+        const cells = [...grid.cellsUnderGlobalY(g, 0)];
         expect(cells).to.have.lengthOf(1);
-        expect(cells[0]).to.equal({ rowNo: 0, colNo: 0 });
+        expect(cells[0]).to.deep.equal({ rowNo: 0, colNo: 0 });
 
-        const cells1 = [...grid.cellsUnderGlobalRow(g, 1)];
+        const cells1 = [...grid.cellsUnderGlobalY(g, 1)];
         expect(cells1).to.have.lengthOf(1);
-        expect(cells1[0]).to.equal({ rowNo: 0, colNo: 0 });
+        expect(cells1[0]).to.deep.equal({ rowNo: 0, colNo: 0 });
     });
 
     it("Returns all horizontally split cells at the same row", () => {
@@ -525,9 +525,9 @@ describe("cellsUnderGlobalRow", () => {
         const b = grid.cellWithLabel(g, "b");
         const c = grid.cellWithLabel(g, "c");
 
-        const cells = [...grid.cellsUnderGlobalRow(g, 0)];
+        const cells = [...grid.cellsUnderGlobalY(g, 0)];
         expect(cells).to.have.lengthOf(3);
-        expect(cells).to.include.members([a, b, c]);
+        expect(cells).to.deep.include.members([a, b, c]);
     });
 
     it("Returns only cells that contain the specified row", () => {
@@ -544,17 +544,17 @@ describe("cellsUnderGlobalRow", () => {
         const b = grid.cellWithLabel(g, "b");
         const c = grid.cellWithLabel(g, "c");
 
-        const cellsRow0 = [...grid.cellsUnderGlobalRow(g, 0)];
+        const cellsRow0 = [...grid.cellsUnderGlobalY(g, 0)];
         expect(cellsRow0).to.have.lengthOf(2);
-        expect(cellsRow0).to.include.members([a, b]);
+        expect(cellsRow0).to.deep.include.members([a, b]);
 
-        const cellsRow1 = [...grid.cellsUnderGlobalRow(g, 1)];
+        const cellsRow1 = [...grid.cellsUnderGlobalY(g, 1)];
         expect(cellsRow1).to.have.lengthOf(2);
-        expect(cellsRow1).to.include.members([a, b]);
+        expect(cellsRow1).to.deep.include.members([a, b]);
 
-        const cellsRow2 = [...grid.cellsUnderGlobalRow(g, 3)];
+        const cellsRow2 = [...grid.cellsUnderGlobalY(g, 3)];
         expect(cellsRow2).to.have.lengthOf(1);
-        expect(cellsRow2[0]).to.equal(c);
+        expect(cellsRow2[0]).to.deep.equal(c);
     });
 });
 
