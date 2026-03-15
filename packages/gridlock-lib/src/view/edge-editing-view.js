@@ -1,7 +1,7 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import { AbstractEditorView } from "./abstract-editor-view.js";
-import { EdgePrimsState, EdgeMovingPrimsState, EdgeSlidingPrimsState } from "../state/edge-prims/state.js";
+import { EdgeMovingPrimsState, EdgeSlidingPrimsState } from "../state/edge-prims/state.js";
 import { edgePrims, textPrims } from "../state/index.js";
 
 /**

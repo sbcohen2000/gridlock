@@ -7,9 +7,9 @@ import * as grid from "../../grid.js";
 /** @import { Cell } from "../common-state.d.ts" */
 
 /**
- * The editor state for vertical cell slicing.
+ * The editor state for vertical row slicing.
  */
-export class VerticalSlicePrimsState {
+export class SliceRowState {
     /**
      * @param {grid.Grid<Cell>} g
      */
@@ -20,14 +20,14 @@ export class VerticalSlicePrimsState {
 
     clone() {
         const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-        return new VerticalSlicePrimsState(g);
+        return new SliceRowState(g);
     }
 }
 
 /**
  * The editor state for horizontal cell slicing.
  */
-export class HorizontalSlicePrimsState {
+export class SliceCellState {
     /**
      * @param {grid.Grid<Cell>} g
      */
@@ -38,6 +38,6 @@ export class HorizontalSlicePrimsState {
 
     clone() {
         const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
-        return new HorizontalSlicePrimsState(g);
+        return new SliceCellState(g);
     }
 }

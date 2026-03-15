@@ -103,15 +103,15 @@ export function projectTextOntoLeaves(f, g) {
         Array.from({ length: rect.width(outerRect) }, () => null));
 
     /**
-     * @param {[grid.CellPath, point.P2]} positionedCell
+     * @param {[grid.CellPath, rect.Rect]} positionedCell
      */
     const projOntoText = (positionedCell) => {
-        const [cell, pos] = positionedCell;
+        const [cell, cellRect] = positionedCell;
         const theCell = grid.lookupCell(g, cell);
         for(let i = 0; i < theCell.data.lines.length; ++i) {
             const line = theCell.data.lines[i];
-            const row = i + pos.y;
-            text[row].splice(pos.x, line.length, ...Array.from(line));
+            const row = i + cellRect.top;
+            text[row].splice(cellRect.left, line.length, ...Array.from(line));
         }
     }
 
@@ -120,17 +120,16 @@ export function projectTextOntoLeaves(f, g) {
     const newG = f(g);
 
     /**
-     * @param {[grid.CellPath, point.P2]} positionedCell
+     * @param {[grid.CellPath, rect.Rect]} positionedCell
      */
     const projOntoLeaves = (positionedCell) => {
-        const [cell, pos] = positionedCell;
-        const theCell = grid.lookupCell(g, cell);
-        const cellRect = grid.rectOfCell(g, cell);
+        const [cell, cellRect] = positionedCell;
+        const theCell = grid.lookupCell(newG, cell);
         theCell.data.lines = [];
         for(let i = 0; i < rect.height(cellRect); ++i) {
-            const row = i + pos.y;
+            const row = i + cellRect.top;
             const line = text[row]
-                  .slice(pos.x, pos.x + rect.width(cellRect))
+                  .slice(cellRect.left, cellRect.left + rect.width(cellRect))
                   .map(c => c ?? " ")
                   .join("")
                   .trimEnd();

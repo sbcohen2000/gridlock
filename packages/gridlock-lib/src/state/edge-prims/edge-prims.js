@@ -8,71 +8,13 @@ import * as grid from "../../grid.js";
 import * as point from "../../point.js";
 import * as state from "../state-utils.js";
 import * as util from "../../util.js";
-import { EdgePrimsState, EdgeMovingPrimsState, EdgeSlidingPrimsState } from "./state.js";
+import {
+    EdgeMovingPrimsState, EdgeSlidingPrimsState,
+    VertMovingPrimsState, HorzMovingPrimsState,
+    VertSlidingPrimsState, HorzSlidingPrimsState
+} from "./state.js";
 
 /** @import { Inverse, CommonState, Cell } from "../common-state.d.ts" */
-
-/**
- * Select the edge adjacent to the leaf under the global point in the
- * given direction.
- *
- * @param {EdgePrimsState} st
- * @param {point.P2} pt
- * @param {"Left" | "Right" | "Above" | "Below"} direction
- * @returns {boolean} `true` if the selection was changed (i.e. the
- *     parameters describe a valid edge), or `false` if the selection
- *     was invalid, and hence was not changed.
- */
-export function selectEdgeUnderPoint(st, pt, direction) {
-    const leaf = grid.leafUnderPoint(st.grid, pt);
-    if(!leaf) {
-        return false;
-    }
-
-    const chain = grid.parentChain(st.grid, leaf);
-
-    /** @type {grid.Grid<Cell>} */
-    let last = leaf;
-    for(const node of chain) {
-        const atRightChild = direction === "Left"  && node.type === "Horz" && node.right === last;
-        const atLeftChild  = direction === "Right" && node.type === "Horz" && node.left  === last;
-        const atBelowChild = direction === "Above" && node.type === "Vert" && node.right === last;
-        const atAboveChild = direction === "Below" && node.type === "Vert" && node.left  === last;
-
-        if(atRightChild || atLeftChild || atBelowChild || atAboveChild) {
-            st.selection = node;
-            return true;
-        }
-
-        last = node;
-    }
-
-    return false;
-}
-
-/**
- * Select the edge of the given `node`.
- *
- * @param {EdgePrimsState} st
- * @param {grid.Split<Cell>} node
- */
-function _selectEdgeOfNode(st, node) {
-    // Check that the node is in the grid by trying to find a path to
-    // it.
-    let path = grid.pathToNode(st.grid, node);
-    if(path === undefined) {
-        return;
-    }
-
-    st.selection = node;
-}
-
-/**
- * Select the edge of the given `node`.
- *
- * @type {(st: EdgePrimsState, node: grid.Split<Cell>) => Inverse<EdgePrimsState>}
- */
-export const selectEdgeOfNode = state.withDefaultInverse(_selectEdgeOfNode);
 
 /**
  * Mutate the given list of lines so that it has at least `n` lines,
@@ -98,156 +40,206 @@ function trimEmptyLines(n, lines) {
 }
 
 /**
- * Move the selected edge by the given number of rows/columns.
+ * Ensure that the cell's lines array matches the row height,
+ * adding or trimming empty lines as necessary.
  *
- * @param {EdgeMovingPrimsState} st
- * @param {number} n
+ * @param {grid.Grid<Cell>} g
+ * @param {grid.CellPath} cellPath
  */
-function _moveEdge(st, n) {
-    if(st.selection.type === "Horz") {
-        const leftWidth = st.selection.left.dims.width;
-        const upperLeft = grid.posOfLeaf(st.grid, st.selection);
-        const globalCol = upperLeft.x + leftWidth;
-
-        // Add space to the column just left of `globalCol`.
-        const leftLeaves = [...grid.leavesUnderCol(st.grid, globalCol - 1)];
-
-        const leftMin = util.minimum(leftLeaves.values().map(leaf => leaf.dims.width));
-        n = Math.max(-(leftMin - 1), n);
-
-        grid.modifyWidthOfLeaves(st.grid, n, leftLeaves);
-    } else {
-        const topHeight = st.selection.left.dims.height;
-        const upperLeft = grid.posOfLeaf(st.grid, st.selection);
-        const globalRow = upperLeft.y + topHeight;
-
-        // Add space to the column just above of `globalRow`.
-        const topLeaves = [...grid.leavesUnderRow(st.grid, globalRow - 1)];
-
-        const topMin = util.minimum(topLeaves.values().map(leaf => leaf.dims.height));
-        n = Math.max(-(topMin - 1), n);
-
-        grid.modifyHeightOfLeaves(st.grid, n, topLeaves);
-
-        // Add or remove lines as appropriate.
-        topLeaves.forEach(leaf => {
-            if(leaf.data.lines.length < leaf.dims.height) {
-                // There are too few lines.
-                leaf.data.lines.push(...Array.from(
-                    { length: leaf.dims.height - leaf.data.lines.length },
-                    () => ""
-                ));
-            } else if(leaf.dims.height < leaf.data.lines.length) {
-                // There are too many lines.
-                trimEmptyLines(leaf.dims.height, leaf.data.lines);
-            }
-        });
+function _syncCellLinesToSize(g, cellPath) {
+    const cell = grid.lookupCell(g, cellPath);
+    const row  = grid.lookupRow(g, cellPath);
+    if(cell.data.lines.length < row.height) {
+        cell.data.lines.push(...Array.from(
+            { length: row.height - cell.data.lines.length },
+            () => ""
+        ));
+    } else if(row.height < cell.data.lines.length) {
+        trimEmptyLines(row.height, cell.data.lines);
     }
 }
 
 /**
- * Move the selected edge by the given number of rows/columns.
+ * Given a global point and a direction, determine the edge state
+ * for starting a moving-edge operation.
  *
- * @type {(st: EdgeMovingPrimsState, n: number) => Inverse<EdgeMovingPrimsState>}
- */
-export const moveEdge = state.withDefaultInverse(_moveEdge);
-
-/**
- * Slide the selected edge by the given number of rows/columns. If the
- * selected edge is not horizontal, or there is no selected edge, then
- * this function does nothing.
- *
- * @param {EdgeSlidingPrimsState} st
- * @param {number} n
- */
-function _slideEdge(st, n) {
-    if(st.selection.type === "Horz") {
-        const leftWidth = st.selection.left.dims.width;
-
-        // Find the width of the narrowest leaf on the left side of
-        // the edge.
-        const leftLeaves = [...grid.leavesUnderCol(st.selection, leftWidth - 1)];
-        const leftMin = util.minimum(leftLeaves.values().map(leaf => leaf.dims.width));
-
-        // Find the width of the narrowest leaf on the right side of
-        // the edge.
-        const rightLeaves = [...grid.leavesUnderCol(st.selection, leftWidth)];
-        const rightMin = util.minimum(rightLeaves.values().map(leaf => leaf.dims.width));
-
-        // Clamp the amount we're sliding so that we can't reduce the
-        // size of one of the leaves to zero.
-        n = util.clamp(-(leftMin - 1), n, rightMin - 1);
-
-        // Note that the operations we do in the argument don't
-        // add/remove leaves, so there's no need to handle the return
-        // value of this function.
-        state.projectTextOntoLeaves((g) => {
-            util.assert(g.type === "Horz");
-            grid.modifyWidthOfLeaves(g.left,   n, leftLeaves);
-            grid.modifyWidthOfLeaves(g.right, -n, rightLeaves);
-            return g;
-        }, st.selection);
-    } else {
-        const topHeight = st.selection.left.dims.height;
-
-        // Find the height of the shortest leaf above the edge.
-        const topLeaves = [...grid.leavesUnderRow(st.selection, topHeight - 1)];
-        const topMin = util.minimum(topLeaves.values().map(leaf => leaf.dims.height));
-
-        // Find the height of the shortest leaf below the edge.
-        const bottomLeaves = [...grid.leavesUnderRow(st.selection, topHeight)];
-        const bottomMin = util.minimum(bottomLeaves.values().map(leaf => leaf.dims.height));
-
-        // Clamp the amount we're sliding so that we can't reduce the
-        // size of the leaves to zero.
-        n = util.clamp(-(topMin - 1), n, bottomMin - 1);
-
-        state.projectTextOntoLeaves((g) => {
-            util.assert(g.type === "Vert");
-            grid.modifyHeightOfLeaves(g.left,   n, topLeaves);
-            grid.modifyHeightOfLeaves(g.right, -n, bottomLeaves);
-            return g;
-        }, st.selection);
-    }
-}
-
-/**
- * Slide the selected edge by the given number of rows/columns.
- *
- * @type {(st: EdgeSlidingPrimsState, n: number) => Inverse<EdgeSlidingPrimsState>}
- */
-export const slideEdge = state.withDefaultInverse(_slideEdge);
-
-/**
  * @template {CommonState} S
  * @param {S} st
- * @returns {[EdgeMovingPrimsState, Inverse<S>]}
+ * @param {point.P2} pt
+ * @param {"Left" | "Right" | "Above" | "Below"} direction
+ * @returns {[EdgeMovingPrimsState, Inverse<S>] | undefined}
  */
-export function startMovingEdge(st) {
-    const snapshot = st.clone();
-    const firstNode = grid.allNodes(st.grid).next().value;
+export function startMovingEdge(st, pt, direction) {
+    const cell = grid.cellUnderPoint(st.grid, pt);
+    if(cell === undefined) return undefined;
 
-    return [ new EdgeMovingPrimsState(st.grid, firstNode), {
-        apply: (_s) => {
-            return snapshot;
-        },
+    /** @type {EdgeMovingPrimsState | undefined} */
+    let edgeState;
+
+    if(direction === "Left" && cell.colNo > 0) {
+        edgeState = new VertMovingPrimsState(st.grid, cell.rowNo, cell.colNo - 1);
+    } else if(direction === "Right") {
+        const row = grid.lookupRow(st.grid, cell);
+        if(cell.colNo < row.cells.length - 1) {
+            edgeState = new VertMovingPrimsState(st.grid, cell.rowNo, cell.colNo);
+        }
+    } else if(direction === "Above" && cell.rowNo > 0) {
+        edgeState = new HorzMovingPrimsState(st.grid, cell.rowNo - 1);
+    } else if(direction === "Below") {
+        if(cell.rowNo < st.grid.rows.length - 1) {
+            edgeState = new HorzMovingPrimsState(st.grid, cell.rowNo);
+        }
+    }
+
+    if(edgeState === undefined) return undefined;
+
+    const snapshot = st.clone();
+    return [edgeState, {
+        apply: (_s) => snapshot,
         fwdDescription: "start moving edge"
-    } ];
+    }];
 }
 
 /**
+ * Given a global point and a direction, determine the edge state
+ * for starting a sliding-edge operation.
+ *
  * @template {CommonState} S
  * @param {S} st
- * @returns {[EdgeSlidingPrimsState, Inverse<S>]}
+ * @param {point.P2} pt
+ * @param {"Left" | "Right" | "Above" | "Below"} direction
+ * @returns {[EdgeSlidingPrimsState, Inverse<S>] | undefined}
  */
-export function startSlidingEdge(st) {
-    const snapshot = st.clone();
-    const firstNode = grid.allNodes(st.grid).next().value;
+export function startSlidingEdge(st, pt, direction) {
+    const cell = grid.cellUnderPoint(st.grid, pt);
+    if(cell === undefined) return undefined;
 
-    return [ new EdgeSlidingPrimsState(st.grid, firstNode), {
-        apply: (_s) => {
-            return snapshot;
-        },
+    /** @type {EdgeSlidingPrimsState | undefined} */
+    let edgeState;
+
+    if(direction === "Left" && cell.colNo > 0) {
+        edgeState = new VertSlidingPrimsState(st.grid, cell.rowNo, cell.colNo - 1);
+    } else if(direction === "Right") {
+        const row = grid.lookupRow(st.grid, cell);
+        if(cell.colNo < row.cells.length - 1) {
+            edgeState = new VertSlidingPrimsState(st.grid, cell.rowNo, cell.colNo);
+        }
+    } else if(direction === "Above" && cell.rowNo > 0) {
+        edgeState = new HorzSlidingPrimsState(st.grid, cell.rowNo - 1);
+    } else if(direction === "Below") {
+        if(cell.rowNo < st.grid.rows.length - 1) {
+            edgeState = new HorzSlidingPrimsState(st.grid, cell.rowNo);
+        }
+    }
+
+    if(edgeState === undefined) return undefined;
+
+    const snapshot = st.clone();
+    return [edgeState, {
+        apply: (_s) => snapshot,
         fwdDescription: "start sliding edge"
-    } ];
+    }];
 }
+
+/**
+ * Move a vertical edge by `n` columns. The edge is to the right
+ * of the cell at `(st.rowNo, st.colNo)`. Moving expands/shrinks
+ * the cell to the left of the edge across the full grid height.
+ *
+ * @param {VertMovingPrimsState} st
+ * @param {number} n
+ */
+function _moveVerticalEdge(st, n) {
+    const cellRect = grid.rectOfCell(st.grid, { rowNo: st.rowNo, colNo: st.colNo });
+    const globalCol = cellRect.right - 1;
+    const cells = [...grid.cellsUnderGlobalX(st.grid, globalCol)];
+    grid.modifyWidthOfCells(st.grid, cells, n);
+}
+
+/**
+ * Move a vertical edge by `n` columns.
+ *
+ * @type {(st: VertMovingPrimsState, n: number) => Inverse<VertMovingPrimsState>}
+ */
+export const moveVerticalEdge = state.withDefaultInverse(_moveVerticalEdge);
+
+/**
+ * Move a horizontal edge by `n` rows. The edge is below
+ * row `st.rowNo`. Moving expands/shrinks that row.
+ *
+ * @param {HorzMovingPrimsState} st
+ * @param {number} n
+ */
+function _moveHorizontalEdge(st, n) {
+    const rowPath = { rowNo: st.rowNo };
+    grid.modifyHeightOfRow(st.grid, rowPath, n);
+
+    // Reconcile lines for all cells in the affected row.
+    const row = grid.lookupRow(st.grid, rowPath);
+    for(let colNo = 0; colNo < row.cells.length; ++colNo) {
+        _syncCellLinesToSize(st.grid, { rowNo: st.rowNo, colNo });
+    }
+}
+
+/**
+ * Move a horizontal edge by `n` rows.
+ *
+ * @type {(st: HorzMovingPrimsState, n: number) => Inverse<HorzMovingPrimsState>}
+ */
+export const moveHorizontalEdge = state.withDefaultInverse(_moveHorizontalEdge);
+
+/**
+ * Slide a vertical edge by `n` columns. Sliding expands the cell
+ * on one side and shrinks the cell on the other, keeping the
+ * overall row width constant.
+ *
+ * @param {VertSlidingPrimsState} st
+ * @param {number} n
+ */
+function _slideVerticalEdge(st, n) {
+    const leftCell  = grid.lookupCell(st.grid, { rowNo: st.rowNo, colNo: st.colNo });
+    const rightCell = grid.lookupCell(st.grid, { rowNo: st.rowNo, colNo: st.colNo + 1 });
+
+    n = util.clamp(-(leftCell.width - 1), n, rightCell.width - 1);
+
+    state.projectTextOntoLeaves((g) => {
+        leftCell.width  += n;
+        rightCell.width -= n;
+        return g;
+    }, st.grid);
+}
+
+/**
+ * Slide a vertical edge by `n` columns.
+ *
+ * @type {(st: VertSlidingPrimsState, n: number) => Inverse<VertSlidingPrimsState>}
+ */
+export const slideVerticalEdge = state.withDefaultInverse(_slideVerticalEdge);
+
+/**
+ * Slide a horizontal edge by `n` rows. Sliding expands the row
+ * above and shrinks the row below (or vice versa), keeping the
+ * overall grid height constant.
+ *
+ * @param {HorzSlidingPrimsState} st
+ * @param {number} n
+ */
+function _slideHorizontalEdge(st, n) {
+    const topRow    = grid.lookupRow(st.grid, { rowNo: st.rowNo });
+    const bottomRow = grid.lookupRow(st.grid, { rowNo: st.rowNo + 1 });
+
+    n = util.clamp(-(topRow.height - 1), n, bottomRow.height - 1);
+
+    state.projectTextOntoLeaves((g) => {
+        topRow.height    += n;
+        bottomRow.height -= n;
+        return g;
+    }, st.grid);
+}
+
+/**
+ * Slide a horizontal edge by `n` rows.
+ *
+ * @type {(st: HorzSlidingPrimsState, n: number) => Inverse<HorzSlidingPrimsState>}
+ */
+export const slideHorizontalEdge = state.withDefaultInverse(_slideHorizontalEdge);

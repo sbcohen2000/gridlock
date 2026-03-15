@@ -7,81 +7,149 @@ import * as grid from "../../grid.js";
 /** @import { Cell } from "../common-state.d.ts" */
 
 /**
- * Abstract base class for edge editing states. Subclasses distinguish
- * between move and slide modes.
+ * Abstract base class for edge moving states.
  */
-export class EdgePrimsState {
+export class EdgeMovingPrimsState {
     /**
      * @param {grid.Grid<Cell>} g
-     * @param {grid.Split<Cell>} selection
      */
-    constructor(g, selection) {
-        if(new.target === EdgePrimsState) {
-            throw new Error("Cannot instantiate EdgePrimsState directly");
+    constructor(g) {
+        if(new.target === EdgeMovingPrimsState) {
+            throw new Error("Cannot instantiate EdgeMovingPrimsState directly");
         }
         /** @type {grid.Grid<Cell>} */
         this.grid = g;
-        /** @type {grid.Split<Cell>} */
-        this.selection = selection;
     }
 
     /**
      * @abstract
-     * @returns {EdgePrimsState}
+     * @returns {EdgeMovingPrimsState}
      */
     clone() {
         throw new Error("Method not implemented");
     }
 
-    /**
-     * Clone the grid and find the corresponding selection node in the
-     * new grid. Subclasses use this to implement `clone()`.
-     *
-     * @returns {[grid.Grid<Cell>, grid.Split<Cell>]}
-     * @protected
-     */
-    _cloneGridAndSelection() {
-        const [g, [newSelection]] = grid.cloneMappingNodes(
-            this.grid,
-            [this.selection],
-            data => ({ lines: [...data.lines] })
-        );
-        return [g, /** @type {grid.Split<Cell>} */ (newSelection)];
+    /** @returns {grid.Grid<Cell>} */
+    _cloneGrid() {
+        return grid.clone(this.grid, data => ({ lines: [...data.lines] }));
     }
 }
 
 /**
- * The editor state for edge moving operations.
+ * Abstract base class for edge sliding states.
  */
-export class EdgeMovingPrimsState extends EdgePrimsState {
+export class EdgeSlidingPrimsState {
     /**
      * @param {grid.Grid<Cell>} g
-     * @param {grid.Split<Cell>} selection
      */
-    constructor(g, selection) {
-        super(g, selection);
+    constructor(g) {
+        if(new.target === EdgeSlidingPrimsState) {
+            throw new Error("Cannot instantiate EdgeSlidingPrimsState directly");
+        }
+        /** @type {grid.Grid<Cell>} */
+        this.grid = g;
     }
 
+    /**
+     * @abstract
+     * @returns {EdgeSlidingPrimsState}
+     */
     clone() {
-        const [g, selection] = this._cloneGridAndSelection();
-        return new EdgeMovingPrimsState(g, selection);
+        throw new Error("Method not implemented");
+    }
+
+    /** @returns {grid.Grid<Cell>} */
+    _cloneGrid() {
+        return grid.clone(this.grid, data => ({ lines: [...data.lines] }));
     }
 }
 
 /**
- * The editor state for edge sliding operations.
+ * State for moving a vertical edge (column boundary).
+ *
+ * The edge is to the right of the cell at `(rowNo, colNo)`.
  */
-export class EdgeSlidingPrimsState extends EdgePrimsState {
+export class VertMovingPrimsState extends EdgeMovingPrimsState {
     /**
      * @param {grid.Grid<Cell>} g
-     * @param {grid.Split<Cell>} selection
+     * @param {number} rowNo
+     * @param {number} colNo
      */
-    constructor(g, selection) {
-        super(g, selection);
+    constructor(g, rowNo, colNo) {
+        super(g);
+        /** @type {number} */
+        this.rowNo = rowNo;
+        /** @type {number} */
+        this.colNo = colNo;
     }
 
     clone() {
-        const [g, selection] = this._cloneGridAndSelection();
-        return new EdgeSlidingPrimsState(g, selection);
+        return new VertMovingPrimsState(this._cloneGrid(), this.rowNo, this.colNo);
+    }
+}
+
+/**
+ * State for moving a horizontal edge (row boundary).
+ *
+ * The `rowNo` is the index of the row below the edge.
+ */
+export class HorzMovingPrimsState extends EdgeMovingPrimsState {
+    /**
+     * @param {grid.Grid<Cell>} g
+     * @param {number} rowNo
+     */
+    constructor(g, rowNo) {
+        super(g);
+        /** @type {number} */
+        this.rowNo = rowNo;
+    }
+
+    clone() {
+        return new HorzMovingPrimsState(this._cloneGrid(), this.rowNo);
+    }
+}
+
+/**
+ * State for sliding a vertical edge (column boundary).
+ *
+ * The edge is to the right of the cell at `(rowNo, colNo)`.
+ */
+export class VertSlidingPrimsState extends EdgeSlidingPrimsState {
+    /**
+     * @param {grid.Grid<Cell>} g
+     * @param {number} rowNo
+     * @param {number} colNo
+     */
+    constructor(g, rowNo, colNo) {
+        super(g);
+        /** @type {number} */
+        this.rowNo = rowNo;
+        /** @type {number} */
+        this.colNo = colNo;
+    }
+
+    clone() {
+        return new VertSlidingPrimsState(this._cloneGrid(), this.rowNo, this.colNo);
+    }
+}
+
+/**
+ * State for sliding a horizontal edge (row boundary).
+ *
+ * The `rowNo` is the index of the row below the edge.
+ */
+export class HorzSlidingPrimsState extends EdgeSlidingPrimsState {
+    /**
+     * @param {grid.Grid<Cell>} g
+     * @param {number} rowNo
+     */
+    constructor(g, rowNo) {
+        super(g);
+        /** @type {number} */
+        this.rowNo = rowNo;
+    }
+
+    clone() {
+        return new HorzSlidingPrimsState(this._cloneGrid(), this.rowNo);
     }
 }

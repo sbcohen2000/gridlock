@@ -1,5 +1,6 @@
 import * as fc from "fast-check";
 import * as grid from "../../src/grid.js";
+import * as rect from "../../src/rect.js";
 import * as util from "../../src/util.js";
 import { arbCellGrid } from "../arbitrary-cell-grid.js";
 import { arbitraryPrimitiveCommand, summarizePrimitiveCommands } from "./arbitrary-primitive-command.js";
@@ -15,16 +16,17 @@ import { serialize, textPrims } from "../../src/state/index.js";
  * @returns {fc.Arbitrary<TextPrimsState>} An arbitrary editor state
  */
 function arbitraryStartingState() {
-    return arbCellGrid.chain(g =>
-        fc.record({
-            x: fc.integer({ min: 0, max: g.dims.width }),
-            y: fc.integer({ min: 0, max: g.dims.height })
+    return arbCellGrid.chain(g => {
+        const outerRect = grid.rectOfGrid(g);
+        return fc.record({
+            x: fc.integer({ min: 0, max: rect.width(outerRect) }),
+            y: fc.integer({ min: 0, max: rect.height(outerRect) })
         }).chain(pt => {
             const [st] = textPrims.editText(serialize.commonStateFromGrid(g));
             textPrims.putPointOnGlobalPosition(st, pt, true);
             return fc.constant(st);
-        })
-    );
+        });
+    });
 }
 
 /**
