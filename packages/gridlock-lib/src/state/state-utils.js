@@ -2,12 +2,12 @@ import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
 
-/** @import { Cell, CommonState, Inverse } from "./common-state.d.ts"; */
+/** @import { Cell, Inverse } from "./state-iface.js"; */
 
 /**
  * An inverse which snapshots the edit state.
  *
- * @template {CommonState} S
+ * @template {{ grid: import("../grid.js").Grid<Cell>, clone(): any }} S
  * @implements {Inverse<S>}
  */
 export class SnapshotInverse {
@@ -44,7 +44,7 @@ export class SnapshotInverse {
  * the operation and returns an inverse that restores from the
  * snapshot.
  *
- * @template {CommonState} S
+ * @template {{ grid: import("../grid.js").Grid<Cell>, clone(): any }} S
  * @template {any[]} A
  * @param {(st: S, ...args: A) => void} fn The primitive operation to wrap.
  * @param {string} [fwdDescription] A description of the forward
@@ -62,17 +62,17 @@ export function withDefaultInverse(fn, fwdDescription) {
 /**
  * The identity inverse.
  *
- * @implements {Inverse<CommonState>}
+ * @implements {Inverse<any>}
  */
 export class IdInverse {
     /**
-     * @param {CommonState} st
+     * @param {any} st
      */
     apply(st) { return st; }
 
     /**
      * @param {Inverse<any>} i
-     * @returns {Inverse<CommonState>}
+     * @returns {Inverse<any>}
      */
     compose(i) {
         // Identity composes with everything.

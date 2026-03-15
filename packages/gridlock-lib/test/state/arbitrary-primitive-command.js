@@ -1,10 +1,42 @@
 import * as fc from "fast-check";
 import * as util from "../../src/util.js";
-import { serialize } from "../../src/state/index.js";
-import { PRIMITIVES as TEXT_PRIMS } from "../../src/state/text-prims/registry.js";
+import { serialize, TextPrims } from "../../src/state/index.js";
 
-/** @import { Type } from "../../src/state/common-state.js" */
-/** @import { TextPrimsState } from "../../src/state/text-prims/state.js" */
+/**
+ * @typedef {"string" | "number" | "boolean" | "point"} Type
+ */
+
+/**
+ * @typedef {{
+ *   method: string,
+ *   args: Type[],
+ *   const: boolean,
+ *   description: string,
+ * }} PrimitiveDescriptor
+ */
+
+/** @type {PrimitiveDescriptor[]} */
+const TEXT_PRIMS = [
+    { method: "putPointAtStartOfGlobalLine", args: [], const: false, description: "Move point to start of line" },
+    { method: "putPointAtEndOfGlobalLine", args: [], const: false, description: "Move point to end of line" },
+    { method: "putPointOnNextGlobalLine", args: ["boolean"], const: false, description: "Move point to next line" },
+    { method: "putPointOnPrevGlobalLine", args: ["boolean"], const: false, description: "Move point to previous line" },
+    { method: "putPointOnNextGlobalCol", args: [], const: false, description: "Move point to next column" },
+    { method: "putPointOnPrevGlobalCol", args: [], const: false, description: "Move point to previous column" },
+    { method: "putPointOnGlobalPosition", args: ["point", "boolean"], const: false, description: "Move point to global position" },
+    { method: "pointAtEndOfGlobalLine", args: [], const: true, description: "Check if point is at end of line" },
+    { method: "pointAtBeginningOfGlobalLine", args: [], const: true, description: "Check if point is at beginning of line" },
+    { method: "pointOnFirstGlobalLine", args: [], const: true, description: "Check if point is on first line" },
+    { method: "pointOnLastGlobalLine", args: [], const: true, description: "Check if point is on last line" },
+    { method: "globalLineIsEmpty", args: [], const: true, description: "Check if current line is empty" },
+    { method: "textOnGlobalLine", args: ["number"], const: true, description: "Get text on a global line" },
+    { method: "findGlobalPoint", args: [], const: true, description: "Find the global point" },
+    { method: "removeGlobalLine", args: [], const: false, description: "Remove the current line" },
+    { method: "removeGlobalNewline", args: [], const: false, description: "Remove the newline before the current line" },
+    { method: "removeString", args: ["number"], const: false, description: "Remove characters before point" },
+    { method: "insertGlobalNewline", args: [], const: false, description: "Insert a newline" },
+    { method: "insertString", args: ["string", "boolean"], const: false, description: "Insert a string" },
+];
 
 /**
  * Generate an arbitrary value for a given primitive type.
@@ -47,14 +79,14 @@ const defaultArbitraryPrimSettings = {
  * Generate an arbitrary primitive command.
  *
  * @param {Partial<ArbitraryPrimitiveSettings>} [settings]
- * @returns {fc.Arbitrary<[Function, any[]]>} An arbitrary that generates
- *     a tuple of [primitive name, arguments array].
+ * @returns {fc.Arbitrary<[string, any[]]>} An arbitrary that generates
+ *     a tuple of [method name, arguments array].
  */
 export function arbitraryPrimitiveCommand(settings) {
     /** @type {ArbitraryPrimitiveSettings} */
     settings = { ...defaultArbitraryPrimSettings, ...settings };
 
-    /** @type {fc.Arbitrary<[Function, any[]]>[]} */
+    /** @type {fc.Arbitrary<[string, any[]]>[]} */
     const primitiveArbitraries = TEXT_PRIMS
           .filter(prim => {
               return ( prim.const && settings.includeConstPrims)
@@ -64,20 +96,19 @@ export function arbitraryPrimitiveCommand(settings) {
         const argArbitraries = prim.args.map(type => arbitraryForType(type));
 
         if(argArbitraries.length === 0) {
-            return fc.constant([prim.function, []]);
+            return fc.constant([prim.method, []]);
         }
 
         return fc.tuple(...argArbitraries)
-            .map(args => [prim.function, args]);
+            .map(args => [prim.method, args]);
     });
 
     return fc.oneof(...primitiveArbitraries);
 }
 
 /**
- *
- * @param {TextPrimsState} st The initial state.
- * @param {[Function, any[]][]} commands A list of arbitrary commands.
+ * @param {import("../../src/state/text-prims.js").TextPrims} st The initial state.
+ * @param {[string, any[]][]} commands A list of arbitrary commands.
  * @returns {string} A summary of the arbitrary commands,
  *     along with a rendering of the initial and final states.
  */
@@ -85,11 +116,11 @@ export function summarizePrimitiveCommands(st, commands) {
     const initialState = serialize.printCommonState(st);
     const commandSummary = [];
 
-    for(const [fn, args] of commands) {
+    for(const [method, args] of commands) {
         const argStr = args.map(a => JSON.stringify(a)).join(", ");
-        commandSummary.push(`  ${fn.name}(${argStr})`);
+        commandSummary.push(`  ${method}(${argStr})`);
         try {
-            fn(st, ...args);
+            st[method](...args);
         } catch(e) {
             // If command fails during replay, just note it
         }
@@ -123,17 +154,17 @@ async function main() {
     );
 
     // Create empty editor state
-    const st = serialize.emptyTextEditingState();
+    const st = TextPrims.mkEmpty();
 
     console.log("Initial state:");
     console.log(serialize.printCommonState(st));
     console.log("\nApplying commands:");
 
     // Apply each command
-    for(const [fn, cmdArgs] of commands) {
+    for(const [method, cmdArgs] of commands) {
         const argStr = cmdArgs.map(a => JSON.stringify(a)).join(", ");
-        console.log(`  ${fn.name}(${argStr})`);
-        fn(st, ...cmdArgs);
+        console.log(`  ${method}(${argStr})`);
+        st[method](...cmdArgs);
     }
 
     console.log("\nFinal state:");

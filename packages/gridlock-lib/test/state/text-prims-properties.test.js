@@ -5,15 +5,13 @@ import * as util from "../../src/util.js";
 import { arbCellGrid } from "../arbitrary-cell-grid.js";
 import { arbitraryPrimitiveCommand, summarizePrimitiveCommands } from "./arbitrary-primitive-command.js";
 import { expect } from "chai";
-import { serialize, textPrims } from "../../src/state/index.js";
-
-/** @import { TextPrimsState } from "../../src/state/text-prims/state.js" */
+import { serialize, TextPrims } from "../../src/state/index.js";
 
 /**
  * Generate an arbitrary starting state by generating a grid and then
  * setting the point to an arbitrary position within the grid.
  *
- * @returns {fc.Arbitrary<TextPrimsState>} An arbitrary editor state
+ * @returns {fc.Arbitrary<TextPrims>} An arbitrary editor state
  */
 function arbitraryStartingState() {
     return arbCellGrid.chain(g => {
@@ -22,22 +20,11 @@ function arbitraryStartingState() {
             x: fc.integer({ min: 0, max: rect.width(outerRect) }),
             y: fc.integer({ min: 0, max: rect.height(outerRect) })
         }).chain(pt => {
-            const [st] = textPrims.editText(serialize.commonStateFromGrid(g));
-            textPrims.putPointOnGlobalPosition(st, pt, true);
+            const st = TextPrims.editText(g);
+            st.putPointOnGlobalPosition(pt, true);
             return fc.constant(st);
         });
     });
-}
-
-/**
- * Deep-clone a text prims state.
- *
- * @param {TextPrimsState} st
- * @returns {TextPrimsState}
- */
-function cloneState(st) {
-    const clone = st.clone();
-    return clone;
 }
 
 describe("Primitive command properties", () => {
@@ -47,11 +34,11 @@ describe("Primitive command properties", () => {
                 fc.array(arbitraryPrimitiveCommand({ includeConstPrims: false }), { minLength: 0, maxLength: 1000 }),
                 (commands) => {
                     // Start with a fresh editor state
-                    const [st] = textPrims.editText(serialize.emptyTextEditingState());
+                    const st = TextPrims.mkEmpty();
 
                     // Apply each command
-                    for(const [fn, args] of commands) {
-                        fn(st, ...args);
+                    for(const [method, args] of commands) {
+                        st[method](...args);
                     }
 
                     // Check that grid dimensions are consistent
@@ -63,7 +50,7 @@ describe("Primitive command properties", () => {
                 reporter(out) {
                     if(!out.failed) return;
                     const commands = out.counterexample[0];
-                    const [st] = textPrims.editText(serialize.emptyTextEditingState());
+                    const st = TextPrims.mkEmpty();
 
                     const summary = summarizePrimitiveCommands(st, commands);
                     const errorMessage = `\nseed: ${out.seed}\nshrinks: ${out.numShrinks}\n${summary}`;
@@ -78,10 +65,10 @@ describe("Primitive command properties", () => {
             fc.property(
                 arbitraryStartingState(),
                 arbitraryPrimitiveCommand({ includeConstPrims: true, includeNonConstPrims: false }),
-                (st, [fn, args]) => {
-                    const clone = cloneState(st);
+                (st, [method, args]) => {
+                    const clone = st.clone();
                     const beforeSerialization = serialize.printCommonState(clone);
-                    fn(clone, ...args);
+                    clone[method](...args);
                     const afterSerialization = serialize.printCommonState(clone);
                     expect(afterSerialization).to.equal(beforeSerialization);
                 }
@@ -92,7 +79,7 @@ describe("Primitive command properties", () => {
                     if(!out.failed) return;
                     const [st, command] = out.counterexample;
 
-                    const summary = summarizePrimitiveCommands(cloneState(st), [command]);
+                    const summary = summarizePrimitiveCommands(st.clone(), [command]);
                     const errorMessage = [
                         `\nruns: ${out.numRuns}`,
                         `seed: ${out.seed}`,
@@ -110,15 +97,15 @@ describe("Primitive command properties", () => {
             fc.property(
                 arbitraryStartingState(),
                 arbitraryPrimitiveCommand({ includeConstPrims: false, includeNonConstPrims: true }),
-                (st, [fn, args]) => {
-                    const clone = cloneState(st);
+                (st, [method, args]) => {
+                    const clone = st.clone();
                     const beforeSerialization = serialize.printCommonState(clone);
-                    const beforeGlobalPt = textPrims.findGlobalPoint(clone);
+                    const beforeGlobalPt = clone.findGlobalPoint();
                     const beforeLastGlobalCol = clone.selection.lastGlobalCol;
-                    const inv = fn(clone, ...args);
+                    const inv = clone[method](...args);
                     inv.apply(clone);
                     const afterSerialization = serialize.printCommonState(clone);
-                    const afterGlobalPt = textPrims.findGlobalPoint(clone);
+                    const afterGlobalPt = clone.findGlobalPoint();
                     expect(afterSerialization).to.equal(beforeSerialization);
                     expect(afterGlobalPt).to.deep.equal(beforeGlobalPt);
                     expect(clone.selection.lastGlobalCol).to.equal(beforeLastGlobalCol);
@@ -128,14 +115,14 @@ describe("Primitive command properties", () => {
                 numRuns: 1000,
                 reporter(out) {
                     if(!out.failed) return;
-                    const [st, [fn, args]] = out.counterexample;
-                    const globalPt = textPrims.findGlobalPoint(st);
+                    const [st, [method, args]] = out.counterexample;
+                    const globalPt = st.findGlobalPoint();
                     const initialState = util.showMultilineString(serialize.printCommonState(st));
 
                     const argStr = args.map(a => JSON.stringify(a)).join(", ");
-                    const commandSummary = `${fn.name}(${argStr})`;
+                    const commandSummary = `${method}(${argStr})`;
 
-                    const inv = fn(st, ...args);
+                    const inv = st[method](...args);
                     const afterCommand = serialize.printCommonState(st);
 
                     const afterInverse =

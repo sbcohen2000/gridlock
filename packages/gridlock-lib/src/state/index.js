@@ -1,5 +1,9 @@
 export * as serialize from "./serialize-common-state.js";
-export * as cellPrims from "./cell-prims/cell-prims.js";
-export * as textPrims from "./text-prims/text-prims.js";
-export * as slicePrims from "./slice-prims/slice-prims.js";
-export * as edgePrims from "./edge-prims/edge-prims.js";
+export { TextPrims } from "./text-prims.js";
+export { CellPrims } from "./cell-prims.js";
+export { SliceRowPrims } from "./slice-row.js";
+export { SliceCellPrims } from "./slice-cell.js";
+export { MoveCellBoundaryPrims } from "./move-cell-boundary.js";
+export { MoveRowBoundaryPrims } from "./move-row-boundary.js";
+export { SlideCellBoundaryPrims } from "./slide-cell-boundary.js";
+export { SlideRowBoundaryPrims } from "./slide-row-boundary.js";

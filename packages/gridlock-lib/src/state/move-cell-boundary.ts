@@ -1,0 +1,35 @@
+import * as grid from "../grid.js";
+import { Cell, Inverse, State } from "./state-iface.js";
+import { SnapshotInverse } from "./state-utils.js";
+
+export class MoveCellBoundaryPrims implements State<MoveCellBoundaryPrims> {
+    grid: grid.Grid<Cell>;
+    rowNo: number;
+    colNo: number;
+
+    constructor(g: grid.Grid<Cell>, rowNo: number, colNo: number) {
+        this.grid = g;
+        this.rowNo = rowNo;
+        this.colNo = colNo;
+    }
+
+    clone(): MoveCellBoundaryPrims {
+        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+        return new MoveCellBoundaryPrims(g, this.rowNo, this.colNo);
+    }
+
+    static moveCellBoundary(g: grid.Grid<Cell>, rowNo: number, colNo: number): MoveCellBoundaryPrims {
+        return new MoveCellBoundaryPrims(g, rowNo, colNo);
+    }
+
+    moveVerticalEdge(n: number): Inverse<MoveCellBoundaryPrims> {
+        const snapshot = this.clone();
+
+        const cellRect = grid.rectOfCell(this.grid, { rowNo: this.rowNo, colNo: this.colNo });
+        const globalCol = cellRect.right - 1;
+        const cells = [...grid.cellsUnderGlobalX(this.grid, globalCol)];
+        grid.modifyWidthOfCells(this.grid, cells, n);
+
+        return new SnapshotInverse(snapshot);
+    }
+}

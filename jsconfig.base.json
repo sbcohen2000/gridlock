@@ -1,7 +1,6 @@
 {
     "compilerOptions": {
         "checkJs": true,
-        "lib": "esnext",
         "target": "esnext",
         "module": "nodenext",
         "moduleResolution": "nodenext",

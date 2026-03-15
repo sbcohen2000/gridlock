@@ -1,7 +1,7 @@
 import * as grid from "../src/grid.js";
 import * as arbg from "./arbitrary-grid.js";
 import * as fc from "fast-check";
-import { Cell } from "../src/state/common-state.js";
+import { Cell } from "../src/state/state-iface.js";
 
 const printableChar = fc.constantFrom(
     ...'abcdefghijklmnopqrstuvwxyz0123456789 '.split('')

@@ -1,15 +1,16 @@
 import * as point from "../../src/point.js";
-import { serialize, cellPrims } from "../../src/state/index.js";
+import { serialize, CellPrims } from "../../src/state/index.js";
 import { expect } from "chai";
 
 /**
- * Create a CellPrimsState from a cell-grid string.
+ * Create a CellPrims from a cell-grid string.
  *
  * @param {string} src
- * @returns {import("../../src/state/cell-prims/state.js").CellPrimsState}
+ * @returns {CellPrims}
  */
 function mkCellState(src) {
-    return cellPrims.editCells(serialize.textEditingStateFromString(src))[0];
+    const textState = serialize.textEditingStateFromString(src);
+    return CellPrims.editCells(textState.grid);
 }
 
 describe("cell-prims", () => {
@@ -21,7 +22,7 @@ describe("cell-prims", () => {
                   "+-----+";
 
             const st = mkCellState(src);
-            cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
+            st.selectLeafUnderPoint(point.mkP2(0, 0), true);
             expect(st.selection.size).to.equal(1);
         });
 
@@ -32,8 +33,8 @@ describe("cell-prims", () => {
                   "+-----+-----+";
 
             const st = mkCellState(src);
-            cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
-            cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), false);
+            st.selectLeafUnderPoint(point.mkP2(0, 0), true);
+            st.selectLeafUnderPoint(point.mkP2(6, 0), false);
             expect(st.selection.size).to.equal(2);
         });
 
@@ -44,8 +45,8 @@ describe("cell-prims", () => {
                   "+-----+-----+";
 
             const st = mkCellState(src);
-            cellPrims.selectLeafUnderPoint(st, point.mkP2(0, 0), true);
-            cellPrims.selectLeafUnderPoint(st, point.mkP2(6, 0), true);
+            st.selectLeafUnderPoint(point.mkP2(0, 0), true);
+            st.selectLeafUnderPoint(point.mkP2(6, 0), true);
             expect(st.selection.size).to.equal(1);
         });
     });

@@ -1,44 +1,14 @@
 import * as grid from "../grid.js";
 import * as rect from "../rect.js";
-import { editText } from "./text-prims/text-prims.js";
+import { TextPrims } from "./text-prims.js";
 
-/** @import { CommonState, Cell } from "./common-state.d.ts" */
-/** @import { TextPrimsState } from "./text-prims/state.js" */
-
-/**
- * Create a `TextPrimsState` from a grid.
- *
- * @param {grid.Grid<Cell>} g
- * @returns {TextPrimsState}
- */
-export function commonStateFromGrid(g) {
-    return editText({
-        grid: g,
-        clone() {
-            /**
-             * This initial state has no inverse.
-             */
-            return null;
-        }
-    })[0];
-}
-
-/**
- * Create a default CommonState with a single leaf containing one empty line.
- *
- * @returns {TextPrimsState}
- */
-export function emptyTextEditingState() {
-    /** @type {grid.Grid<Cell>} */
-    const g = grid.mk(1, 1, { lines: [""] });
-    return commonStateFromGrid(g);
-}
+/** @import { Cell } from "./state-iface.js" */
 
 /**
  * Print a grid of cells, by printing its ASCII representation
  * immediately followed by the cell text of each grid.
  *
- * @param {CommonState} st The common state to encode.
+ * @param {{ grid: grid.Grid<Cell> }} st The common state to encode.
  * @returns {string} The encoded cell grid.
  */
 export function printCommonState(st) {
@@ -104,9 +74,9 @@ export function parseCellGrid(src) {
  * editor state.
  *
  * @param {string} src The source to parse as a cell grid.
- * @returns {TextPrimsState}
+ * @returns {TextPrims}
  */
 export function textEditingStateFromString(src) {
     const g = parseCellGrid(src);
-    return commonStateFromGrid(g);
+    return TextPrims.editText(g);
 }
