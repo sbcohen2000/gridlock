@@ -425,20 +425,20 @@ export function* allPositionedCells<A>(g: Grid<A>): Generator<[CellPath, rect.Re
 }
 
 /**
- * Yield all of the cells in the given `row` of the grid, along with
- * a rectangle describing their position and size.
+ * Yield all of the cells in the given `row` of the grid, along with a
+ * rectangle describing their position and size.
  *
  * @param g The grid.
- * @param rowNo The row number.
+ * @param row The row number.
  */
-export function* allPositionedCellsOnRow<A>(g: Grid<A>, rowNo: number): Generator<[CellPath, rect.Rect]> {
+export function* allPositionedCellsOnRow<A>(g: Grid<A>, row: RowPath): Generator<[CellPath, rect.Rect]> {
     let y = 0;
-    for (let i = 0; i < rowNo; ++i) y += g.rows[i].height;
-    const row = g.rows[rowNo];
+    for (let i = 0; i < row.rowNo; ++i) y += g.rows[i].height;
+    const theRow = g.rows[row.rowNo];
     let x = 0;
-    for (let colNo = 0; colNo < row.cells.length; ++colNo) {
-        const cell = row.cells[colNo];
-        yield [{ rowNo, colNo }, rect.fromXYWH(x, y, cell.width, row.height)];
+    for (let colNo = 0; colNo < theRow.cells.length; ++colNo) {
+        const cell = theRow.cells[colNo];
+        yield [{ rowNo: row.rowNo, colNo }, rect.fromXYWH(x, y, cell.width, theRow.height)];
         x += cell.width;
     }
 }
@@ -562,10 +562,6 @@ export function modifyWidthOfCells<A>(g: Grid<A>, cells: CellPath[], n: number) 
 }
 
 /**
- * Find all of the cells which are underneath global row `y`. The
- * cells are returned in order of ascending `x`-position.
- */
-/**
  * Find the row in `g` that contains global y-coordinate `y`.
  */
 function rowUnderGlobalY<A>(g: Grid<A>, y: number): RowPath | undefined {
@@ -580,7 +576,11 @@ function rowUnderGlobalY<A>(g: Grid<A>, y: number): RowPath | undefined {
     return undefined;
 }
 
-export function* cellsUnderGlobalY<A>(g: Grid<A>, y: number): IteratorObject<CellPath> {
+/**
+ * Find all of the cells which are underneath global row `y`. The
+ * cells are returned in order of ascending `x`-position.
+ */
+export function* cellsUnderGlobalY<A>(g: Grid<A>, y: number): Generator<CellPath> {
     const rp = rowUnderGlobalY(g, y);
     if (rp === undefined) return;
     const row = g.rows[rp.rowNo];
@@ -589,10 +589,6 @@ export function* cellsUnderGlobalY<A>(g: Grid<A>, y: number): IteratorObject<Cel
     }
 }
 
-/**
- * Find all of the cells which are underneath column `x`. The cells
- * are returned in order of ascending `y`-position.
- */
 /**
  * Find the column index in `row` that contains global x-coordinate `x`.
  */
@@ -608,6 +604,10 @@ function colUnderGlobalX<A>(row: Row<A>, x: number): number | undefined {
     return undefined;
 }
 
+/**
+ * Find all of the cells which are underneath column `x`. The cells
+ * are returned in order of ascending `y`-position.
+ */
 export function* cellsUnderGlobalX<A>(g: Grid<A>, x: number): Generator<CellPath> {
     for (let rowNo = 0; rowNo < g.rows.length; ++rowNo) {
         const colNo = colUnderGlobalX(g.rows[rowNo], x);
@@ -616,7 +616,6 @@ export function* cellsUnderGlobalX<A>(g: Grid<A>, x: number): Generator<CellPath
         }
     }
 }
-
 
 /**
  * Find the cell in `g` under the point `p`, or `undefined` if there
@@ -631,24 +630,144 @@ export function cellUnderPoint<A>(g: Grid<A>, p: point.P2): CellPath | undefined
 }
 
 /**
- * Given references to leaves which must be adjacent on a single row,
+ * Check if a possibly unsorted sequence of numbers is contiguous.
+ *
+ * @param xs The numbers to test.
+ */
+function contiguous(xs: readonly number[]): boolean {
+    const sorted = xs.toSorted();
+    for(let i = 0; i < sorted.length - 1; ++i) {
+        if(sorted[i] !== sorted[i + 1] - 1) return false;
+    }
+    return true;
+}
+
+/**
+ * Merge cells on a single row.
+ */
+function mergeCellsOnRow<A>(g: Grid<A>, rowNo: number, row: CellPath[], data: A, label?: string): CellPath {
+    const theRow = g.rows[rowNo];
+
+    const colNos = row.map(({ colNo }) => colNo);
+    colNos.sort();
+
+    if(!contiguous(colNos)) {
+        throw new Error("invalid merge");
+    }
+
+    // Perform the splice.
+    const firstColNo = colNos.at( 0);
+    const lastColNo  = colNos.at(-1);
+
+    theRow.cells.splice(firstColNo, lastColNo - firstColNo + 1, {
+        type: "Cell",
+        width: colNos.reduce((width: number, colNo: number) =>
+            width + lookupCell(g, { rowNo, colNo }).width, 0),
+        data,
+        label
+    });
+
+    return { rowNo, colNo: firstColNo };
+}
+
+/**
+ * Merge the cells on multiple contiguous rows, given by `rowNos`.
+ */
+function mergeRows<A>(g: Grid<A>, rowNos: number[], data: A, label?: string): CellPath {
+    rowNos.sort();
+
+    if(!contiguous(rowNos)) {
+        throw new Error("invalid merge");
+    }
+
+    // Perform the splice.
+    const firstRowNo = rowNos.at( 0);
+    const lastRowNo  = rowNos.at(-1);
+
+    g.rows.splice(firstRowNo, lastRowNo - firstRowNo + 1, {
+        type: "Row",
+        height: rowNos.reduce((height: number, rowNo: number) =>
+            height + lookupRow(g, { rowNo }).height, 0),
+        cells: [{
+            type: "Cell",
+            width: rect.width(rectOfRow(g, { rowNo: firstRowNo })),
+            data,
+            label
+        }]
+    });
+
+    return { rowNo: firstRowNo, colNo: 0 };
+}
+
+function collectCellsByRow(cells: CellPath[]): Map<number, CellPath[]> {
+    const byRow: Map<number, CellPath[]> = new Map();
+    cells.forEach(cell => {
+        const inRow = byRow.get(cell.rowNo);
+        if(inRow === undefined) {
+            byRow.set(cell.rowNo, [cell]);
+        } else {
+            inRow.push(cell);
+        }
+    });
+    return byRow;
+}
+
+/**
+ * Given references to cells which must be adjacent on a single row,
  * or occupy entire rows, merge all of the cells into a single new
  * cell with the provided `data` and `label`.
  *
  * @returns The new cell.
  */
 export function mergeCells<A>(g: Grid<A>, cells: CellPath[], data: A, label?: string): CellPath {
-    throw new Error("TODO");
+    const byRow = collectCellsByRow(cells);
+
+    if(byRow.size === 1) {
+        // The cells exist on a single row.
+        const [rowNo, row] = byRow.entries().next().value;
+        return mergeCellsOnRow(g, rowNo, row, data, label);
+    } else {
+        // The cells exist on multiple rows.
+        for(const [rowNo, cells] of byRow.entries()) {
+            const theRow = g.rows[rowNo];
+
+            if(cells.length !== theRow.cells.length) {
+                throw new Error("invalid merge");
+            }
+        }
+
+        const rowNos = [...byRow.keys()];
+        return mergeRows(g, rowNos, data, label);
+    }
 }
 
 /**
  * Test if the provided cells can be merged into a single cell.
  *
  * @returns `true` if a merge operation is valid for the provided
-   cells, and `false` otherwise.
+ *     cells, and `false` otherwise.
  */
 export function canMergeCells<A>(g: Grid<A>, cells: CellPath[]): boolean {
-    throw new Error("TODO");
+    if(cells.length < 2) return false;
+
+    const byRow = collectCellsByRow(cells);
+
+    if(byRow.size === 1) {
+        // The cells occupy a single row.
+        const [_, row] = byRow.entries().next().value;
+        return contiguous(row.map(({ colNo }) => colNo));
+    } else {
+        // The cells occupy multiple rows. The rows must be
+        // contiguous, and the cells on each row must occupy the
+        // entire row.
+        for(const [rowNo, cells] of byRow.entries()) {
+            const theRow = g.rows[rowNo];
+            if(cells.length !== theRow.cells.length) return false;
+        }
+
+        const rowNos = [...byRow.keys()];
+        return contiguous(rowNos);
+    }
 }
 
 /**

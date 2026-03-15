@@ -372,7 +372,7 @@ describe("mergeCells", () => {
                 }),
                 ([g, someCells]) => {
                     const nCells = [...grid.allCells(g)].length;
-                    const someCellsR = rect.unions(someCells.map(cell => grid.rectOfCell(g, cell)));
+                    const someCellsR = rect.unions(...someCells.map(cell => grid.rectOfCell(g, cell)));
 
                     // If the cells are valid to merge...
                     fc.pre(grid.canMergeCells(g, someCells));
