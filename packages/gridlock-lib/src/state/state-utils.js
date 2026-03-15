@@ -1,5 +1,6 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
+import * as rect from "../rect.js";
 
 /** @import { Cell, CommonState, Inverse } from "./common-state.d.ts"; */
 
@@ -87,8 +88,8 @@ export const id = /** @type {Inverse<any>} */ (new IdInverse());
 
 /**
  * Given a function `f` which knows how to mutate the structure of the
- * grid, remember the text in the leaves underneath `f`, call `f`,
- * then restore the text to the leaves.
+ * grid, remember the text in the cells underneath `f`, call `f`,
+ * then restore the text to the cells.
  *
  * @param {(grid: grid.Grid<Cell>) => grid.Grid<Cell>} f
  * @param {grid.Grid<Cell>} g
@@ -96,43 +97,49 @@ export const id = /** @type {Inverse<any>} */ (new IdInverse());
  */
 export function projectTextOntoLeaves(f, g) {
     // Construct a rectangle of characters to hold the text
-    const text = Array.from({ length: g.dims.height }, () =>
-        Array.from({ length: g.dims.width }, () => null));
+    const outerRect = grid.rectOfGrid(g);
+
+    const text = Array.from({ length: rect.height(outerRect) }, () =>
+        Array.from({ length: rect.width(outerRect) }, () => null));
 
     /**
-     * @param {[grid.Leaf<Cell>, point.P2]} positionedLeaf
+     * @param {[grid.CellPath, point.P2]} positionedCell
      */
-    const projOntoText = (positionedLeaf) => {
-        const [leaf, pos] = positionedLeaf;
-        for(let i = 0; i < leaf.data.lines.length; ++i) {
-            const line = leaf.data.lines[i];
+    const projOntoText = (positionedCell) => {
+        const [cell, pos] = positionedCell;
+        const theCell = grid.lookupCell(g, cell);
+        for(let i = 0; i < theCell.data.lines.length; ++i) {
+            const line = theCell.data.lines[i];
             const row = i + pos.y;
             text[row].splice(pos.x, line.length, ...Array.from(line));
         }
     }
 
     // Project the leaf text onto `text`.
-    grid.allLeavesWithPosition(g).forEach(projOntoText);
+    grid.allPositionedCells(g).forEach(projOntoText);
     const newG = f(g);
 
     /**
-     * @param {[grid.Leaf<Cell>, point.P2]} positionedLeaf
+     * @param {[grid.CellPath, point.P2]} positionedCell
      */
-    const projOntoLeaves = (positionedLeaf) => {
-        const [leaf, pos] = positionedLeaf;
-        leaf.data.lines = [];
-        for(let i = 0; i < leaf.dims.height; ++i) {
+    const projOntoLeaves = (positionedCell) => {
+        const [cell, pos] = positionedCell;
+        const theCell = grid.lookupCell(g, cell);
+        const cellRect = grid.rectOfCell(g, cell);
+        theCell.data.lines = [];
+        for(let i = 0; i < rect.height(cellRect); ++i) {
             const row = i + pos.y;
-            const line = text[row].slice(pos.x, pos.x + leaf.dims.width)
+            const line = text[row]
+                  .slice(pos.x, pos.x + rect.width(cellRect))
                   .map(c => c ?? " ")
                   .join("")
                   .trimEnd();
-            leaf.data.lines.push(line);
+            theCell.data.lines.push(line);
        }
    }
 
     // Project the text back onto the leaves.
-    grid.allLeavesWithPosition(newG).forEach(projOntoLeaves);
+    grid.allPositionedCells(newG).forEach(projOntoLeaves);
 
     return newG;
 }

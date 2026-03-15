@@ -9,22 +9,22 @@ import * as grid from "../../grid.js";
 export class CellPrimsState {
     /**
      * @param {grid.Grid<Cell>} g
-     * @param {{ leaves: Set<grid.Leaf<Cell>> }} selection
+     * @param {Set<grid.CellPath>} selection
      */
     constructor(g, selection) {
         /** @type {grid.Grid<Cell>} */
         this.grid = g;
-        /** @type {{ leaves: Set<grid.Leaf<Cell>> }} */
+        /** @type {Set<grid.CellPath>} */
         this.selection = selection;
     }
 
     /** @returns {CellPrimsState} */
     clone() {
-        const [g, newLeaves] = grid.cloneMappingNodes(
+        const g = grid.clone(
             this.grid,
-            [...this.selection.leaves],
             data => ({ lines: [...data.lines] })
         );
-        return new CellPrimsState(g, { leaves: new Set(/** @type {grid.Leaf<Cell>[]} */ (newLeaves)) });
+        const selection = new Set(this.selection.values().map(cell => ({ ...cell })));
+        return new CellPrimsState(g, selection);
     }
 }
