@@ -267,6 +267,7 @@ export abstract class AbstractEditorView extends AbstractView {
                 .elem({ tag: "div", key: "cell-guide-hitbox" }, (cellGuideHitboxElem) => {
                     cellGuideHitboxElem.className = "editor-cell-guide-hitbox";
                     cellGuideHitboxElem.onpointerdown = (e) => {
+                        e.stopPropagation();
                         const ctx = new PointerEventContext(e, this);
                         this.onPointerDownInCellGuide(ctx, cell);
                     }
