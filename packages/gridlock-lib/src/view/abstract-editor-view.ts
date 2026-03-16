@@ -53,6 +53,7 @@ export abstract class AbstractEditorView extends AbstractView {
     #history: Inverse<AnyState>[] = [];
     #edgeDraggingMode: EdgeDraggingMode = "Move";
     #lastClick: { cell: grid.CellPath } | null = null;
+    #cellGuidesDisabled: boolean = false;
 
     constructor(prev: AbstractEditorView | InitialViewState) {
         super(prev.parent);
@@ -274,6 +275,9 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "cell-guide" }, (cellGuideElem) => {
                     cellGuideElem.className = "editor-cell-guide";
+                    if(this.cellGuidesDisabled) {
+                        cellGuideElem.classList.add("editor-disabled-cell-guide");
+                    }
                 })
                 .commit();
         });
@@ -298,7 +302,13 @@ export abstract class AbstractEditorView extends AbstractView {
             rowElem.style.height = `${theRow.height}em`;
 
             new CommittableRecycler(rowElem)
-                .views(grid.allCellPaths(this.state.grid, row), (cell: grid.CellPath, r: Recycler) => this.#viewCell(cell, r))
+                .elem({ tag: "div", key: "row-clip-box" }, (rowClipBoxElem) => {
+                    rowClipBoxElem.className = "editor-row-clip-box";
+                    rowClipBoxElem.style.height = `${theRow.height}em`;
+                    new CommittableRecycler(rowClipBoxElem)
+                        .views(grid.allCellPaths(this.state.grid, row), (cell: grid.CellPath, r: Recycler) => this.#viewCell(cell, r))
+                        .commit();
+                })
                 .view((r: Recycler) => this.viewRowSelection(row, r))
                 .elem({ tag: "div", key: "row-guide-hitbox" }, (rowGuideHitboxElem) => {
                     rowGuideHitboxElem.className = "editor-row-guide-hitbox";
@@ -441,6 +451,19 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .commit();
         });
+    }
+
+    /*************************************************************************/
+    /** Cell Guides Enable/Disable                                          **/
+
+    get cellGuidesDisabled(): boolean {
+        return this.#cellGuidesDisabled;
+    }
+
+    toggleCellGuidesDisabled() {
+        this.#cellGuidesDisabled = !this.#cellGuidesDisabled;
+
+        this.requestRedraw();
     }
 
     /*************************************************************************/

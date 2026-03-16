@@ -76,15 +76,14 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
         };
 
         root.onpointerup = (e) => {
+            root.releasePointerCapture(e.pointerId);
             if(this.#dragState) {
                 this.#dragState = null;
-                root.releasePointerCapture(e.pointerId);
                 const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
                 this.commitInverse(inv);
                 this.requestReplaceEditorView(this.createViewForState(st));
             }
         };
-
     }
 }
 

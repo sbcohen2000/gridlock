@@ -2,17 +2,18 @@ import { state, util, view, point } from "gridlock-lib";
 
 import { SHORT_COMMIT_HASH, COMMIT_HASH } from "./commit-hash.js";
 
-import edit_text_icon_url    from "../www/assets/edit-text-icon.png"
-import info_icon_url         from "../www/assets/info-icon.png"
-import load_icon_url         from "../www/assets/load-icon.png";
-import merge_cells_icon_url  from "../www/assets/merge-cells-icon.png"
-import move_guide_icon_url   from "../www/assets/move-guide-icon.png"
-import save_icon_url         from "../www/assets/save-icon.png";
-import select_cells_icon_url from "../www/assets/select-cells-icon.png";
-import slide_guide_icon_url  from "../www/assets/slide-guide-icon.png"
-import split_row_icon_url    from "../www/assets/split-row-icon.png";
-import split_cell_icon_url   from "../www/assets/split-cell-icon.png";
-import trim_edge_icon_url    from "../www/assets/trim-edge-icon.png";
+import disable_cell_guides_icon_url from "../www/assets/disable-cell-guides-icon.png";
+import edit_text_icon_url           from "../www/assets/edit-text-icon.png";
+import info_icon_url                from "../www/assets/info-icon.png";
+import load_icon_url                from "../www/assets/load-icon.png";
+import merge_cells_icon_url         from "../www/assets/merge-cells-icon.png";
+import move_guide_icon_url          from "../www/assets/move-guide-icon.png";
+import save_icon_url                from "../www/assets/save-icon.png";
+import select_cells_icon_url        from "../www/assets/select-cells-icon.png";
+import slide_guide_icon_url         from "../www/assets/slide-guide-icon.png"
+import split_cell_icon_url          from "../www/assets/split-cell-icon.png";
+import split_row_icon_url           from "../www/assets/split-row-icon.png";
+import trim_edge_icon_url           from "../www/assets/trim-edge-icon.png";
 
 /**
  * Build the standard set of toolbar items for an editor view.
@@ -116,6 +117,15 @@ export function describeToolbar(editorView) {
     }, {
         type: "divider",
         key: "divider-2",
+    }, {
+        type: "button",
+        key: "disable-cell-guides-button",
+        iconSrc: disable_cell_guides_icon_url,
+        label: "disable cell guides",
+        enabled: editorView.cellGuidesDisabled,
+        onclick: () => {
+            editorView.toggleCellGuidesDisabled();
+        },
     }, {
         type: "spacer",
         key: "spacer-1",

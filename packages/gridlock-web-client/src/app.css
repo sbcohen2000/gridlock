@@ -86,8 +86,12 @@
     border-right: 1px solid gray;
 }
 
+.editor-disabled-cell-guide {
+    border-right-style: dashed;
+}
+
 .editor-cell-guide-hitbox {
-    right: 0;
+    right: -2px;
     width: 4px;
 }
 
@@ -103,7 +107,7 @@
 }
 
 .editor-row-guide-hitbox {
-    bottom: 0;
+    bottom: -2px;
     height: 4px;
 }
 
@@ -116,9 +120,12 @@
 /** Editor Rows                                                              */
 
 .editor-row {
+    position: relative;
+}
+
+.editor-row-clip-box {
     display: flex;
     flex-direction: row;
-    position: relative;
     overflow-y: clip;
 }
 
