@@ -1,7 +1,7 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import { Cell, State } from "./state-iface.js";
-import { SnapshotInverse, Inverse } from "./inverse.js";
+import { SnapshotInverse, Inverse, IdInverse } from "./inverse.js";
 
 export class SliceRowPrims implements State<SliceRowPrims> {
     grid: grid.Grid<Cell>;
@@ -23,7 +23,7 @@ export class SliceRowPrims implements State<SliceRowPrims> {
         const snapshot = this.clone();
 
         const cell = grid.cellUnderPoint(this.grid, globalPt);
-        if(!cell) return new SnapshotInverse(snapshot, "split row vertically");
+        if(!cell) return new IdInverse();
 
         const rowRect = grid.rectOfRow(this.grid, cell);
         const localRow = globalPt.y - rowRect.top;
