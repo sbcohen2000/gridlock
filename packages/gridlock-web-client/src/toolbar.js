@@ -28,8 +28,8 @@ export function describeToolbar(editorView) {
         label: "edit text",
         enabled: editorView instanceof view.TextEditingView,
         onclick: () => {
-            const [inv, st] = state.inverse.withSnapshotInverse(state.TextPrims.editText, "edit text")(this.state);
-            this.commitInverse(inv);
+            const [inv, st] = state.inverse.withSnapshotInverse(state.TextPrims.editText, "edit text")(editorView.state);
+            editorView.commitInverse(inv);
             editorView.requestReplaceEditorView(editorView.createViewForState(st));
         }
     }, {
@@ -39,8 +39,8 @@ export function describeToolbar(editorView) {
         label: "select cells",
         enabled: editorView instanceof view.CellEditingView,
         onclick: () => {
-            const [inv, st] = state.inverse.withSnapshotInverse(state.CellPrims.editCells, "edit cells")(this.state);
-            this.commitInverse(inv);
+            const [inv, st] = state.inverse.withSnapshotInverse(state.CellPrims.editCells, "edit cells")(editorView.state);
+            editorView.commitInverse(inv);
             editorView.requestReplaceEditorView(editorView.createViewForState(st));
         }
     }, {
@@ -64,7 +64,7 @@ export function describeToolbar(editorView) {
         label: "trim edge",
         enabled: false,
         onclick: () => {
-            console.log("TODO (trim edge)");
+            throw new Error("TODO");
         }
     }, {
         type: "button",
@@ -73,16 +73,22 @@ export function describeToolbar(editorView) {
         label: "split row",
         enabled: editorView instanceof view.RowSlicingView,
         onclick: () => {
-            throw new Error("TODO");
+            const [inv, st] = state.inverse.withSnapshotInverse(
+                state.SliceRowPrims.sliceRow, "start slicing row")(editorView.state);
+            editorView.commitInverse(inv);
+            editorView.requestReplaceEditorView(editorView.createViewForState(st));
         }
     }, {
         type: "button",
         key: "split-cell-button",
         iconSrc: split_cell_icon_url,
-        label: "split horizontally",
+        label: "split cell",
         enabled: editorView instanceof view.CellSlicingView,
         onclick: () => {
-            throw new Error("TODO");
+            const [inv, st] = state.inverse.withSnapshotInverse(
+                state.SliceCellPrims.sliceCell, "start slicing cells")(editorView.state);
+            editorView.commitInverse(inv);
+            editorView.requestReplaceEditorView(editorView.createViewForState(st));
         }
     }, {
         type: "divider",

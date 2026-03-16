@@ -60,26 +60,26 @@ class AppView extends view.AbstractView {
 
         const nCenters = Math.round(height / imgScreenHeight) - 1;
 
-        const indices = Array.from({ length: nCenters + 1 }, (_, i) => i);
+        const centerIndices = Array.from({ length: nCenters }, (_, i) => i);
         new framework.CommittableRecycler(this.#bindingElem)
-            .elems(indices, "img", (idx, image) => {
+            .elems(centerIndices, "img", (idx, image) => {
                 const img = /** @type {HTMLImageElement} */ (image);
                 img.width = TOTAL_IMG_WIDTH * imagePxToScreenPx;
                 img.style.position = "absolute";
                 img.style.top = `${idx * imgScreenHeight}px`;
                 img.style.right = `0`;
-                if(idx < nCenters) {
-                    // Draw a center.
-
-                    if(img.getAttribute("src") !== binder_ring_center_url) {
-                        img.src = binder_ring_center_url;
-                    }
-                } else {
-                    // Draw the end cap.
-
-                    if(img.getAttribute("src") !== binder_ring_end_url) {
-                        img.src = binder_ring_end_url;
-                    }
+                if(img.getAttribute("src") !== binder_ring_center_url) {
+                    img.src = binder_ring_center_url;
+                }
+            })
+            .elem({ tag: "img", key: "end-cap" }, (image) => {
+                const img = /** @type {HTMLImageElement} */ (image);
+                img.width = TOTAL_IMG_WIDTH * imagePxToScreenPx;
+                img.style.position = "absolute";
+                img.style.top = `${nCenters * imgScreenHeight}px`;
+                img.style.right = `0`;
+                if(img.getAttribute("src") !== binder_ring_end_url) {
+                    img.src = binder_ring_end_url;
                 }
             })
             .commit();
