@@ -1,6 +1,7 @@
+export * as inverse from "./inverse.js";
 export * as serialize from "./serialize-common-state.js";
-export type { State, AnyState } from "./state-iface.js";
 export type { Inverse } from "./inverse.js";
+export type { State, AnyState } from "./state-iface.js";
 export { CellPrims } from "./cell-prims.js";
 export { MoveCellBoundaryPrims } from "./move-cell-boundary.js";
 export { MoveRowBoundaryPrims } from "./move-row-boundary.js";

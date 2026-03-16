@@ -41,7 +41,7 @@ export class TextEditingView extends AbstractEditorView {
 
             const [inv, st] = withSnapshotInverse(
                 /** @param {TextPrims} s */
-                (s) => CellPrims.editCells(s.grid),
+                (s) => CellPrims.editCells(s),
                 "edit cells"
             )(this.state);
             this.commitInverse(inv);

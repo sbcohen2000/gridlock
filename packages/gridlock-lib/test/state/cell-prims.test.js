@@ -10,7 +10,7 @@ import { expect } from "chai";
  */
 function mkCellState(src) {
     const textState = serialize.textEditingStateFromString(src);
-    return CellPrims.editCells(textState.grid);
+    return CellPrims.editCells(textState);
 }
 
 describe("cell-prims", () => {

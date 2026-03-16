@@ -66,54 +66,62 @@
 /*****************************************************************************/
 /** Editor Guides                                                            */
 
-.editor-vertical-guide-hitbox,
-.editor-vertical-guide,
-.editor-horizontal-guide-hitbox,
-.editor-horizontal-guide {
+.editor-row-guide-hitbox,
+.editor-row-guide,
+.editor-cell-guide-hitbox,
+.editor-cell-guide {
     position: absolute;
     cursor: pointer;
 }
 
-.editor-horizontal-guide-hitbox,
-.editor-vertical-guide-hitbox {
+.editor-row-guide-hitbox,
+.editor-cell-guide-hitbox {
     z-index: 1;
 }
 
-.editor-vertical-guide-hitbox,
-.editor-vertical-guide {
+.editor-cell-guide-hitbox,
+.editor-cell-guide {
     top: 2px;
     bottom: 2px;
 }
 
-.editor-vertical-guide {
+.editor-cell-guide {
     right: -0.5px;
     border-right: 1px solid gray;
 }
 
-.editor-vertical-guide-hitbox {
+.editor-cell-guide-hitbox {
     right: -2px;
     width: 4px;
 }
 
-.editor-horizontal-guide-hitbox,
-.editor-horizontal-guide {
+.editor-row-guide-hitbox,
+.editor-row-guide {
     left: 2px;
     right: 2px;
 }
 
-.editor-horizontal-guide {
+.editor-row-guide {
     bottom: -0.5px;
     border-bottom: 1px solid gray;
 }
 
-.editor-horizontal-guide-hitbox {
+.editor-row-guide-hitbox {
     bottom: -2px;
     height: 4px;
 }
 
-.editor-vertical-guide-hitbox:hover,
-.editor-horizontal-guide-hitbox:hover {
+.editor-cell-guide-hitbox:hover,
+.editor-row-guide-hitbox:hover {
     background-color: rgba(200, 200, 200, 0.5);
+}
+
+/*****************************************************************************/
+/** Editor Rows                                                              */
+
+.editor-row {
+    display: flex;
+    flex-direction: row;
 }
 
 /*****************************************************************************/

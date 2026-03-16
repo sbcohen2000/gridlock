@@ -1,24 +1,18 @@
 import { state, util, view, point } from "gridlock-lib";
 
-const {
-    cellPrims,
-    textPrims,
-    slicePrims
-} = state;
-
 import { SHORT_COMMIT_HASH, COMMIT_HASH } from "./commit-hash.js";
 
-import edit_text_icon_url          from "../www/assets/edit-text-icon.png"
-import info_icon_url               from "../www/assets/info-icon.png"
-import load_icon_url               from "../www/assets/load-icon.png";
-import merge_cells_icon_url        from "../www/assets/merge-cells-icon.png"
-import move_guide_icon_url         from "../www/assets/move-guide-icon.png"
-import save_icon_url               from "../www/assets/save-icon.png";
-import select_cells_icon_url       from "../www/assets/select-cells-icon.png";
-import slide_guide_icon_url        from "../www/assets/slide-guide-icon.png"
-import split_horizontally_icon_url from "../www/assets/split-horizontally-icon.png";
-import split_vertically_icon_url   from "../www/assets/split-vertically-icon.png";
-import trim_edge_icon_url          from "../www/assets/trim-edge-icon.png";
+import edit_text_icon_url    from "../www/assets/edit-text-icon.png"
+import info_icon_url         from "../www/assets/info-icon.png"
+import load_icon_url         from "../www/assets/load-icon.png";
+import merge_cells_icon_url  from "../www/assets/merge-cells-icon.png"
+import move_guide_icon_url   from "../www/assets/move-guide-icon.png"
+import save_icon_url         from "../www/assets/save-icon.png";
+import select_cells_icon_url from "../www/assets/select-cells-icon.png";
+import slide_guide_icon_url  from "../www/assets/slide-guide-icon.png"
+import split_row_icon_url    from "../www/assets/split-row-icon.png";
+import split_cell_icon_url   from "../www/assets/split-cell-icon.png";
+import trim_edge_icon_url    from "../www/assets/trim-edge-icon.png";
 
 /**
  * Build the standard set of toolbar items for an editor view.
@@ -34,8 +28,8 @@ export function describeToolbar(editorView) {
         label: "edit text",
         enabled: editorView instanceof view.TextEditingView,
         onclick: () => {
-            const [st, inv] = textPrims.editText(editorView.state);
-            editorView.commitUndoableItem(inv);
+            const [inv, st] = state.inverse.withSnapshotInverse(state.TextPrims.editText, "edit text")(this.state);
+            this.commitInverse(inv);
             editorView.requestReplaceEditorView(editorView.createViewForState(st));
         }
     }, {
@@ -45,8 +39,8 @@ export function describeToolbar(editorView) {
         label: "select cells",
         enabled: editorView instanceof view.CellEditingView,
         onclick: () => {
-            const [st, inv] = cellPrims.editCells(editorView.state);
-            editorView.commitUndoableItem(inv);
+            const [inv, st] = state.inverse.withSnapshotInverse(state.CellPrims.editCells, "edit cells")(this.state);
+            this.commitInverse(inv);
             editorView.requestReplaceEditorView(editorView.createViewForState(st));
         }
     }, {
@@ -54,14 +48,14 @@ export function describeToolbar(editorView) {
         key: "merge-cells-button",
         iconSrc: merge_cells_icon_url,
         label: "merge cells",
-        disabled: !(editorView instanceof view.CellEditingView) ||
-            !cellPrims.canMergeSelectedCells(editorView.state),
+        disabled: !(editorView instanceof view.CellEditingView) || !editorView.state.canMergeSelectedCells(),
         onclick: () => {
             if(!(editorView instanceof view.CellEditingView)) {
                 return;
             }
 
-            editorView.runPrimitiveWithUndoThenRedraw(editorView.state, cellPrims.mergeSelectedCells);
+            const inv = editorView.state.mergeSelectedCells();
+            editorView.commitInverse(inv);
         }
     }, {
         type: "button",
@@ -74,25 +68,21 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "button",
-        key: "split-vertically-button",
-        iconSrc: split_vertically_icon_url,
-        label: "split vertically",
-        enabled: editorView instanceof view.VerticalCellSlicingView,
+        key: "split-row-button",
+        iconSrc: split_row_icon_url,
+        label: "split row",
+        enabled: editorView instanceof view.RowSlicingView,
         onclick: () => {
-            const [st, inv] = slicePrims.editVerticalSlice(editorView.state);
-            editorView.commitUndoableItem(inv);
-            editorView.requestReplaceEditorView(editorView.createViewForState(st));
+            throw new Error("TODO");
         }
     }, {
         type: "button",
-        key: "split-horizontally-button",
-        iconSrc: split_horizontally_icon_url,
+        key: "split-cell-button",
+        iconSrc: split_cell_icon_url,
         label: "split horizontally",
-        enabled: editorView instanceof view.HorizontalCellSlicingView,
+        enabled: editorView instanceof view.CellSlicingView,
         onclick: () => {
-            const [st, inv] = slicePrims.editHorizontalSlice(editorView.state);
-            editorView.commitUndoableItem(inv);
-            editorView.requestReplaceEditorView(editorView.createViewForState(st));
+            throw new Error("TODO");
         }
     }, {
         type: "divider",
@@ -149,7 +139,7 @@ export function describeToolbar(editorView) {
                     view.cmenu.button("example 3"),
                     view.cmenu.divider(),
                     view.cmenu.button("clear", () => {
-                        const freshView = editorView.createViewForState(state.serialize.emptyTextEditingState());
+                        const freshView = editorView.createViewForState(state.TextPrims.mkEmpty());
                         editorView.requestReplaceEditorView(freshView);
                     })
                 ]

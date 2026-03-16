@@ -121,7 +121,7 @@ class AppView extends view.AbstractView {
             e.className = "editor-box";
             new framework.CommittableRecycler(e)
                 .view(r => this.#viewBinding(r))
-                .elem({ tag: "div", key: "editor-box" }, e => {
+                .elem("div", e => {
                     this.#rootElemResizeObserver.disconnect();
                     new framework.CommittableRecycler(e)
                         .view(r => this.#editorView.view(r))

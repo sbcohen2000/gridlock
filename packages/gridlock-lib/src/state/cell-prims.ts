@@ -22,8 +22,8 @@ export class CellPrims implements State<CellPrims> {
     /*************************************************************************/
     /** Static Factory                                                      **/
 
-    static editCells(g: grid.Grid<Cell>): CellPrims {
-        return new CellPrims(g, new Set());
+    static editCells(st: { grid: grid.Grid<Cell> }): CellPrims {
+        return new CellPrims(st.grid, new Set());
     }
 
     /*************************************************************************/
