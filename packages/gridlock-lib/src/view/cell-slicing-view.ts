@@ -49,20 +49,6 @@ class AbstractCellSlicingView extends AbstractEditorView {
         this.sliceAt(this._hoveredPos);
         this.requestRedraw();
     }
-
-    makePreviewElement(cellRect: rect.Rect, hoverGlobalPos: point.P2, recycler: Recycler) {
-        void cellRect; void hoverGlobalPos; void recycler;
-        throw new Error("Method not implemented");
-    }
-
-    viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
-        super.viewCellSelection(cell, recycler);
-
-        if(this._hoveredPos === null) return;
-
-        const cellRect = grid.rectOfCell(this._scState.grid, cell);
-        this.makePreviewElement(cellRect, this._hoveredPos, recycler);
-    }
 }
 
 export class RowSlicingView extends AbstractCellSlicingView {
@@ -90,11 +76,10 @@ export class RowSlicingView extends AbstractCellSlicingView {
         }
     }
 
-    makePreviewElement(cellRect: rect.Rect, hoverGlobalPos: point.P2, recycler: Recycler) {
-        if(hoverGlobalPos.x <= cellRect.left || hoverGlobalPos.x >= cellRect.right) return;
-        if(hoverGlobalPos.y <= cellRect.top || hoverGlobalPos.y >= cellRect.bottom) return;
+    #makePreviewElement(rowRect: rect.Rect, hoverGlobalPos: point.P2, recycler: Recycler) {
+        if(hoverGlobalPos.y <= rowRect.top || hoverGlobalPos.y >= rowRect.bottom) return;
 
-        const localRow = hoverGlobalPos.y - cellRect.top;
+        const localRow = hoverGlobalPos.y - rowRect.top;
 
         recycler.elem({ tag: "div", key: "slice-preview" }, (preview) => {
             preview.className = "editor-slice-preview";
@@ -106,6 +91,15 @@ export class RowSlicingView extends AbstractCellSlicingView {
             preview.style.borderTop = "2px solid red";
             preview.style.pointerEvents = "none";
         });
+    }
+
+    viewRowSelection(row: grid.RowPath, recycler: Recycler) {
+        super.viewRowSelection(row, recycler);
+
+        if(this._hoveredPos === null) return;
+
+        const rowRect = grid.rectOfRow(this._scState.grid, row);
+        this.#makePreviewElement(rowRect, this._hoveredPos, recycler);
     }
 }
 
@@ -134,7 +128,7 @@ export class CellSlicingView extends AbstractCellSlicingView {
         }
     }
 
-    makePreviewElement(cellRect: rect.Rect, hoverGlobalPos: point.P2, recycler: Recycler) {
+    #makePreviewElement(cellRect: rect.Rect, hoverGlobalPos: point.P2, recycler: Recycler) {
         if(hoverGlobalPos.x <= cellRect.left || hoverGlobalPos.x >= cellRect.right) return;
         if(hoverGlobalPos.y <= cellRect.top || hoverGlobalPos.y >= cellRect.bottom) return;
 
@@ -150,6 +144,15 @@ export class CellSlicingView extends AbstractCellSlicingView {
             preview.style.borderLeft = "2px solid red";
             preview.style.pointerEvents = "none";
         });
+    }
+
+    viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
+        super.viewCellSelection(cell, recycler);
+
+        if(this._hoveredPos === null) return;
+
+        const cellRect = grid.rectOfCell(this._scState.grid, cell);
+        this.#makePreviewElement(cellRect, this._hoveredPos, recycler);
     }
 }
 

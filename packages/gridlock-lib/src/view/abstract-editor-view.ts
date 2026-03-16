@@ -279,6 +279,15 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 
     /**
+     * Draw the selection of a row, if any, by adding items to the
+     * recycler.
+     */
+    viewRowSelection(row: grid.RowPath, recycler: Recycler) {
+        void row;
+        void recycler;
+    }
+
+    /**
      * View a single row in the grid
      */
     #viewRow(row: grid.RowPath, r: Recycler) {
@@ -289,6 +298,7 @@ export abstract class AbstractEditorView extends AbstractView {
 
             new CommittableRecycler(rowElem)
                 .views(grid.allCellPaths(this.state.grid, row), (cell: grid.CellPath, r: Recycler) => this.#viewCell(cell, r))
+                .view((r: Recycler) => this.viewRowSelection(row, r))
                 .elem({ tag: "div", key: "row-guide-hitbox" }, (rowGuideHitboxElem) => {
                     rowGuideHitboxElem.className = "editor-row-guide-hitbox";
                     rowGuideHitboxElem.onpointerdown = (e) => {
@@ -298,7 +308,7 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "row-guide" }, (rowGuideElem) => {
                     rowGuideElem.className = "editor-row-guide";
-                })
+                 })
                 .commit();
         });
     }
