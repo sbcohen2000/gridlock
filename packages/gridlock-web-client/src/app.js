@@ -177,7 +177,7 @@ function main() {
     } else {
         initialView = new view.TextEditingView(
             initialViewState,
-            state.serialize.emptyTextEditingState()
+            state.TextPrims.mkEmpty()
         );
     }
 

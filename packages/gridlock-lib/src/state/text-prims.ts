@@ -284,14 +284,18 @@ export class TextPrims implements State<TextPrims> {
         const cellRect = grid.rectOfCell(this.grid, cell);
         const relPos = point.offset(clamped, point.mkV2(-cellRect.left, -cellRect.top));
 
+        const theCell = grid.lookupCell(this.grid, cell);
+        const lineLen = theCell.data.lines[relPos.y]?.length ?? 0;
+
+        if(clamped.x < pt.x) {
+            relPos.x += 1;
+        }
+        relPos.x = Math.min(relPos.x, lineLen);
+
         this.selection.cell = cell;
         this.selection.pt = relPos;
         if(updateGlobalCol) {
-            this.selection.lastGlobalCol = pt.x;
-        }
-
-        if(clamped.x < pt.x) {
-            this.selection.pt.x += 1;
+            this.selection.lastGlobalCol = cellRect.left + relPos.x;
         }
 
         return new PutPointOnGlobalPositionInverse(pt, oldGlobalPt, oldGlobalCol);

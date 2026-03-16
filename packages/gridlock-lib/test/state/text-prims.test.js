@@ -4,6 +4,49 @@ import * as serialize from "../../src/state/serialize-common-state.js";
 import { expect } from "chai";
 
 describe("text-prims", () => {
+    describe("putPointOnGlobalPosition", () => {
+        it("Puts the point on the last letter of the line in a cell", () => {
+            const src =
+                  "world\n"      +
+                  "+--------+\n" +
+                  "+--------+";
+
+            const st = serialize.textEditingStateFromString(src);
+            st.putPointOnGlobalPosition(point.mkP2(7, 0), true);
+
+            const p = st.findGlobalPoint();
+            expect(p).to.deep.equal(point.mkP2(5, 0));
+        });
+
+        it("Puts the point on the last letter of the line in a full cell", () => {
+            const src =
+                  "full line\n"  +
+                  "+--------+\n" +
+                  "+--------+";
+
+            const st = serialize.textEditingStateFromString(src);
+            st.putPointOnGlobalPosition(point.mkP2(9, 0), true);
+
+            const p = st.findGlobalPoint();
+            expect(p).to.deep.equal(point.mkP2(9, 0));
+        });
+
+        it("Puts the point on the last letter of the line in a cell in a multi-row grid", () => {
+            const src =
+                  "line1\n"      +
+                  "line2\n"      +
+                  "+--------+\n" +
+                  "+--------+\n" +
+                  "+--------+";
+
+            const st = serialize.textEditingStateFromString(src);
+            st.putPointOnGlobalPosition(point.mkP2(7, 1), true);
+
+            const p = st.findGlobalPoint();
+            expect(p).to.deep.equal(point.mkP2(5, 1));
+        });
+    });
+
     describe("insertString", () => {
         it("Can insert a string into a state with a single leaf", () => {
             const src =
