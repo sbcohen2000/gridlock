@@ -29,7 +29,7 @@ export class CellPrims implements State<CellPrims> {
     /*************************************************************************/
     /** EditCells Primitive Methods                                         **/
 
-    selectLeafUnderPoint(pt: point.P2, clear: boolean): Inverse<CellPrims> {
+    selectCellUnderPoint(pt: point.P2, clear: boolean): Inverse<CellPrims> {
         const snapshot = this.clone();
 
         const cell = grid.cellUnderPoint(this.grid, pt);

@@ -1,5 +1,6 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
+import * as rect from "../rect.js";
 import { CommittableRecycler } from "../framework/index.js";
 import { HistoryView } from "./history-view.js";
 import { KeyViewEvent, AbstractView, ViewEvent } from "./abstract-view.js";
@@ -11,8 +12,9 @@ import {
     SlideRowBoundaryPrims
 } from "../state/index.js";
 import { padLeftToLength } from "../util.js";
+import { withSnapshotInverse } from "../state/inverse.js";
 
-/** @import { AnyState } from "../state/index.js" */
+/** @import { Inverse, AnyState } from "../state/index.js" */
 /** @import { DragState } from "./edge-editing-view.js" */
 /** @import { HistoryItem } from "./history.d.ts" */
 /** @import { Recycler } from "../framework/index.js" */
@@ -131,14 +133,14 @@ export class AbstractEditorView extends AbstractView {
     /**
      * Information which records the cell of the last click. This
      * field is automatically cleared after a time; it is used to
-     * detect when the user has double-clicked on a leaf.
+     * detect when the user has double-clicked on a cell.
      *
      * @type {LastClickInfo | null}
      */
     #lastClick = null;
 
     /**
-     * Check if a click, which clicked on `leaf` should be classified
+     * Check if a click, which clicked on `cell` should be classified
      * as a double-click by consulting `#lastClick`.
      *
      * @param {grid.CellPath} cell
@@ -161,20 +163,21 @@ export class AbstractEditorView extends AbstractView {
      * Given the global grid location of a click, try to edit the text
      * underneath the position.
      *
-     * @param {PointerInLeafEventContext} ctx
+     * @param {PointerInCellEventContext} ctx
      * @returns {boolean} `true` if the editor was re-targeted for
      *     text editing, and `false` otherwise.
      */
     editTextOnDoubleClick(ctx) {
-        const isDoubleClick = this.#classifyDoubleClick(ctx.leaf);
+        const isDoubleClick = this.#classifyDoubleClick(ctx.cell);
         if(isDoubleClick) {
-            // If the user double-clicked on the leaf, we want to
+            // If the user double-clicked on the cell, we want to
             // change to text-editing mode, setting the selection
             // to the point under the cursor.
 
-            const [st, inv] = TextPrims.editText(this.state);
-            this.commitUndoableItem(inv);
-            this.runPrimitiveWithUndo(st, textPrims.putPointOnGlobalPosition, ctx.flooredGridPt, true);
+            const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
+            this.commitInverse(inv);
+
+            this.commitInverse(st.putPointOnGlobalPosition(ctx.flooredGridPt, true));
             this.requestReplaceEditorView(this.createViewForState(st));
             return true;
         } else {
@@ -186,22 +189,50 @@ export class AbstractEditorView extends AbstractView {
     /** Edge Dragging                                                       **/
 
     /**
-     * Try to drag an edge, but only if the click was close to one.
+     * Try to start dragging a row guide.
      *
      * @param {PointerEventContext} ctx
-     * @param {grid.Split<Cell>} node
+     * @param {grid.RowPath} row
      * @returns {boolean} `true` if the editor was re-targeted for
-     *     dragging an edge, and `false` otherwise.
+     *     dragging a row guide, and `false` otherwise.
      */
-    startDraggingEdge(ctx, node) {
-        // Create the appropriate edge state based on dragging mode.
-        const [st, inv] = this.edgeDraggingMode === "Slide"
-              ? edgePrims.startSlidingEdge(this.state)
-              : edgePrims.startMovingEdge(this.state);
+    startDraggingRowGuide(ctx, row) {
+        const [inv, st] = this.edgeDraggingMode === "Move"
+              ? withSnapshotInverse(MoveRowBoundaryPrims.moveRowBoundary)(this.state, row.rowNo)
+              : withSnapshotInverse(SlideRowBoundaryPrims.slideRowBoundary)(this.state, row.rowNo);
 
-        this.commitUndoableItem(inv);
-        this.runPrimitiveWithUndo(st, edgePrims.selectEdgeOfNode, node);
+        this.commitInverse(inv);
+        // Capture the pointer of the root element so that the
+        // user can drag outside of the current bounds of the
+        // element if necessary.
+        this._root.setPointerCapture(ctx.event.pointerId);
 
+        /** @type {DragState} */
+        const dragState = {
+            dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
+            dragOriginGrid: ctx.roundedGridPt,
+            gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
+            lastArg: 0
+        };
+
+        this.requestReplaceEditorView(this.createViewForState(st, dragState));
+        return true;
+    }
+
+    /**
+     * Try to start dragging a cell guide.
+     *
+     * @param {PointerEventContext} ctx
+     * @param {grid.CellPath} cell
+     * @returns {boolean} `true` if the editor was re-targeted for
+     *     dragging a row guide, and `false` otherwise.
+     */
+    startDraggingCellGuide(ctx, cell) {
+        const [inv, st] = this.edgeDraggingMode === "Move"
+              ? withSnapshotInverse(MoveCellBoundaryPrims.moveCellBoundary)(this.state, cell.rowNo, cell.colNo)
+              : withSnapshotInverse(SlideCellBoundaryPrims.slideCellBoundary)(this.state, cell.rowNo, cell.colNo);
+
+        this.commitInverse(inv);
         // Capture the pointer of the root element so that the
         // user can drag outside of the current bounds of the
         // element if necessary.
@@ -221,68 +252,22 @@ export class AbstractEditorView extends AbstractView {
 
     /**
      * @param {PointerEventContext} ctx
-     * @param {grid.Split<Cell>} node
+     * @param {grid.RowPath} row
      */
-    onPointerDownInHorizontalGuide(ctx, node) {
-        this.startDraggingEdge(ctx, node);
+    onPointerDownInRowGuide(ctx, row) {
+        this.startDraggingRowGuide(ctx, row);
     }
 
     /**
      * @param {PointerEventContext} ctx
-     * @param {grid.Split<Cell>} node
+     * @param {grid.CellPath} cell
      */
-    onPointerDownInVerticalGuide(ctx, node) {
-        this.startDraggingEdge(ctx, node);
+    onPointerDownInCellGuide(ctx, cell) {
+        this.startDraggingCellGuide(ctx, cell);
     }
 
     /*************************************************************************/
     /** View-Building Functions                                             **/
-
-    /**
-     * View a single node in the grid.
-     *
-     * @param {grid.Split<Cell>} node
-     * @param {point.P2} p
-     * @param {Recycler} r
-     */
-    #viewNode(node, p, r) {
-        r.elem({ tag: "div", key: `node-${p.y}-${p.x}-${node.dims.height}-${node.dims.width}`, clearAttributes: true }, (nodeElem) => {
-            const sz = node.dims;
-            const gridSpec = node.type === "Vert"
-                  ? `${p.y + 1}/${p.x + 1}/span ${node.left.dims.height}/span ${sz.width}`
-                  : `${p.y + 1}/${p.x + 1}/span ${sz.height}/span ${node.left.dims.width}`;
-            nodeElem.className      = "editor-node";
-            nodeElem.style.gridArea = gridSpec;
-
-            const r = new CommittableRecycler(nodeElem);
-
-            if(node.type === "Vert") {
-                r.elem({ tag: "div", key: "horizontal-guide-hitbox" }, (horizontalGuideHitboxElem) => {
-                    horizontalGuideHitboxElem.className = "editor-horizontal-guide-hitbox";
-                    horizontalGuideHitboxElem.onpointerdown = (e) => {
-                        const ctx = new PointerEventContext(e, this);
-                        this.onPointerDownInHorizontalGuide(ctx, node);
-                    }
-                })
-                r.elem({ tag: "div", key: "horizontal-guide" }, (horizontalGuideElem) => {
-                    horizontalGuideElem.className = "editor-horizontal-guide";
-                })
-            } else {
-                r.elem({ tag: "div", key: "vertical-guide-hitbox" }, (verticalGuideHitboxElem) => {
-                    verticalGuideHitboxElem.className = "editor-vertical-guide-hitbox";
-                    verticalGuideHitboxElem.onpointerdown = (e) => {
-                        const ctx = new PointerEventContext(e, this);
-                        this.onPointerDownInVerticalGuide(ctx, node);
-                    }
-                })
-                r.elem({ tag: "div", key: "vertical-guide" }, (verticalGuideElem) => {
-                    verticalGuideElem.className = "editor-vertical-guide";
-                });
-            }
-
-            r.commit();
-        });
-    }
 
     /**
      * Build the contents (span fragments) for a line element.
@@ -320,77 +305,100 @@ export class AbstractEditorView extends AbstractView {
     }
 
     /**
-     * View a particular line of the given leaf.
+     * View a particular line of the given cell.
      *
-     * @param {number} rowNo The index of the line to view.
-     * @param {grid.Leaf<Cell>} leaf The line's parent leaf.
-     * @param {point.P2} p The position of the upper-left corner of the leaf.
-     * @param {Recycler} recycler The recycler to add to.
+     * @param {number}        lineNo    The (local) index of the line to view.
+     * @param {grid.CellPath} cell      The line's parent cell.
+     * @param {Recycler}      r         The recycler to add to.
      */
-    viewLine(rowNo, leaf, p, recycler) {
-        void p;
+    viewLine(lineNo, cell, r) {
+        const theCell = grid.lookupCell(this.state.grid, cell);
 
-        const line = leaf.data.lines[rowNo];
-        recycler.elem({ tag: "div", key: `line-${rowNo}`, clearChildren: true }, (lineElem) => {
+        const line = theCell.data.lines[lineNo];
+        r.elem({ tag: "div", key: `line-${lineNo}`, clearChildren: true }, (lineElem) => {
             lineElem.className = "editor-line";
             this.#buildLineFragments(lineElem, line);
         });
     }
 
     /**
-     * Draw the selection of a leaf, if any, by adding items to the
+     * Draw the selection of a cell, if any, by adding items to the
      * recycler.
      *
-     * @param {grid.Leaf<Cell>} leaf
+     * @param {grid.CellPath} cell
      * @param {Recycler} recycler
      */
-    viewLeafSelection(leaf, recycler) {
-        void leaf;
+    viewCellSelection(cell, recycler) {
+        void cell;
         void recycler;
     }
 
     /**
-     * View a particular leaf of the grid.
+     * View a single cell in the grid.
      *
-     * @param {grid.Leaf<Cell>} leaf The leaf to view.
-     * @param {point.P2} p The position of the upper-left corner of the leaf.
-     * @param {Recycler} recycler The recycler to add to.
+     * @param {grid.CellPath} cell
+     * @param {Recycler} r
      */
-    viewLeaf(leaf, p, recycler) {
-        recycler.elem({ tag: "div", key: `leaf-${p.y}-${p.x}` }, (leafElem) => {
-            const sz = leaf.dims;
-            const gridSpec = `${p.y + 1}/${p.x + 1}/span ${sz.height}/span ${sz.width}`;
+    #viewCell(cell, r) {
+        r.elem({ tag: "div", key: `cell-${cell.rowNo}-${cell.colNo}`, clearAttributes: true }, (cellElem) => {
+            const theCell = grid.lookupCell(this.state.grid, cell);
+            cellElem.className = "editor-cell";
+            cellElem.style.width = `${theCell.width}ch`;
 
-            leafElem.className      = "editor-cell";
-            leafElem.style.width    = `${sz.width}ch`;
-            leafElem.style.gridArea = gridSpec;
-
-            leafElem.onpointermove = (e) => {
-                const ctx = new PointerInLeafEventContext(e, this, leaf);
-                this.onPointerMoveInLeaf(ctx);
-            };
-
-            leafElem.onpointerdown = (e) => {
-                const ctx = new PointerInLeafEventContext(e, this, leaf);
-                this.onPointerDownInLeaf(ctx);
+            cellElem.onpointermove = (e) => {
+                const ctx = new PointerInCellEventContext(e, this, cell);
+                this.onPointerMoveInCell(ctx);
             }
 
-            return new CommittableRecycler(leafElem)
-                .views(leaf.data.lines.map((_, i) => i), (rowNo, r) => {
-                    this.viewLine(rowNo, leaf, p, r);
+            cellElem.onpointerdown = (e) => {
+                const ctx = new PointerInCellEventContext(e, this, cell);
+                this.onPointerDownInCell(ctx);
+            }
+
+            new CommittableRecycler(cellElem)
+                .views(theCell.data.lines.map((_, i) => i), (rowNo, r) =>
+                    this.viewLine(rowNo, cell, r))
+                .view(r => this.viewCellSelection(cell, r))
+                .elem({ tag: "div", key: "cell-guide-hitbox" }, (cellGuideHitboxElem) => {
+                    cellGuideHitboxElem.className = "editor-cell-guide-hitbox";
+                    cellGuideHitboxElem.onpointerdown = (e) => {
+                        const ctx = new PointerEventContext(e, this);
+                        this.onPointerDownInCellGuide(ctx, cell);
+                    }
                 })
-                .view(r => this.viewLeafSelection(leaf, r))
+                .elem({ tag: "div", key: "cell-guide" }, (cellGuideElem) => {
+                    cellGuideElem.className = "editor-cell-guide";
+                })
                 .commit();
         });
     }
 
     /**
-     * Add the editor to the given recycler.
+     * View a single row in the grid
      *
-     * @param {Recycler} r The recycler to add to.
+     * @param {grid.RowPath} row
+     * @param {Recycler} r
      */
-    view(r) {
-        r.elem("div", (root) => this._viewRoot(root));
+    #viewRow(row, r) {
+        r.elem({ tag: "div", key: `row-${row.rowNo}`, clearAttributes: true }, (rowElem) => {
+            const theRow = grid.lookupRow(this.state.grid, row);
+            rowElem.className = "editor-row";
+            rowElem.style.height = `${theRow.height}em`;
+
+            new CommittableRecycler(rowElem)
+                .views(grid.allCellPaths(this.state.grid, row), (cell, r) => this.#viewCell(cell, r))
+                .elem({ tag: "div", key: "row-guide-hitbox" }, (rowGuideHitboxElem) => {
+                    rowGuideHitboxElem.className = "editor-row-guide-hitbox";
+                    rowGuideHitboxElem.onpointerdown = (e) => {
+                        const ctx = new PointerEventContext(e, this);
+                        this.onPointerDownInRowGuide(ctx, row);
+                    }
+                })
+                .elem({ tag: "div", key: "row-guide" }, (rowGuideElem) => {
+                    rowGuideElem.className = "editor-row-guide";
+                })
+                .commit();
+        });
     }
 
     /**
@@ -405,45 +413,46 @@ export class AbstractEditorView extends AbstractView {
         new CommittableRecycler(root)
             .view(r => this.#viewLineNumbers(r))
             .elem("div", (gridRoot) => {
-                gridRoot.style.display = "inline-grid";
-                gridRoot.style.gridTemplateColumns = "1ch";
-                gridRoot.style.gridTemplateRows = "1em";
+                gridRoot.className = "grid-root";
                 this._root = gridRoot;
 
                 new CommittableRecycler(gridRoot)
-                    .views(grid.allNodesWithPosition(this.state.grid), ([node, p], r) => {
-                        if(node.type === "Leaf") {
-                            this.viewLeaf(node, p, r);
-                        } else {
-                            this.#viewNode(node, p, r);
-                        }
-                    })
+                    .views(grid.allRowPaths(this.state.grid), (row, r) => this.#viewRow(row, r))
                     .commit();
             })
             .view(r => HistoryView(r, this.#history))
             .commit();
     }
 
+    /**
+     * Add the editor to the given recycler.
+     *
+     * @param {Recycler} r The recycler to add to.
+     */
+    view(r) {
+        r.elem("div", (root) => this._viewRoot(root));
+    }
+
     /*************************************************************************/
     /** Event Handlers                                                      **/
 
     /**
-     * Handle a pointer-down event inside a leaf element.
+     * Handle a pointer-down event inside a cell element.
      *
-     * @param {PointerInLeafEventContext} ctx
+     * @param {PointerInCellEventContext} ctx
      */
-    onPointerDownInLeaf(ctx) {
+    onPointerDownInCell(ctx) {
         if(this.editTextOnDoubleClick(ctx)) {
             return;
         }
     }
 
     /**
-     * Handle a pointer-move event inside a leaf element.
+     * Handle a pointer-move event inside a cell element.
      *
-     * @param {PointerInLeafEventContext} ctx
+     * @param {PointerInCellEventContext} ctx
      */
-    onPointerMoveInLeaf(ctx) {
+    onPointerMoveInCell(ctx) {
         void ctx;
     }
 
@@ -487,9 +496,9 @@ export class AbstractEditorView extends AbstractView {
     #history = [];
 
     /**
-     * @param {Inverse<CommonState>} inverse
+     * @param {Inverse<AnyState>} inverse
      */
-    commitUndoableItem(inverse) {
+    commitInverse(inverse) {
         // Try to compact the history by composing inverses.
         while(this.#history.length > 0) {
             const top = this.#history.at(-1);
@@ -507,39 +516,6 @@ export class AbstractEditorView extends AbstractView {
         }
 
         this.#history.push(inverse);
-        this.requestRedraw();
-    }
-
-    /**
-     * Run a primitive operation, saving its inverse to the undo
-     * history.
-     *
-     * @template {CommonState} S
-     * @template {any[]} A
-     * @param {S} st The current state.
-     * @param {(st: S, ...args: A) => Inverse<S>} prim The primitive operation to wrap.
-     * @param {A} args The arguments to the primitive function
-     */
-    runPrimitiveWithUndo(st, prim, ...args) {
-        const inverse = prim(st, ...args);
-        this.commitUndoableItem(inverse);
-    }
-
-    /**
-     * @see runPrimitiveWithUndo
-     *
-     * This is a helper for the common case where we want to run a
-     * primitive operation and then immediately request that the
-     * editor re-draw itself.
-     *
-     * @template {CommonState} S
-     * @template {any[]} A
-     * @param {S} st The current state.
-     * @param {(st: S, ...args: A) => Inverse<S>} prim The primitive operation to wrap.
-     * @param {A} args The arguments to the primitive function
-     */
-    runPrimitiveWithUndoThenRedraw(st, prim, ...args) {
-        this.runPrimitiveWithUndo(st, prim, ...args);
         this.requestRedraw();
     }
 
@@ -567,7 +543,7 @@ export class AbstractEditorView extends AbstractView {
         recycler.elem({ tag: "div", key: "line-numbers-margin" }, (lineNumsElem) => {
             lineNumsElem.className = "editor-line-nums-margin";
 
-            const nLines = this.state.grid.dims.height
+            const nLines = rect.height(grid.rectOfGrid(this.state.grid));
             const lineNos = Array.from({ length: nLines }, (_, i) => i + 1);
 
             new CommittableRecycler(lineNumsElem)
@@ -655,17 +631,27 @@ export class PointerEventContext {
     }
 
     /**
+     * @type {rect.Rect | undefined}
+     */
+    #gridRectCache;
+
+    get gridRect() {
+        if(!this.#gridRectCache) {
+            this.#gridRectCache = grid.rectOfGrid(this.state.grid);
+        }
+        return this.#gridRectCache;
+    }
+
+    /**
      * Find the location of the event in grid coordinates, represented
      * as a point with decimal components.
      *
      * @returns {point.P2}
      */
     get #gridPt() {
-        const rect     = this.rootRect;
-        const gridW    = this.state.grid.dims.width;
-        const gridH    = this.state.grid.dims.height;
-        const gridColF = point.lerp(0, gridW, rect.left, this.#event.clientX, rect.right);
-        const gridRowF = point.lerp(0, gridH, rect.top, this.#event.clientY, rect.bottom);
+        const elemRect = this.rootRect;
+        const gridColF = point.lerp(0, this.gridW, elemRect.left, this.#event.clientX, elemRect.right);
+        const gridRowF = point.lerp(0, this.gridH, elemRect.top, this.#event.clientY, elemRect.bottom);
         return point.mkP2(gridColF, gridRowF);
     }
 
@@ -713,62 +699,61 @@ export class PointerEventContext {
     }
 
     /**
-     * The number of columns in the top-level element of the grid.
+     * The number of columns in the grid.
      *
      * @returns {number}
      */
     get gridW() {
-        return this.#view.state.grid.dims.width;
+        return rect.width(this.gridRect);
     }
 
     /**
-     * The number of rows in the top-level element of the grid.
+     * The number of lines in the grid.
      *
      * @returns {number}
      */
     get gridH() {
-        return this.#view.state.grid.dims.height;
+        return rect.height(this.gridRect);
     }
 }
 
-export class PointerInLeafEventContext extends PointerEventContext {
-    /** @type {grid.Leaf<Cell>} */
-    #leaf
+export class PointerInCellEventContext extends PointerEventContext {
+    /** @type {grid.CellPath} */
+    #cell
 
     /**
-     * Construct a new `PointerInLeafEventContext`.
+     * Construct a new `PointerInCellEventContext`.
      *
      * @param {PointerEvent}       event The pointer event.
      * @param {AbstractEditorView} view  The editor view.
-     * @param {grid.Leaf<Cell>}    leaf  The leaf under the pointer.
+     * @param {grid.CellPath}      cell  The cell under the pointer.
      */
-    constructor(event, view, leaf) {
+    constructor(event, view, cell) {
         super(event, view);
-        this.#leaf     = leaf;
-    }
-
-    /** @type {point.P2 | undefined} */
-    #leafPosCache;
-
-    /**
-     * The leaf under the point.
-     *
-     * @returns {grid.Leaf<Cell>}
-     */
-    get leaf() {
-        return this.#leaf;
+        this.#cell = cell;
     }
 
     /**
-     * The position of the leaf's upper-left corner in grid
-     * coordiantes.
+     * The cell under the point.
      *
-     * @returns {point.P2}
+     * @returns {grid.CellPath}
      */
-    get leafPosition() {
-        if(!this.#leafPosCache) {
-            this.#leafPosCache = grid.posOfLeaf(this.state.grid, this.leaf);
+    get cell() {
+        return this.#cell;
+    }
+
+    /** @type {rect.Rect | undefined} */
+    #cellRectCache;
+
+    /**
+     * The rectangle occupied by the cell in grid coordinates.
+     *
+     * @returns {rect.Rect}
+     */
+    get cellRect() {
+        if(!this.#cellRectCache) {
+            this.#cellRectCache = grid.rectOfCell (this.state.grid, this.cell);
         }
-        return this.#leafPosCache;
+        return this.#cellRectCache;
     }
 }

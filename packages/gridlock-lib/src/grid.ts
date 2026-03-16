@@ -61,6 +61,25 @@ export function mk<A>(width: number, height: number, data?: A, label?: string): 
 }
 
 /**
+ * Iterate all of the row paths in the grid.
+ */
+export function* allRowPaths<A>(g: Grid<A>): Generator<RowPath> {
+    for(let rowNo = 0; rowNo < g.rows.length; ++rowNo) {
+        yield { rowNo };
+    }
+}
+
+/**
+ * Iterate all of the cell paths in the given row.
+ */
+export function* allCellPaths<A>(g: Grid<A>, row: RowPath): Generator<CellPath> {
+    const theRow = lookupRow(g, row);
+    for(let colNo = 0; colNo < theRow.cells.length; ++colNo) {
+        yield { rowNo: row.rowNo, colNo };
+    }
+}
+
+/**
  * Find a positioned rectangle which covers the grid.
  *
  * @param g The grid.

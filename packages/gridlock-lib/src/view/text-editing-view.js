@@ -1,68 +1,71 @@
-import * as grid from "../grid.js";
-import { textPrims, cellPrims } from "../state/index.js";
-import { AbstractEditorView, PointerInLeafEventContext } from "./abstract-editor-view.js";
+import { TextPrims, CellPrims } from "../state/index.js";
+import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
 import { KeyViewEvent } from "./abstract-view.js";
-import { TextPrimsState } from "../state/text-prims/state.js";
+import { withSnapshotInverse } from "../state/inverse.js";
 
-/** @import { Cell } from "../state/common-state.d.ts" */
+/** @import * as grid from "../grid.js" */
 /** @import { InitialViewState } from "./abstract-editor-view.js" */
 /** @import { Recycler } from "../framework/index.js" */
 /** @import { ViewEvent } from "./abstract-view.js" */
 
 export class TextEditingView extends AbstractEditorView {
-    /** @type {TextPrimsState} */
+    /** @type {TextPrims} */
     #teState
 
     /**
      * @param {AbstractEditorView | InitialViewState} prev
-     * @param {TextPrimsState} [st] The initial editor state.
+     * @param {TextPrims} [st] The initial editor state.
      */
     constructor(prev, st) {
         super(prev);
         this.#teState = st;
     }
 
-    /** @returns {TextPrimsState} */
+    /** @returns {TextPrims} */
     get state() {
         return this.#teState;
     }
 
     /**
-     * Handle a pointer-down event inside a leaf element.
+     * Handle a pointer-down event inside a cell element.
      *
-     * @param {PointerInLeafEventContext} ctx
+     * @param {PointerInCellEventContext} ctx
      */
-    onPointerDownInLeaf(ctx) {
+    onPointerDownInCell(ctx) {
         const gridPt = ctx.flooredGridPt;
 
-        if(ctx.event.shiftKey && ctx.leaf !== this.#teState.selection.leaf) {
+        if(ctx.event.shiftKey && (ctx.cell.rowNo !== this.#teState.selection.cell.rowNo || ctx.cell.colNo !== this.#teState.selection.cell.colNo)) {
             // The gridPt is outside of the current cell, so
             // transition to a cell-editing state where the two
             // cells are selected.
 
-            const [st, inv] = cellPrims.editCells(this.state);
-            this.commitUndoableItem(inv);
-            st.selection.leaves.add(this.#teState.selection.leaf);
-            st.selection.leaves.add(ctx.leaf);
+            const [inv, st] = withSnapshotInverse(
+                /** @param {TextPrims} s */
+                (s) => CellPrims.editCells(s.grid),
+                "edit cells"
+            )(this.state);
+            this.commitInverse(inv);
+            st.selection.add(this.#teState.selection.cell);
+            st.selection.add(ctx.cell);
             this.requestReplaceEditorView(this.createViewForState(st));
         } else {
             // Move the point to `gridPt`.
-            this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnGlobalPosition, gridPt);
+            this.commitInverse(this.#teState.putPointOnGlobalPosition(gridPt));
             this.requestFocus();
         }
     }
 
     /**
-     * Draw the selection of a leaf, if any, by adding items to the
+     * Draw the selection of a cell, if any, by adding items to the
      * recycler.
      *
-     * @param {grid.Leaf<Cell>} leaf
+     * @param {grid.CellPath} cell
      * @param {Recycler} recycler
      */
-    viewLeafSelection(leaf, recycler) {
-        super.viewLeafSelection(leaf, recycler);
+    viewCellSelection(cell, recycler) {
+        super.viewCellSelection(cell, recycler);
 
-        if(this.#teState.selection.leaf === leaf) {
+        if(this.#teState.selection.cell.rowNo === cell.rowNo && this.#teState.selection.cell.colNo === cell.colNo) {
             recycler.elem({ tag: "div", key: "cursor" }, (cursorElem) => {
                 cursorElem.className = "editor-cursor";
                 cursorElem.style.position = "absolute";
@@ -85,15 +88,15 @@ export class TextEditingView extends AbstractEditorView {
         if(e.key.length === 1) {
             if(e.ctrlKey) {
                 switch(e.key) {
-                case "a": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointAtStartOfGlobalLine); break;
-                case "e": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointAtEndOfGlobalLine); break;
-                case "n": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnNextGlobalLine); break;
-                case "p": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnPrevGlobalLine); break;
-                case "b": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnPrevGlobalCol); break;
-                case "f": this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.putPointOnNextGlobalCol); break;
+                case "a": this.commitInverse(this.#teState.putPointAtStartOfGlobalLine()); break;
+                case "e": this.commitInverse(this.#teState.putPointAtEndOfGlobalLine()); break;
+                case "n": this.commitInverse(this.#teState.putPointOnNextGlobalLine()); break;
+                case "p": this.commitInverse(this.#teState.putPointOnPrevGlobalLine()); break;
+                case "b": this.commitInverse(this.#teState.putPointOnPrevGlobalCol()); break;
+                case "f": this.commitInverse(this.#teState.putPointOnNextGlobalCol()); break;
                 }
             } else {
-                this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.insertString, e.key);
+                this.commitInverse(this.#teState.insertString(e.key));
             }
         } else {
             // Only if there's no command state do we allow the
@@ -101,14 +104,14 @@ export class TextEditingView extends AbstractEditorView {
 
             switch(e.key) {
             case "Backspace": {
-                if(textPrims.pointAtBeginningOfGlobalLine(this.#teState)) {
-                    this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.removeGlobalNewline);
+                if(this.#teState.pointAtBeginningOfGlobalLine()) {
+                    this.commitInverse(this.#teState.removeGlobalNewline());
                 } else {
-                    this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.removeString, 1);
+                    this.commitInverse(this.#teState.removeString(1));
                 }
             } break;
             case "Enter": {
-                this.runPrimitiveWithUndoThenRedraw(this.#teState, textPrims.insertGlobalNewline);
+                this.commitInverse(this.#teState.insertGlobalNewline());
             } break;
             default: break;
             }
@@ -136,5 +139,5 @@ export class TextEditingView extends AbstractEditorView {
     }
 }
 
-AbstractEditorView.registerViewFactory(TextPrimsState, (prev, st) =>
-    new TextEditingView(prev, /** @type {TextPrimsState} */ (st)));
+AbstractEditorView.registerViewFactory(TextPrims, (prev, st) =>
+    new TextEditingView(prev, /** @type {TextPrims} */ (st)));

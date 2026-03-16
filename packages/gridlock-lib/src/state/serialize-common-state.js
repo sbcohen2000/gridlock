@@ -55,7 +55,7 @@ export function parseCellGrid(src) {
     // portion always has one additional line.
     const gridPart = srcLines.slice((srcLines.length - 1) / 2);
 
-    const g = /** @type {grid.Grid<Cell>} */ (grid.parseASCII(gridPart.join("\n")));
+    const g = /** @type {grid.Grid<Cell>} */ (/** @type {unknown} */ (grid.parseASCII(gridPart.join("\n"))));
 
     for(const [cellPath, cellRect] of grid.allPositionedCells(g)) {
         const cell = grid.lookupCell(g, cellPath);

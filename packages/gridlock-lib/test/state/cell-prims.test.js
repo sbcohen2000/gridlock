@@ -14,7 +14,7 @@ function mkCellState(src) {
 }
 
 describe("cell-prims", () => {
-    describe("selectLeafUnderPoint", () => {
+    describe("selectCellUnderPoint", () => {
         it("Selects a leaf in a single-leaf grid", () => {
             const src =
                   "hello\n" +
@@ -22,7 +22,7 @@ describe("cell-prims", () => {
                   "+-----+";
 
             const st = mkCellState(src);
-            st.selectLeafUnderPoint(point.mkP2(0, 0), true);
+            st.selectCellUnderPoint(point.mkP2(0, 0), true);
             expect(st.selection.size).to.equal(1);
         });
 
@@ -33,8 +33,8 @@ describe("cell-prims", () => {
                   "+-----+-----+";
 
             const st = mkCellState(src);
-            st.selectLeafUnderPoint(point.mkP2(0, 0), true);
-            st.selectLeafUnderPoint(point.mkP2(6, 0), false);
+            st.selectCellUnderPoint(point.mkP2(0, 0), true);
+            st.selectCellUnderPoint(point.mkP2(6, 0), false);
             expect(st.selection.size).to.equal(2);
         });
 
@@ -45,8 +45,8 @@ describe("cell-prims", () => {
                   "+-----+-----+";
 
             const st = mkCellState(src);
-            st.selectLeafUnderPoint(point.mkP2(0, 0), true);
-            st.selectLeafUnderPoint(point.mkP2(6, 0), true);
+            st.selectCellUnderPoint(point.mkP2(0, 0), true);
+            st.selectCellUnderPoint(point.mkP2(6, 0), true);
             expect(st.selection.size).to.equal(1);
         });
     });

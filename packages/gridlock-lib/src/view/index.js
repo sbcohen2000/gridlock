@@ -15,8 +15,13 @@ export {
     ReceivedFocusViewEvent
 } from "./abstract-view.js";
 export { CellEditingView } from "./cell-editing-view.js";
-export { EdgeMovingView, EdgeSlidingView } from "./edge-editing-view.js";
+export {
+    MoveCellBoundaryView,
+    MoveRowBoundaryView,
+    SlideCellBoundaryView,
+    SlideRowBoundaryView,
+} from "./edge-editing-view.js";
 export { HistoryView } from "./history-view.js";
 export { TextEditingView } from "./text-editing-view.js";
-export { VerticalCellSlicingView, HorizontalCellSlicingView } from "./cell-slicing-view.js";
+export { RowSlicingView, CellSlicingView } from "./cell-slicing-view.js";
 

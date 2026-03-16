@@ -1,58 +1,56 @@
-import * as grid from "../grid.js";
-import { AbstractEditorView, PointerInLeafEventContext } from "./abstract-editor-view.js";
-import { CellPrimsState } from "../state/cell-prims/state.js";
-import { cellPrims } from "../state/index.js";
+import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
+import { CellPrims } from "../state/index.js";
 
+/** @import * as grid from "../grid.js" */
 /** @import { Recycler } from "../framework/index.js" */
-/** @import { Cell } from "../state/common-state.d.ts" */
 
 export class CellEditingView extends AbstractEditorView {
-    /** @type {CellPrimsState} */
+    /** @type {CellPrims} */
     #ceState;
 
     /**
      * @param {AbstractEditorView} prev
-     * @param {CellPrimsState} st The initial edit state.
+     * @param {CellPrims} st The initial edit state.
      */
     constructor(prev, st) {
         super(prev);
         this.#ceState = st;
     }
 
-    /** @returns {CellPrimsState} */
+    /** @returns {CellPrims} */
     get state() {
         return this.#ceState;
     }
 
     /**
-     * Handle a pointer-down event inside a leaf element.
+     * Handle a pointer-down event inside a cell element.
      *
-     * @param {PointerInLeafEventContext} ctx
+     * @param {PointerInCellEventContext} ctx
      */
-    onPointerDownInLeaf(ctx) {
+    onPointerDownInCell(ctx) {
         if(this.editTextOnDoubleClick(ctx)) {
             return;
         }
 
-        this.runPrimitiveWithUndoThenRedraw(
-            this.#ceState,
-            cellPrims.selectLeafUnderPoint,
-            ctx.leafPosition,
-            !ctx.event.shiftKey
+        this.commitInverse(
+            this.#ceState.selectCellUnderPoint(
+                ctx.flooredGridPt,
+                !ctx.event.shiftKey
+            )
         );
     }
 
     /**
-     * Draw the selection of a leaf, if any, by adding items to the
+     * Draw the selection of a cell, if any, by adding items to the
      * recycler.
      *
-     * @param {grid.Leaf<Cell>} leaf
+     * @param {grid.CellPath} cell
      * @param {Recycler} recycler
      */
-    viewLeafSelection(leaf, recycler) {
-        super.viewLeafSelection(leaf, recycler);
+    viewCellSelection(cell, recycler) {
+        super.viewCellSelection(cell, recycler);
 
-        if(this.#ceState.selection.leaves.has(leaf)) {
+        if(this.#ceState.selection.has(cell)) {
             recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
                 haloElem.className = "editor-cell-halo";
             });
@@ -60,5 +58,5 @@ export class CellEditingView extends AbstractEditorView {
     }
 }
 
-AbstractEditorView.registerViewFactory(CellPrimsState, (prev, st) =>
-    new CellEditingView(prev, /** @type {CellPrimsState} */ (st)));
+AbstractEditorView.registerViewFactory(CellPrims, (prev, st) =>
+    new CellEditingView(prev, /** @type {CellPrims} */ (st)));
