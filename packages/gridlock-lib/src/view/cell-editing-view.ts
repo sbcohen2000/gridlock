@@ -44,7 +44,7 @@ export class CellEditingView extends AbstractEditorView {
     viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
         super.viewCellSelection(cell, recycler);
 
-        if(this._ceState.selection.has(cell)) {
+        if(this._ceState.selection.values().find(c => c.colNo === cell.colNo && c.rowNo === cell.rowNo)) {
             recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
                 haloElem.className = "editor-cell-halo";
             });

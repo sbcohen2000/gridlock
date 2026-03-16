@@ -122,6 +122,7 @@
 .editor-row {
     display: flex;
     flex-direction: row;
+    position: relative;
 }
 
 /*****************************************************************************/
