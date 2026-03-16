@@ -16,7 +16,6 @@ import { withSnapshotInverse } from "../state/inverse.js";
 
 /** @import { Inverse, AnyState } from "../state/index.js" */
 /** @import { DragState } from "./edge-editing-view.js" */
-/** @import { HistoryItem } from "./history.d.ts" */
 /** @import { Recycler } from "../framework/index.js" */
 
 /**
@@ -29,7 +28,7 @@ import { withSnapshotInverse } from "../state/inverse.js";
  *
  * @typedef {{
  *   parent: AbstractView | null,
- *   history: HistoryItem[],
+ *   history: Inverse<AnyState>[],
  *   edgeDraggingMode: EdgeDraggingMode,
  * }} InitialViewState
  */
@@ -73,7 +72,7 @@ export class AbstractEditorView extends AbstractView {
         this.#edgeDraggingMode = prev.edgeDraggingMode;
     }
 
-    /** @returns {HistoryItem[]} */
+    /** @returns {Inverse<AnyState>[]} */
     get history() { return this.#history; }
 
     /**
@@ -492,7 +491,7 @@ export class AbstractEditorView extends AbstractView {
     /*************************************************************************/
     /** Undo History                                                        **/
 
-    /** @type {HistoryItem[]} */
+    /** @type {Inverse<AnyState>[]} */
     #history = [];
 
     /**
@@ -519,16 +518,27 @@ export class AbstractEditorView extends AbstractView {
         this.requestRedraw();
     }
 
+    /**
+     * Apply an inverse to the editor state.
+     *
+     * @abstract
+     * @param {Inverse<AnyState>} inverse
+     */
+    applyInverse(inverse) {
+        void inverse;
+        throw new Error("Method not implemented");
+    }
+
     undo() {
         if(this.#history.length === 0) {
             return;
         }
 
         const top = this.#history.pop();
-        const newState = top.apply(this.state);
+        this.applyInverse(top);
 
         // Replace the view with one which can view the current state.
-        this.requestReplaceEditorView(this.createViewForState(newState));
+        this.requestReplaceEditorView(this.createViewForState(this.state));
     }
 
     /*************************************************************************/
@@ -624,7 +634,7 @@ export class PointerEventContext {
     }
 
     /**
-     * Get the `CommonState` of the `View`.
+     * Get the `State` of the `View`.
      */
     get state() {
         return this.#view.state;

@@ -4,109 +4,82 @@ import * as rect from "../rect.js";
 import { SliceCellPrims, SliceRowPrims } from "../state/index.js";
 import { AbstractEditorView, PointerEventContext } from "./abstract-editor-view.js";
 
-/** @import { Recycler } from "../framework/index.js" */
+import type { Recycler } from "../framework/index.js";
+import type { Inverse, AnyState } from "../state/index.js";
 
 /**
  * A base class for slice cell views. Subclasses provide the direction-
  * specific preview rendering and slice prim.
  */
 class AbstractCellSlicingView extends AbstractEditorView {
-    /** @type {SliceRowPrims | SliceCellPrims} */
-    #scState;
+    _scState: SliceRowPrims | SliceCellPrims;
 
-    /** @type {point.P2 | null} */
-    _hoveredPos = null;
+    _hoveredPos: point.P2 | null = null;
 
-    /**
-     * @param {AbstractEditorView} prev
-     * @param {SliceRowPrims | SliceCellPrims} st
-     */
-    constructor(prev, st) {
+    constructor(prev: AbstractEditorView, st: SliceRowPrims | SliceCellPrims) {
         super(prev);
         if(new.target === AbstractCellSlicingView) {
             throw new Error("Cannot instantiate AbstractCellSlicingView directly");
         }
-        this.#scState = st;
+        this._scState = st;
     }
 
-    /** @returns {SliceRowPrims | SliceCellPrims} */
-    get state() {
-        return this.#scState;
+    get state(): SliceRowPrims | SliceCellPrims {
+        return this._scState;
+    }
+
+    applyInverse(inverse: Inverse<AnyState>) {
+        inverse.apply<AbstractCellSlicingView, "_scState">("_scState", this);
     }
 
     /**
      * Perform the slice at the current hover position and return to
      * cell-editing mode.
-     *
-     * @abstract
-     * @param {point.P2} globalPos
-     * @returns {void}
      */
-    sliceAt(globalPos) {
+    sliceAt(globalPos: point.P2) {
         void globalPos;
         throw new Error("Method not implemented");
     }
 
     /**
      * Handle a pointer-down event inside a cell element.
-     *
-     * @param {PointerEventContext} _ctx
      */
-    onPointerDownInCell(_ctx) {
+    onPointerDownInCell(_ctx: PointerEventContext) {
         if(this._hoveredPos === null) return;
         this.sliceAt(this._hoveredPos);
         this.requestRedraw();
     }
 
-    /**
-     * @abstract
-     * @param {rect.Rect} cellRect
-     * @param {point.P2} hoverGlobalPos
-     * @param {Recycler} recycler
-     */
-    makePreviewElement(cellRect, hoverGlobalPos, recycler) {
+    makePreviewElement(cellRect: rect.Rect, hoverGlobalPos: point.P2, recycler: Recycler) {
         void cellRect; void hoverGlobalPos; void recycler;
         throw new Error("Method not implemented");
     }
 
-    /**
-     * @param {grid.CellPath} cell
-     * @param {Recycler} recycler
-     */
-    viewCellSelection(cell, recycler) {
+    viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
         super.viewCellSelection(cell, recycler);
 
         if(this._hoveredPos === null) return;
 
-        const cellRect = grid.rectOfCell(this.#scState.grid, cell);
+        const cellRect = grid.rectOfCell(this._scState.grid, cell);
         this.makePreviewElement(cellRect, this._hoveredPos, recycler);
     }
 }
 
 export class RowSlicingView extends AbstractCellSlicingView {
-    /**
-     * @param {AbstractEditorView} prev
-     * @param {SliceRowPrims} st
-     */
-    constructor(prev, st) {
+    constructor(prev: AbstractEditorView, st: SliceRowPrims) {
         super(prev, st);
     }
 
-    /**
-     * @param {point.P2} globalPos
-     */
-    sliceAt(globalPos) {
+    sliceAt(globalPos: point.P2) {
         this.commitInverse(
-            /** @type {SliceRowPrims} */ (this.state).splitRow(globalPos)
+            (this.state as SliceRowPrims).splitRow(globalPos)
         );
     }
 
     /**
      * Handle a pointer-move event inside a cell element.
-     *
-     * @param {PointerEventContext} ctx
      */
-    onPointerMoveInCell(ctx) {
+    onPointerMoveInCell(ctx: PointerEventContext) {
         const pos = ctx.roundedGridPt;
 
         if(this._hoveredPos === null
@@ -117,12 +90,7 @@ export class RowSlicingView extends AbstractCellSlicingView {
         }
     }
 
-    /**
-     * @param {rect.Rect} cellRect
-     * @param {point.P2} hoverGlobalPos
-     * @param {Recycler} recycler
-     */
-    makePreviewElement(cellRect, hoverGlobalPos, recycler) {
+    makePreviewElement(cellRect: rect.Rect, hoverGlobalPos: point.P2, recycler: Recycler) {
         if(hoverGlobalPos.x <= cellRect.left || hoverGlobalPos.x >= cellRect.right) return;
         if(hoverGlobalPos.y <= cellRect.top || hoverGlobalPos.y >= cellRect.bottom) return;
 
@@ -142,29 +110,20 @@ export class RowSlicingView extends AbstractCellSlicingView {
 }
 
 export class CellSlicingView extends AbstractCellSlicingView {
-    /**
-     * @param {AbstractEditorView} prev
-     * @param {SliceCellPrims} st
-     */
-    constructor(prev, st) {
+    constructor(prev: AbstractEditorView, st: SliceCellPrims) {
         super(prev, st);
     }
 
-    /**
-     * @param {point.P2} globalPos
-     */
-    sliceAt(globalPos) {
+    sliceAt(globalPos: point.P2) {
         this.commitInverse(
-            /** @type {SliceCellPrims} */ (this.state).splitCellHorizontallyAtGlobalCol(globalPos)
+            (this.state as SliceCellPrims).splitCellHorizontallyAtGlobalCol(globalPos)
         );
     }
 
     /**
      * Handle a pointer-move event inside a cell element.
-     *
-     * @param {PointerEventContext} ctx
      */
-    onPointerMoveInCell(ctx) {
+    onPointerMoveInCell(ctx: PointerEventContext) {
         const pos = ctx.roundedXFlooredYPt;
 
         if(this._hoveredPos === null
@@ -175,12 +134,7 @@ export class CellSlicingView extends AbstractCellSlicingView {
         }
     }
 
-    /**
-     * @param {rect.Rect} cellRect
-     * @param {point.P2} hoverGlobalPos
-     * @param {Recycler} recycler
-     */
-    makePreviewElement(cellRect, hoverGlobalPos, recycler) {
+    makePreviewElement(cellRect: rect.Rect, hoverGlobalPos: point.P2, recycler: Recycler) {
         if(hoverGlobalPos.x <= cellRect.left || hoverGlobalPos.x >= cellRect.right) return;
         if(hoverGlobalPos.y <= cellRect.top || hoverGlobalPos.y >= cellRect.bottom) return;
 
@@ -200,6 +154,6 @@ export class CellSlicingView extends AbstractCellSlicingView {
 }
 
 AbstractEditorView.registerViewFactory(SliceRowPrims, (prev, st) =>
-    new RowSlicingView(prev, /** @type {SliceRowPrims} */ (st)));
+    new RowSlicingView(prev, st as SliceRowPrims));
 AbstractEditorView.registerViewFactory(SliceCellPrims, (prev, st) =>
-    new CellSlicingView(prev, /** @type {SliceCellPrims} */ (st)));
+    new CellSlicingView(prev, st as SliceCellPrims));

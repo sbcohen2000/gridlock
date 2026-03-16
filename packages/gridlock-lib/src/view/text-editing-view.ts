@@ -3,54 +3,50 @@ import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor
 import { KeyViewEvent } from "./abstract-view.js";
 import { withSnapshotInverse } from "../state/inverse.js";
 
-/** @import * as grid from "../grid.js" */
-/** @import { InitialViewState } from "./abstract-editor-view.js" */
-/** @import { Recycler } from "../framework/index.js" */
-/** @import { ViewEvent } from "./abstract-view.js" */
+import type * as grid from "../grid.js";
+import type { InitialViewState } from "./abstract-editor-view.js";
+import type { Recycler } from "../framework/index.js";
+import type { ViewEvent } from "./abstract-view.js";
+import type { Inverse, AnyState } from "../state/index.js";
 
 export class TextEditingView extends AbstractEditorView {
-    /** @type {TextPrims} */
-    #teState
+    _teState: TextPrims;
 
-    /**
-     * @param {AbstractEditorView | InitialViewState} prev
-     * @param {TextPrims} [st] The initial editor state.
-     */
-    constructor(prev, st) {
+    constructor(prev: AbstractEditorView | InitialViewState, st?: TextPrims) {
         super(prev);
-        this.#teState = st;
+        this._teState = st!;
     }
 
-    /** @returns {TextPrims} */
-    get state() {
-        return this.#teState;
+    get state(): TextPrims {
+        return this._teState;
+    }
+
+    applyInverse(inverse: Inverse<AnyState>) {
+        inverse.apply<TextEditingView, "_teState">("_teState", this);
     }
 
     /**
      * Handle a pointer-down event inside a cell element.
-     *
-     * @param {PointerInCellEventContext} ctx
      */
-    onPointerDownInCell(ctx) {
+    onPointerDownInCell(ctx: PointerInCellEventContext) {
         const gridPt = ctx.flooredGridPt;
 
-        if(ctx.event.shiftKey && (ctx.cell.rowNo !== this.#teState.selection.cell.rowNo || ctx.cell.colNo !== this.#teState.selection.cell.colNo)) {
+        if(ctx.event.shiftKey && (ctx.cell.rowNo !== this._teState.selection.cell.rowNo || ctx.cell.colNo !== this._teState.selection.cell.colNo)) {
             // The gridPt is outside of the current cell, so
             // transition to a cell-editing state where the two
             // cells are selected.
 
             const [inv, st] = withSnapshotInverse(
-                /** @param {TextPrims} s */
-                (s) => CellPrims.editCells(s),
+                (s: TextPrims) => CellPrims.editCells(s),
                 "edit cells"
             )(this.state);
             this.commitInverse(inv);
-            st.selection.add(this.#teState.selection.cell);
+            st.selection.add(this._teState.selection.cell);
             st.selection.add(ctx.cell);
             this.requestReplaceEditorView(this.createViewForState(st));
         } else {
             // Move the point to `gridPt`.
-            this.commitInverse(this.#teState.putPointOnGlobalPosition(gridPt));
+            this.commitInverse(this._teState.putPointOnGlobalPosition(gridPt));
             this.requestFocus();
         }
     }
@@ -58,14 +54,11 @@ export class TextEditingView extends AbstractEditorView {
     /**
      * Draw the selection of a cell, if any, by adding items to the
      * recycler.
-     *
-     * @param {grid.CellPath} cell
-     * @param {Recycler} recycler
      */
-    viewCellSelection(cell, recycler) {
+    viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
         super.viewCellSelection(cell, recycler);
 
-        if(this.#teState.selection.cell.rowNo === cell.rowNo && this.#teState.selection.cell.colNo === cell.colNo) {
+        if(this._teState.selection.cell.rowNo === cell.rowNo && this._teState.selection.cell.colNo === cell.colNo) {
             recycler.elem({ tag: "div", key: "cursor" }, (cursorElem) => {
                 cursorElem.className = "editor-cursor";
                 cursorElem.style.position = "absolute";
@@ -78,25 +71,19 @@ export class TextEditingView extends AbstractEditorView {
         }
     }
 
-    /**
-     * Handle a keyboard event.
-     *
-     * @param {KeyboardEvent} e
-     * @returns {boolean}
-     */
-    #handleKeyEvent(e) {
+    #handleKeyEvent(e: KeyboardEvent): boolean {
         if(e.key.length === 1) {
             if(e.ctrlKey) {
                 switch(e.key) {
-                case "a": this.commitInverse(this.#teState.putPointAtStartOfGlobalLine()); break;
-                case "e": this.commitInverse(this.#teState.putPointAtEndOfGlobalLine()); break;
-                case "n": this.commitInverse(this.#teState.putPointOnNextGlobalLine()); break;
-                case "p": this.commitInverse(this.#teState.putPointOnPrevGlobalLine()); break;
-                case "b": this.commitInverse(this.#teState.putPointOnPrevGlobalCol()); break;
-                case "f": this.commitInverse(this.#teState.putPointOnNextGlobalCol()); break;
+                case "a": this.commitInverse(this._teState.putPointAtStartOfGlobalLine()); break;
+                case "e": this.commitInverse(this._teState.putPointAtEndOfGlobalLine()); break;
+                case "n": this.commitInverse(this._teState.putPointOnNextGlobalLine()); break;
+                case "p": this.commitInverse(this._teState.putPointOnPrevGlobalLine()); break;
+                case "b": this.commitInverse(this._teState.putPointOnPrevGlobalCol()); break;
+                case "f": this.commitInverse(this._teState.putPointOnNextGlobalCol()); break;
                 }
             } else {
-                this.commitInverse(this.#teState.insertString(e.key));
+                this.commitInverse(this._teState.insertString(e.key));
             }
         } else {
             // Only if there's no command state do we allow the
@@ -104,14 +91,14 @@ export class TextEditingView extends AbstractEditorView {
 
             switch(e.key) {
             case "Backspace": {
-                if(this.#teState.pointAtBeginningOfGlobalLine()) {
-                    this.commitInverse(this.#teState.removeGlobalNewline());
+                if(this._teState.pointAtBeginningOfGlobalLine()) {
+                    this.commitInverse(this._teState.removeGlobalNewline());
                 } else {
-                    this.commitInverse(this.#teState.removeString(1));
+                    this.commitInverse(this._teState.removeString(1));
                 }
             } break;
             case "Enter": {
-                this.commitInverse(this.#teState.insertGlobalNewline());
+                this.commitInverse(this._teState.insertGlobalNewline());
             } break;
             default: break;
             }
@@ -119,13 +106,7 @@ export class TextEditingView extends AbstractEditorView {
         return true;
     }
 
-    /**
-     * Handle an event.
-     *
-     * @param {ViewEvent} e
-     * @returns {boolean}
-     */
-    handleEvent(e) {
+    handleEvent(e: ViewEvent): boolean {
         if(this.handleUndoKey(e)) {
             return true;
         }
@@ -140,4 +121,4 @@ export class TextEditingView extends AbstractEditorView {
 }
 
 AbstractEditorView.registerViewFactory(TextPrims, (prev, st) =>
-    new TextEditingView(prev, /** @type {TextPrims} */ (st)));
+    new TextEditingView(prev, st as TextPrims));

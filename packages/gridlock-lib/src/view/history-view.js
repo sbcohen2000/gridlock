@@ -1,11 +1,11 @@
 import { CommittableRecycler } from "../framework/index.js";
 
-/** @import { HistoryItem } from "./history.d.ts" */
+/** @import { Inverse, AnyState } from "../state/index.js" */
 /** @import { Recycler } from "../framework/index.js" */
 
 /**
  * @param {Recycler} recycler
- * @param {HistoryItem[]} history
+ * @param {Inverse<AnyState>[]} history
  */
 export function HistoryView(recycler, history) {
     recycler.elem({ tag: "div", key: "editor-history-view" }, e => {

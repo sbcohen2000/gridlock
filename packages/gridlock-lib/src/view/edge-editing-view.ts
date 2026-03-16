@@ -10,78 +10,58 @@ import {
 } from "../state/index.js";
 import { withSnapshotInverse } from "../state/inverse.js";
 
-/** @import { AnyState } from "../state/index.js" */
+import type { Inverse, AnyState } from "../state/index.js";
 
-/**
- * @typedef {Object} DragState
- * @property {point.P2} dragOriginPx   The drag origin in pixels
- * @property {point.P2} dragOriginGrid The drag origin in grid units
- * @property {point.V2} gridScale      The number of pixels in a grid square
- * @property {number}   lastArg        The last dh/dw argument we passed to
- *     modifyHeight/modifyWidth. We remember this in order to not
- *     call these functions unless their argument has actually
- *     changed.
- */
+export interface DragState {
+    dragOriginPx: point.P2;
+    dragOriginGrid: point.P2;
+    gridScale: point.V2;
+    lastArg: number;
+}
 
 /**
  * Abstract base class for edge dragging views. Subclasses provide
  * the direction-specific edge primitives.
  */
 export class AbstractEdgeDraggingView extends AbstractEditorView {
-    /** @type {AnyState} */
-    #eeState;
+    _eeState: AnyState;
+    #dragState: DragState | null;
 
-    /** @type {DragState | null} */
-    #dragState;
-
-    /**
-     * @param {AbstractEditorView} prev
-     * @param {AnyState} eeState
-     * @param {DragState} [dragState]
-     */
-    constructor(prev, eeState, dragState) {
+    constructor(prev: AbstractEditorView, eeState: AnyState, dragState?: DragState) {
         super(prev);
         if(new.target === AbstractEdgeDraggingView) {
             throw new Error("Cannot instantiate AbstractEdgeDraggingView directly");
         }
-        this.#eeState = eeState;
+        this._eeState = eeState;
         this.#dragState = dragState ?? null;
     }
 
-    /** @returns {AnyState} */
-    get state() {
-        return this.#eeState;
+    get state(): AnyState {
+        return this._eeState;
+    }
+
+    applyInverse(inverse: Inverse<AnyState>) {
+        inverse.apply<AbstractEdgeDraggingView, "_eeState">("_eeState", this);
     }
 
     /**
      * Compute the target edge delta from the pointer event and drag
      * state.
-     *
-     * @abstract
-     * @param {PointerEvent} e
-     * @param {DragState} ds
-     * @returns {number}
      */
-    computeDelta(e, ds) {
+    computeDelta(e: PointerEvent, ds: DragState): number {
         void e; void ds;
         throw new Error("Method not implemented");
     }
 
     /**
      * Apply the edge primitive for the given delta.
-     *
-     * @abstract
-     * @param {number} d
      */
-    applyEdgePrimitive(d) {
+    applyEdgePrimitive(d: number) {
         void d;
         throw new Error("Method not implemented");
     }
 
-    /**
-     * @param {HTMLElement} root
-     */
-    _viewRoot(root) {
+    _viewRoot(root: HTMLElement) {
         super._viewRoot(root);
 
         root.onpointermove = (e) => {
@@ -108,30 +88,14 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
     }
 }
 
-/**
- * Compute the delta for a cell boundary (vertical edge) drag.
- *
- * @param {MoveCellBoundaryPrims | SlideCellBoundaryPrims} state
- * @param {PointerEvent} e
- * @param {DragState} ds
- * @returns {number}
- */
-function cellBoundaryDelta(state, e, ds) {
+function cellBoundaryDelta(state: MoveCellBoundaryPrims | SlideCellBoundaryPrims, e: PointerEvent, ds: DragState): number {
     const dxPx = e.clientX - ds.dragOriginPx.x;
     const dxGrid = ds.dragOriginGrid.x + Math.round(dxPx / ds.gridScale.dx);
     const currentEdgeX = grid.rectOfCell(state.grid, { rowNo: state.rowNo, colNo: state.colNo }).right;
     return dxGrid - currentEdgeX;
 }
 
-/**
- * Compute the delta for a row boundary (horizontal edge) drag.
- *
- * @param {MoveRowBoundaryPrims | SlideRowBoundaryPrims} state
- * @param {PointerEvent} e
- * @param {DragState} ds
- * @returns {number}
- */
-function rowBoundaryDelta(state, e, ds) {
+function rowBoundaryDelta(state: MoveRowBoundaryPrims | SlideRowBoundaryPrims, e: PointerEvent, ds: DragState): number {
     const dyPx = e.clientY - ds.dragOriginPx.y;
     const dyGrid = ds.dragOriginGrid.y + Math.round(dyPx / ds.gridScale.dy);
     const currentEdgeY = grid.rectOfRow(state.grid, { rowNo: state.rowNo }).bottom;
@@ -139,46 +103,38 @@ function rowBoundaryDelta(state, e, ds) {
 }
 
 export class SlideCellBoundaryView extends AbstractEdgeDraggingView {
-    /** @param {PointerEvent} e @param {DragState} ds */
-    computeDelta(e, ds) {
-        return cellBoundaryDelta(/** @type {SlideCellBoundaryPrims} */ (this.state), e, ds);
+    computeDelta(e: PointerEvent, ds: DragState) {
+        return cellBoundaryDelta(this.state as SlideCellBoundaryPrims, e, ds);
     }
-    /** @param {number} d */
-    applyEdgePrimitive(d) {
-        this.commitInverse(/** @type {SlideCellBoundaryPrims} */ (this.state).slideVerticalEdge(d));
+    applyEdgePrimitive(d: number) {
+        this.commitInverse((this.state as SlideCellBoundaryPrims).slideVerticalEdge(d));
     }
 }
 
 export class MoveCellBoundaryView extends AbstractEdgeDraggingView {
-    /** @param {PointerEvent} e @param {DragState} ds */
-    computeDelta(e, ds) {
-        return cellBoundaryDelta(/** @type {MoveCellBoundaryPrims} */ (this.state), e, ds);
+    computeDelta(e: PointerEvent, ds: DragState) {
+        return cellBoundaryDelta(this.state as MoveCellBoundaryPrims, e, ds);
     }
-    /** @param {number} d */
-    applyEdgePrimitive(d) {
-        this.commitInverse(/** @type {MoveCellBoundaryPrims} */ (this.state).moveVerticalEdge(d));
+    applyEdgePrimitive(d: number) {
+        this.commitInverse((this.state as MoveCellBoundaryPrims).moveVerticalEdge(d));
     }
 }
 
 export class SlideRowBoundaryView extends AbstractEdgeDraggingView {
-    /** @param {PointerEvent} e @param {DragState} ds */
-    computeDelta(e, ds) {
-        return rowBoundaryDelta(/** @type {SlideRowBoundaryPrims} */ (this.state), e, ds);
+    computeDelta(e: PointerEvent, ds: DragState) {
+        return rowBoundaryDelta(this.state as SlideRowBoundaryPrims, e, ds);
     }
-    /** @param {number} d */
-    applyEdgePrimitive(d) {
-        this.commitInverse(/** @type {SlideRowBoundaryPrims} */ (this.state).slideHorizontalEdge(d));
+    applyEdgePrimitive(d: number) {
+        this.commitInverse((this.state as SlideRowBoundaryPrims).slideHorizontalEdge(d));
     }
 }
 
 export class MoveRowBoundaryView extends AbstractEdgeDraggingView {
-    /** @param {PointerEvent} e @param {DragState} ds */
-    computeDelta(e, ds) {
-        return rowBoundaryDelta(/** @type {MoveRowBoundaryPrims} */ (this.state), e, ds);
+    computeDelta(e: PointerEvent, ds: DragState) {
+        return rowBoundaryDelta(this.state as MoveRowBoundaryPrims, e, ds);
     }
-    /** @param {number} d */
-    applyEdgePrimitive(d) {
-        this.commitInverse(/** @type {MoveRowBoundaryPrims} */ (this.state).moveHorizontalEdge(d));
+    applyEdgePrimitive(d: number) {
+        this.commitInverse((this.state as MoveRowBoundaryPrims).moveHorizontalEdge(d));
     }
 }
 
