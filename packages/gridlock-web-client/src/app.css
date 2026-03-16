@@ -59,10 +59,6 @@
     white-space: preserve;
 }
 
-.editor-node {
-    position: relative;
-}
-
 /*****************************************************************************/
 /** Editor Guides                                                            */
 
@@ -81,8 +77,8 @@
 
 .editor-cell-guide-hitbox,
 .editor-cell-guide {
-    top: 2px;
-    bottom: 2px;
+    top: 0;
+    bottom: 0;
 }
 
 .editor-cell-guide {
@@ -91,14 +87,14 @@
 }
 
 .editor-cell-guide-hitbox {
-    right: -2px;
+    right: 0;
     width: 4px;
 }
 
 .editor-row-guide-hitbox,
 .editor-row-guide {
-    left: 2px;
-    right: 2px;
+    left: 0;
+    right: 0;
 }
 
 .editor-row-guide {
@@ -107,7 +103,7 @@
 }
 
 .editor-row-guide-hitbox {
-    bottom: -2px;
+    bottom: 0;
     height: 4px;
 }
 
@@ -123,6 +119,7 @@
     display: flex;
     flex-direction: row;
     position: relative;
+    overflow-y: clip;
 }
 
 /*****************************************************************************/
