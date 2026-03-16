@@ -1,7 +1,8 @@
 import * as grid from "../grid.js";
 import * as util from "../util.js";
-import { SnapshotInverse, projectTextOntoLeaves } from "./state-utils.js";
-import { Cell, Inverse, State } from "./state-iface.js";
+import {  projectTextOntoLeaves } from "./state-utils.js";
+import { Cell, State } from "./state-iface.js";
+import { Inverse, SnapshotInverse } from "./inverse.js";
 
 export class SlideCellBoundaryPrims implements State<SlideCellBoundaryPrims> {
     grid: grid.Grid<Cell>;
@@ -19,8 +20,8 @@ export class SlideCellBoundaryPrims implements State<SlideCellBoundaryPrims> {
         return new SlideCellBoundaryPrims(g, this.rowNo, this.colNo);
     }
 
-    static slideCellBoundary(g: grid.Grid<Cell>, rowNo: number, colNo: number): SlideCellBoundaryPrims {
-        return new SlideCellBoundaryPrims(g, rowNo, colNo);
+    static slideCellBoundary(st: { grid: grid.Grid<Cell> }, rowNo: number, colNo: number): SlideCellBoundaryPrims {
+        return new SlideCellBoundaryPrims(st.grid, rowNo, colNo);
     }
 
     slideVerticalEdge(n: number): Inverse<SlideCellBoundaryPrims> {

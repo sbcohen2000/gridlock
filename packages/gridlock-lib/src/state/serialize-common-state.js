@@ -78,5 +78,5 @@ export function parseCellGrid(src) {
  */
 export function textEditingStateFromString(src) {
     const g = parseCellGrid(src);
-    return TextPrims.editText(g);
+    return TextPrims.editText({ grid: g });
 }

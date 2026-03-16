@@ -1,7 +1,8 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
-import { SnapshotInverse, projectTextOntoLeaves } from "./state-utils.js";
-import { Cell, Inverse, State } from "./state-iface.js";
+import { projectTextOntoLeaves } from "./state-utils.js";
+import { SnapshotInverse, Inverse } from "./inverse.js";
+import { Cell, State } from "./state-iface.js";
 
 export class CellPrims implements State<CellPrims> {
     grid: grid.Grid<Cell>;

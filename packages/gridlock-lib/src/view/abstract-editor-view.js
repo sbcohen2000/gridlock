@@ -3,13 +3,19 @@ import * as point from "../point.js";
 import { CommittableRecycler } from "../framework/index.js";
 import { HistoryView } from "./history-view.js";
 import { KeyViewEvent, AbstractView, ViewEvent } from "./abstract-view.js";
-import { edgePrims, textPrims } from "../state/index.js";
+import {
+    TextPrims,
+    MoveCellBoundaryPrims,
+    MoveRowBoundaryPrims,
+    SlideCellBoundaryPrims,
+    SlideRowBoundaryPrims
+} from "../state/index.js";
 import { padLeftToLength } from "../util.js";
 
-/** @import { Recycler } from "../framework/index.js" */
-/** @import { CommonState, Cell, Inverse } from "../state/common-state.d.ts" */
-/** @import { HistoryItem } from "./history.d.ts" */
+/** @import { AnyState } from "../state/index.js" */
 /** @import { DragState } from "./edge-editing-view.js" */
+/** @import { HistoryItem } from "./history.d.ts" */
+/** @import { Recycler } from "../framework/index.js" */
 
 /**
  * @typedef {"Move" | "Slide"} EdgeDraggingMode
@@ -70,7 +76,7 @@ export class AbstractEditorView extends AbstractView {
 
     /**
      * @abstract
-     * @returns {CommonState}
+     * @returns {AnyState}
      */
     get state() {
         throw new Error("Method not implemented");
@@ -80,30 +86,33 @@ export class AbstractEditorView extends AbstractView {
     /** View Factory Registry                                               **/
 
     /**
-     * @type {Map<Function | symbol, (prev: AbstractEditorView, st: CommonState, ...args: *[]) => AbstractEditorView>}
+     * A mapping from state types to the type of view which can be
+     * used to represent the state.
+     *
+     * @type {Map<Function | symbol, (prev: AbstractEditorView, st: AnyState, ...args: *[]) => AbstractEditorView>}
      */
-    static #viewFactories = new Map();
+    static #viewForState = new Map();
 
     /**
      * Register a view factory for a given state class.
      *
-     * @param {Function | symbol} key The state class (or sentinel tag) to associate with this factory.
-     * @param {(prev: AbstractEditorView, st: CommonState, ...args: *[]) => AbstractEditorView} factory
+     * @param {Function | symbol} stCtor The state class (or sentinel tag) to associate with this factory.
+     * @param {(prev: AbstractEditorView, st: AnyState, ...args: *[]) => AbstractEditorView} viewCtor
      */
-    static registerViewFactory(key, factory) {
-        AbstractEditorView.#viewFactories.set(key, factory);
+    static registerViewFactory(stCtor, viewCtor) {
+        AbstractEditorView.#viewForState.set(stCtor, viewCtor);
     }
 
     /**
      * Create a new view appropriate for viewing the given state,
      * by looking up the factory registered for `st`'s class.
      *
-     * @param {CommonState} st
+     * @param {AnyState} st
      * @param {...*} args
      * @returns {AbstractEditorView}
      */
     createViewForState(st, ...args) {
-        const factory = AbstractEditorView.#viewFactories.get(st.constructor);
+        const factory = AbstractEditorView.#viewForState.get(st.constructor);
         if(!factory) {
             throw new Error(`createViewForState: no factory registered for '${st.constructor.name}'`);
         }
@@ -115,12 +124,12 @@ export class AbstractEditorView extends AbstractView {
 
     /**
      * @typedef {{
-     *   leaf: grid.Leaf<Cell>,
+     *   cell: grid.CellPath,
      * }} LastClickInfo
      */
 
     /**
-     * Information which records the leaf of the last click. This
+     * Information which records the cell of the last click. This
      * field is automatically cleared after a time; it is used to
      * detect when the user has double-clicked on a leaf.
      *
@@ -132,17 +141,17 @@ export class AbstractEditorView extends AbstractView {
      * Check if a click, which clicked on `leaf` should be classified
      * as a double-click by consulting `#lastClick`.
      *
-     * @param {grid.Leaf<Cell>} leaf
+     * @param {grid.CellPath} cell
      * @returns {boolean} `true` if this click should be handled as a
      *     double-click, and `false` if it should be handled as a
      *     single-click.
      */
-    #classifyDoubleClick(leaf) {
-        if(this.#lastClick !== null && this.#lastClick.leaf === leaf) {
+    #classifyDoubleClick(cell) {
+        if(this.#lastClick !== null && this.#lastClick.cell === cell) {
             this.#lastClick = null;
             return true;
         } else {
-            this.#lastClick = { leaf };
+            this.#lastClick = { cell };
             window.setTimeout(() => this.#lastClick = null, 200);
             return false;
         }
@@ -163,7 +172,7 @@ export class AbstractEditorView extends AbstractView {
             // change to text-editing mode, setting the selection
             // to the point under the cursor.
 
-            const [st, inv] = textPrims.editText(this.state);
+            const [st, inv] = TextPrims.editText(this.state);
             this.commitUndoableItem(inv);
             this.runPrimitiveWithUndo(st, textPrims.putPointOnGlobalPosition, ctx.flooredGridPt, true);
             this.requestReplaceEditorView(this.createViewForState(st));

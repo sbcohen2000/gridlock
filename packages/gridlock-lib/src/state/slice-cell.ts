@@ -1,7 +1,7 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
-import { SnapshotInverse } from "./state-utils.js";
-import { Cell, Inverse, State } from "./state-iface.js";
+import { Inverse, SnapshotInverse } from "./inverse.js";
+import { Cell, State } from "./state-iface.js";
 
 export class SliceCellPrims implements State<SliceCellPrims> {
     grid: grid.Grid<Cell>;
@@ -15,8 +15,8 @@ export class SliceCellPrims implements State<SliceCellPrims> {
         return new SliceCellPrims(g);
     }
 
-    static sliceCell(g: grid.Grid<Cell>): SliceCellPrims {
-        return new SliceCellPrims(g);
+    static sliceCell(st: { grid: grid.Grid<Cell> }): SliceCellPrims {
+        return new SliceCellPrims(st.grid);
     }
 
     splitCellHorizontallyAtGlobalCol(globalPt: point.P2): Inverse<SliceCellPrims> {

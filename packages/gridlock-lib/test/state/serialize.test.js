@@ -9,9 +9,9 @@ describe("serialize", () => {
             fc.property(
                 arbCellGrid,
                 (g) => {
-                    const src0 = serialize.printCommonState(TextPrims.editText(g));
+                    const src0 = serialize.printCommonState(TextPrims.editText({ grid: g }));
                     const g1 = serialize.parseCellGrid(src0);
-                    const src1 = serialize.printCommonState(TextPrims.editText(g1));
+                    const src1 = serialize.printCommonState(TextPrims.editText({ grid: g1 }));
                     expect(src0).to.equal(src1);
                 }
             )

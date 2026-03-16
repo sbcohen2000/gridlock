@@ -7,3 +7,4 @@ export { MoveCellBoundaryPrims } from "./move-cell-boundary.js";
 export { MoveRowBoundaryPrims } from "./move-row-boundary.js";
 export { SlideCellBoundaryPrims } from "./slide-cell-boundary.js";
 export { SlideRowBoundaryPrims } from "./slide-row-boundary.js";
+export type { AnyState } from "./state-iface.js";

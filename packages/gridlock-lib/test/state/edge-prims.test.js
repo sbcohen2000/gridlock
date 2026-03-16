@@ -20,7 +20,7 @@ describe("edge-prims", () => {
                 "+---+---+";
             const st = serialize.textEditingStateFromString(src);
 
-            const edgeState = MoveRowBoundaryPrims.moveRowBoundary(st.grid, 0);
+            const edgeState = MoveRowBoundaryPrims.moveRowBoundary(st, 0);
             edgeState.moveHorizontalEdge(1);
 
             const exp =
@@ -42,7 +42,7 @@ describe("edge-prims", () => {
                 "+---+---+";
             const st = serialize.textEditingStateFromString(src);
 
-            const edgeState = MoveRowBoundaryPrims.moveRowBoundary(st.grid, 0);
+            const edgeState = MoveRowBoundaryPrims.moveRowBoundary(st, 0);
             edgeState.moveHorizontalEdge(-1);
 
             const exp =
@@ -63,7 +63,7 @@ describe("edge-prims", () => {
                 "+---+---+";
             const st = serialize.textEditingStateFromString(src);
 
-            const edgeState = MoveRowBoundaryPrims.moveRowBoundary(st.grid, 0);
+            const edgeState = MoveRowBoundaryPrims.moveRowBoundary(st, 0);
             edgeState.moveHorizontalEdge(-2);
 
             const exp =
@@ -85,7 +85,7 @@ describe("edge-prims", () => {
                 "+---+---+";
             const st = serialize.textEditingStateFromString(src);
 
-            const edgeState = MoveCellBoundaryPrims.moveCellBoundary(st.grid, 0, 0);
+            const edgeState = MoveCellBoundaryPrims.moveCellBoundary(st, 0, 0);
             edgeState.moveVerticalEdge(-10);
 
             const exp =
@@ -107,7 +107,7 @@ describe("edge-prims", () => {
                 "+---+-+";
             const st = serialize.textEditingStateFromString(src);
 
-            const edgeState = SlideCellBoundaryPrims.slideCellBoundary(st.grid, 0, 0);
+            const edgeState = SlideCellBoundaryPrims.slideCellBoundary(st, 0, 0);
             edgeState.slideVerticalEdge(-2);
 
             const exp =
@@ -127,7 +127,7 @@ describe("edge-prims", () => {
                 "+---+-+";
             const st = serialize.textEditingStateFromString(src);
 
-            const edgeState = SlideCellBoundaryPrims.slideCellBoundary(st.grid, 0, 0);
+            const edgeState = SlideCellBoundaryPrims.slideCellBoundary(st, 0, 0);
             edgeState.slideVerticalEdge(-100);
 
             const exp =
@@ -148,7 +148,7 @@ describe("edge-prims", () => {
                 "+--+--+";
             const st = serialize.textEditingStateFromString(src);
 
-            const edgeState = SlideCellBoundaryPrims.slideCellBoundary(st.grid, 0, 0);
+            const edgeState = SlideCellBoundaryPrims.slideCellBoundary(st, 0, 0);
             edgeState.slideVerticalEdge(-1);
 
             const exp =

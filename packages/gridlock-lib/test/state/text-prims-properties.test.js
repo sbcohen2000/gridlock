@@ -7,6 +7,8 @@ import { arbitraryPrimitiveCommand, summarizePrimitiveCommands } from "./arbitra
 import { expect } from "chai";
 import { serialize, TextPrims } from "../../src/state/index.js";
 
+/** @import { AnyState } from "../../src/state/state-iface.js" */
+
 /**
  * Generate an arbitrary starting state by generating a grid and then
  * setting the point to an arbitrary position within the grid.
@@ -20,7 +22,7 @@ function arbitraryStartingState() {
             x: fc.integer({ min: 0, max: rect.width(outerRect) }),
             y: fc.integer({ min: 0, max: rect.height(outerRect) })
         }).chain(pt => {
-            const st = TextPrims.editText(g);
+            const st = TextPrims.editText({ grid: g });
             st.putPointOnGlobalPosition(pt, true);
             return fc.constant(st);
         });
@@ -98,17 +100,21 @@ describe("Primitive command properties", () => {
                 arbitraryStartingState(),
                 arbitraryPrimitiveCommand({ includeConstPrims: false, includeNonConstPrims: true }),
                 (st, [method, args]) => {
-                    const clone = st.clone();
-                    const beforeSerialization = serialize.printCommonState(clone);
-                    const beforeGlobalPt = clone.findGlobalPoint();
-                    const beforeLastGlobalCol = clone.selection.lastGlobalCol;
-                    const inv = clone[method](...args);
-                    inv.apply(clone);
-                    const afterSerialization = serialize.printCommonState(clone);
-                    const afterGlobalPt = clone.findGlobalPoint();
+                    /** @type {{ st: TextPrims }} */
+                    const stObj = { st: st.clone() };
+
+                    const beforeSerialization = serialize.printCommonState(stObj.st);
+                    const beforeGlobalPt = stObj.st.findGlobalPoint();
+                    const beforeLastGlobalCol = stObj.st.selection.lastGlobalCol;
+
+                    const inv = stObj.st[method](...args);
+                    inv.apply("st", stObj);
+
+                    const afterSerialization = serialize.printCommonState(stObj.st);
+                    const afterGlobalPt = stObj.st.findGlobalPoint();
                     expect(afterSerialization).to.equal(beforeSerialization);
                     expect(afterGlobalPt).to.deep.equal(beforeGlobalPt);
-                    expect(clone.selection.lastGlobalCol).to.equal(beforeLastGlobalCol);
+                    expect(stObj.st.selection.lastGlobalCol).to.equal(beforeLastGlobalCol);
                 }
             ),
             {

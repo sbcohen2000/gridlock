@@ -2,8 +2,8 @@ import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
 import * as util from "../util.js";
-import { SnapshotInverse, id } from "./state-utils.js";
-import { Cell, Inverse, State } from "./state-iface.js";
+import { Cell, State, AnyState } from "./state-iface.js";
+import { KeysWithType, Inverse, SnapshotInverse, id } from "./inverse.js";
 
 interface TextOnGlobalLineIterItem {
     globalCol: number;
@@ -53,11 +53,11 @@ class PutPointOnGlobalPositionInverse implements Inverse<TextPrims> {
         this.#oldGlobalCol = oldGlobalCol;
     }
 
-    apply(st: State<any>): TextPrims {
+    apply<A extends object, K extends KeysWithType<A, AnyState>>(key: K, stHolder: A): void {
+        const st = stHolder[key];
         util.assert(st instanceof TextPrims);
         st.putPointOnGlobalPosition(this.#oldPos, false);
         st.selection.lastGlobalCol = this.#oldGlobalCol;
-        return st;
     }
 
     compose(i: Inverse<TextPrims>): Inverse<TextPrims> | null {
@@ -98,9 +98,9 @@ export class TextPrims implements State<TextPrims> {
     /*************************************************************************/
     /** Static Factory                                                      **/
 
-    static editText(g: grid.Grid<Cell>): TextPrims {
-        const [firstCell] = grid.allCells(g).take(1);
-        return new TextPrims(g, {
+    static editText(st: { grid: grid.Grid<Cell> }): TextPrims {
+        const [firstCell] = grid.allCells(st.grid).take(1);
+        return new TextPrims(st.grid, {
             pt: point.mkP2(0, 0),
             cell: firstCell,
             lastGlobalCol: 0,
@@ -112,7 +112,7 @@ export class TextPrims implements State<TextPrims> {
      */
     static mkEmpty(): TextPrims {
         const g = grid.mk(1, 1, { lines: [""] });
-        return TextPrims.editText(g);
+        return TextPrims.editText({ grid: g });
     }
 
     /*************************************************************************/
@@ -371,12 +371,12 @@ export class TextPrims implements State<TextPrims> {
             this._updateLastGlobalCol();
             return {
                 fwdDescription: "put point on next column",
-                apply: (st: State<any>) => {
+                apply<A extends object, K extends KeysWithType<A, AnyState>>(key: K, stHolder: A): void {
+                    const st = stHolder[key];
                     util.assert(st instanceof TextPrims);
                     st.selection.pt.x -= 1;
                     st.selection.lastGlobalCol = oldGlobalCol;
-                    return st;
-                },
+                }
             };
         }
     }

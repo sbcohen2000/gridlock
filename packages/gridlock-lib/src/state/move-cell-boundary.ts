@@ -1,6 +1,6 @@
 import * as grid from "../grid.js";
-import { Cell, Inverse, State } from "./state-iface.js";
-import { SnapshotInverse } from "./state-utils.js";
+import { Cell, State } from "./state-iface.js";
+import { Inverse, SnapshotInverse } from "./inverse.js";
 
 export class MoveCellBoundaryPrims implements State<MoveCellBoundaryPrims> {
     grid: grid.Grid<Cell>;
@@ -18,8 +18,8 @@ export class MoveCellBoundaryPrims implements State<MoveCellBoundaryPrims> {
         return new MoveCellBoundaryPrims(g, this.rowNo, this.colNo);
     }
 
-    static moveCellBoundary(g: grid.Grid<Cell>, rowNo: number, colNo: number): MoveCellBoundaryPrims {
-        return new MoveCellBoundaryPrims(g, rowNo, colNo);
+    static moveCellBoundary(st: { grid: grid.Grid<Cell> }, rowNo: number, colNo: number): MoveCellBoundaryPrims {
+        return new MoveCellBoundaryPrims(st.grid, rowNo, colNo);
     }
 
     moveVerticalEdge(n: number): Inverse<MoveCellBoundaryPrims> {

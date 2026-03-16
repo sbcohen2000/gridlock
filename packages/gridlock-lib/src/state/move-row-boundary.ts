@@ -1,6 +1,6 @@
 import * as grid from "../grid.js";
-import { SnapshotInverse } from "./state-utils.js";
-import { Cell, Inverse, State } from "./state-iface.js";
+import { Cell, State } from "./state-iface.js";
+import { Inverse, SnapshotInverse } from "./inverse.js";
 
 function trimEmptyLines(n: number, lines: string[]): void {
     if(lines.length <= n) return;
@@ -41,8 +41,8 @@ export class MoveRowBoundaryPrims implements State<MoveRowBoundaryPrims> {
         return new MoveRowBoundaryPrims(g, this.rowNo);
     }
 
-    static moveRowBoundary(g: grid.Grid<Cell>, rowNo: number): MoveRowBoundaryPrims {
-        return new MoveRowBoundaryPrims(g, rowNo);
+    static moveRowBoundary(st: { grid: grid.Grid<Cell> }, rowNo: number): MoveRowBoundaryPrims {
+        return new MoveRowBoundaryPrims(st.grid, rowNo);
     }
 
     moveHorizontalEdge(n: number): Inverse<MoveRowBoundaryPrims> {
