@@ -10,7 +10,7 @@ describe("serialize", () => {
                 arbCellGrid,
                 (g) => {
                     const src0 = serialize.printCommonState(TextPrims.editText({ grid: g }));
-                    const g1 = serialize.parseCellGrid(src0);
+                    const g1 = serialize.parseCommonState(src0);
                     const src1 = serialize.printCommonState(TextPrims.editText({ grid: g1 }));
                     expect(src0).to.equal(src1);
                 }

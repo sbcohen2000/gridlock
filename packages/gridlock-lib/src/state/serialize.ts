@@ -1,18 +1,13 @@
 import * as grid from "../grid.js";
 import * as rect from "../rect.js";
+import type { Cell } from "./state-iface.js";
 import { TextPrims } from "./text-prims.js";
 
-/** @import { Cell } from "./state-iface.js" */
-
 /**
- * Print a grid of cells, by printing its ASCII representation
- * immediately followed by the cell text of each grid.
- *
- * @param {{ grid: grid.Grid<Cell> }} st The common state to encode.
- * @returns {string} The encoded cell grid.
+ * Return the textual contents of the grid by extracting the text from
+ * each leaf.
  */
-export function printCommonState(st) {
-    const g = st.grid;
+function printGridContents(g: grid.Grid<Cell>): string {
     const outerRect = grid.rectOfGrid(g);
     const h = rect.height(outerRect);
     const w = rect.width(outerRect);
@@ -36,26 +31,30 @@ export function printCommonState(st) {
         }
     }
 
-    const textPart = chars.map(row => row.join("").trimEnd()).join("\n");
-    const gridPart = grid.printASCII(g);
+    return chars.map(row => row.join("").trimEnd()).join("\n");
+}
 
+/**
+ * Print the textual contents of the grid, followed immediately by an
+ * ASCII representation of the grid.
+ */
+export function printCommonState(st: { grid: grid.Grid<Cell> }): string {
+    const textPart = printGridContents(st.grid);
+    const gridPart = grid.printASCII(st.grid);
     return textPart + "\n" + gridPart;
 }
 
 /**
- * Parse a grid of cells, using the same format as `printCellGrid`.
- *
- * @param {string} src The source to parse.
- * @returns {grid.Grid<Cell>} The parsed cell grid.
+ * Parse a grid of cells, using the same format as `printCommonState`.
  */
-export function parseCellGrid(src) {
+export function parseCommonState(src: string): grid.Grid<Cell> {
     const srcLines = src.trimEnd().split("\n");
     // The first half of the lines will contain the text portion,
     // while the second half will contain the grid portion. The grid
     // portion always has one additional line.
     const gridPart = srcLines.slice((srcLines.length - 1) / 2);
 
-    const g = /** @type {grid.Grid<Cell>} */ (/** @type {unknown} */ (grid.parseASCII(gridPart.join("\n"))));
+    const g: grid.Grid<Cell> = (grid.parseASCII(gridPart.join("\n")) as unknown as grid.Grid<Cell>);
 
     for(const [cellPath, cellRect] of grid.allPositionedCells(g)) {
         const cell = grid.lookupCell(g, cellPath);
@@ -70,13 +69,12 @@ export function parseCellGrid(src) {
 }
 
 /**
- * Parse a cell grid from `src`, and turn it into a full-fledged
- * editor state.
+ * Parse a cell grid from `src`, in the common state format and turn
+ * it into a full-fledged editor state.
  *
- * @param {string} src The source to parse as a cell grid.
- * @returns {TextPrims}
+ * @param src The source to parse as a cell grid.
  */
-export function textEditingStateFromString(src) {
-    const g = parseCellGrid(src);
+export function textEditingStateFromCommonStateStr(src: string): TextPrims {
+    const g = parseCommonState(src);
     return TextPrims.editText({ grid: g });
 }

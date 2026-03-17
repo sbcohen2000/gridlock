@@ -12,7 +12,7 @@ interface TextOnGlobalLineIterItem {
     cell: grid.CellPath;
 }
 
-type TextOnGlobalLineIter = IteratorObject<TextOnGlobalLineIterItem>;
+export type TextOnGlobalLineIter = IteratorObject<TextOnGlobalLineIterItem>;
 
 /**
  * Given an iterator over text annotated with column numbers, consume

@@ -172,7 +172,7 @@ function main() {
     if(initialStateStr) {
         initialView = new view.TextEditingView(
             initialViewState,
-            state.serialize.textEditingStateFromString(initialStateStr)
+            state.serialize.textEditingStateFromCommonStateStr(initialStateStr)
         );
     } else {
         initialView = new view.TextEditingView(

@@ -306,7 +306,7 @@ export abstract class AbstractEditorView extends AbstractView {
                     rowClipBoxElem.className = "editor-row-clip-box";
                     rowClipBoxElem.style.height = `${theRow.height}em`;
                     new CommittableRecycler(rowClipBoxElem)
-                        .views(grid.allCellPaths(this.state.grid, row), (cell: grid.CellPath, r: Recycler) => this.#viewCell(cell, r))
+                        .views(grid.allCellsOnRow(this.state.grid, row), (cell: grid.CellPath, r: Recycler) => this.#viewCell(cell, r))
                         .commit();
                 })
                 .view((r: Recycler) => this.viewRowSelection(row, r))
@@ -338,7 +338,7 @@ export abstract class AbstractEditorView extends AbstractView {
                 this._root = gridRoot;
 
                 new CommittableRecycler(gridRoot)
-                    .views(grid.allRowPaths(this.state.grid), (row: grid.RowPath, r: Recycler) => this.#viewRow(row, r))
+                    .views(grid.allRows(this.state.grid), (row: grid.RowPath, r: Recycler) => this.#viewRow(row, r))
                     .commit();
             })
             .view((r: Recycler) => HistoryView(r, this.#history))

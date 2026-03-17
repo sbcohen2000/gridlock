@@ -1,11 +1,9 @@
 import * as grid from "../../src/grid.js";
-import * as point from "../../src/point.js";
 import {
     serialize,
     MoveCellBoundaryPrims,
     MoveRowBoundaryPrims,
     SlideCellBoundaryPrims,
-    SlideRowBoundaryPrims,
 } from "../../src/state/index.js";
 import { expect } from "chai";
 
@@ -18,7 +16,7 @@ describe("edge-prims", () => {
                 "+---+---+\n" +
                 "+---+---+\n" +
                 "+---+---+";
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
 
             const edgeState = MoveRowBoundaryPrims.moveRowBoundary(st, 0);
             edgeState.moveHorizontalEdge(1);
@@ -40,7 +38,7 @@ describe("edge-prims", () => {
                 "|   |   |\n" +
                 "+---+---+\n" +
                 "+---+---+";
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
 
             const edgeState = MoveRowBoundaryPrims.moveRowBoundary(st, 0);
             edgeState.moveHorizontalEdge(-1);
@@ -61,7 +59,7 @@ describe("edge-prims", () => {
                 "|   |   |\n" +
                 "+---+---+\n" +
                 "+---+---+";
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
 
             const edgeState = MoveRowBoundaryPrims.moveRowBoundary(st, 0);
             edgeState.moveHorizontalEdge(-2);
@@ -83,7 +81,7 @@ describe("edge-prims", () => {
                 "+---+---+\n" +
                 "|   |   |\n" +
                 "+---+---+";
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
 
             const edgeState = MoveCellBoundaryPrims.moveCellBoundary(st, 0, 0);
             edgeState.moveVerticalEdge(-10);
@@ -105,7 +103,7 @@ describe("edge-prims", () => {
                 "+---+-+\n" +
                 "|   | |\n" +
                 "+---+-+";
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
 
             const edgeState = SlideCellBoundaryPrims.slideCellBoundary(st, 0, 0);
             edgeState.slideVerticalEdge(-2);
@@ -125,7 +123,7 @@ describe("edge-prims", () => {
                 "+---+-+\n" +
                 "|   | |\n" +
                 "+---+-+";
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
 
             const edgeState = SlideCellBoundaryPrims.slideCellBoundary(st, 0, 0);
             edgeState.slideVerticalEdge(-100);
@@ -146,7 +144,7 @@ describe("edge-prims", () => {
                 "+--+--+\n" +
                 "|  |  |\n" +
                 "+--+--+";
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
 
             const edgeState = SlideCellBoundaryPrims.slideCellBoundary(st, 0, 0);
             edgeState.slideVerticalEdge(-1);

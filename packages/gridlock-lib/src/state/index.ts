@@ -1,5 +1,5 @@
 export * as inverse from "./inverse.js";
-export * as serialize from "./serialize-common-state.js";
+export * as serialize from "./serialize.js";
 export type { Inverse } from "./inverse.js";
 export type { State, AnyState } from "./state-iface.js";
 export { CellPrims } from "./cell-prims.js";

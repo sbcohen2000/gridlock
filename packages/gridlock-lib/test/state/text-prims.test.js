@@ -1,7 +1,9 @@
 import * as grid from "../../src/grid.js";
 import * as point from "../../src/point.js";
-import * as serialize from "../../src/state/serialize-common-state.js";
+import { serialize } from "../../src/state/index.js";
 import { expect } from "chai";
+
+/** @import { TextOnGlobalLineIter } from "../../src/state/text-prims.js"; */
 
 describe("text-prims", () => {
     describe("putPointOnGlobalPosition", () => {
@@ -11,7 +13,7 @@ describe("text-prims", () => {
                   "+--------+\n" +
                   "+--------+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st.putPointOnGlobalPosition(point.mkP2(7, 0), true);
 
             const p = st.findGlobalPoint();
@@ -24,7 +26,7 @@ describe("text-prims", () => {
                   "+--------+\n" +
                   "+--------+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st.putPointOnGlobalPosition(point.mkP2(9, 0), true);
 
             const p = st.findGlobalPoint();
@@ -39,7 +41,7 @@ describe("text-prims", () => {
                   "+--------+\n" +
                   "+--------+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st.putPointOnGlobalPosition(point.mkP2(7, 1), true);
 
             const p = st.findGlobalPoint();
@@ -54,7 +56,7 @@ describe("text-prims", () => {
                   "+-----+\n" +
                   "+-----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st.insertString("hello ");
 
             const exp =
@@ -71,7 +73,7 @@ describe("text-prims", () => {
                   "+-----+\n" +
                   "+-----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st.insertString(" ");
             st.insertString(" ");
             st.insertString(" ");
@@ -91,7 +93,7 @@ describe("text-prims", () => {
                   "+-----+\n" +
                   "+-----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Update the selection to point past the last letter in
             // `hello`.
             st.putPointOnGlobalPosition(point.mkP2(5, 0));
@@ -113,7 +115,7 @@ describe("text-prims", () => {
                   "|     |\n" +
                   "+-----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Update the selection to point underneath the `h`.
             st.putPointOnGlobalPosition(point.mkP2(0, 1));
             st.insertString("world");
@@ -154,7 +156,7 @@ describe("text-prims", () => {
                   "|     |     |\n" +
                   "+-----+-----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Update the selection to point underneath the `h`.
             st.putPointOnGlobalPosition(point.mkP2(0, 1));
             st.insertString("A long second line");
@@ -177,7 +179,7 @@ describe("text-prims", () => {
                   "+-----+\n" +
                   "+-----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Point starts at (0, 0).
             st.putPointAtEndOfGlobalLine();
 
@@ -191,7 +193,7 @@ describe("text-prims", () => {
                   "+----+----+\n" +
                   "+----+----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Point starts at (0, 0) in the left leaf.
             st.putPointAtEndOfGlobalLine();
 
@@ -210,7 +212,7 @@ describe("text-prims", () => {
                   "|     |   |\n" +
                   "+-----+---+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Move to second row in the left leaf.
             st.putPointOnGlobalPosition(point.mkP2(0, 1));
 
@@ -231,7 +233,7 @@ describe("text-prims", () => {
                   "+-----+\n" +
                   "+-----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Update the selection to point past the last letter in
             // `hello`.
             st.putPointOnGlobalPosition(point.mkP2(5, 0));
@@ -253,7 +255,7 @@ describe("text-prims", () => {
                   "+----+----+\n" +
                   "+----+----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Update the selection to point past the last letter in
             // `hello`.
             st.putPointOnGlobalPosition(point.mkP2(5, 0));
@@ -275,7 +277,7 @@ describe("text-prims", () => {
                   "+----+----+\n" +
                   "+----+----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st.putPointOnGlobalPosition(point.mkP2(3, 0));
             st.insertGlobalNewline();
 
@@ -297,7 +299,7 @@ describe("text-prims", () => {
                   "|    |    |    |\n" +
                   "+----+----+----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Update the selection to point to the first letter in
             // the top `two`.
             st.putPointOnGlobalPosition(point.mkP2(5, 0));
@@ -323,7 +325,7 @@ describe("text-prims", () => {
                   "|    |    |    |\n" +
                   "+----+----+----+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Update the selection to point past the last letter in the
             // top `one`.
             st.putPointOnGlobalPosition(point.mkP2(3, 0));
@@ -351,7 +353,7 @@ describe("text-prims", () => {
                   "|||\n" +
                   "+++"
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             // Put the cursor at the bottom left.
             st.putPointOnGlobalPosition(point.mkP2(0, 1));
             // Remove the line.
@@ -375,7 +377,7 @@ describe("text-prims", () => {
                   "+---+---------+\n" +
                   "+---+---------+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
 
             st.putPointOnGlobalPosition(point.mkOrigin(), false);
             for(let i = 0; i < 4; ++i) {
@@ -401,7 +403,7 @@ describe("text-prims", () => {
                   "+---+---------+\n" +
                   "+---+---------+";
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
 
             st.putPointOnGlobalPosition(point.mkOrigin(), false);
             for(let i = 0; i < 5; ++i) { // <- This line is the only difference from the previous test!
@@ -427,6 +429,7 @@ describe("text-prims", () => {
          * between them.
          *
          * @param {IteratorObject<string>} strIter
+         * @returns {TextOnGlobalLineIter}
          */
         function textOnGlobalLineIterFromStringsIter(strIter) {
             let col = 0;
@@ -435,7 +438,7 @@ describe("text-prims", () => {
                     globalCol: col,
                     localRow: null,
                     text: str,
-                    leaf: null,
+                    cell: null,
                 };
                 col += str.length;
                 return item;
@@ -448,7 +451,7 @@ describe("text-prims", () => {
                   "+----+\n" +
                   "+----+"
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st._spreadTextOnGlobalRow(
                 0, 0, textOnGlobalLineIterFromStringsIter([].values()));
 
@@ -461,7 +464,7 @@ describe("text-prims", () => {
                   "+-+\n" +
                   "+-+"
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st._spreadTextOnGlobalRow(
                 0, 0, textOnGlobalLineIterFromStringsIter(["hello"].values()));
 
@@ -479,7 +482,7 @@ describe("text-prims", () => {
                   "+-+\n" +
                   "+-+"
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st._spreadTextOnGlobalRow(
                 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()));
 
@@ -497,7 +500,7 @@ describe("text-prims", () => {
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st._spreadTextOnGlobalRow(
                 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()));
 
@@ -515,7 +518,7 @@ describe("text-prims", () => {
                   "+-+-+\n" +
                   "+-+-+"
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st._spreadTextOnGlobalRow(
                 0, 0, textOnGlobalLineIterFromStringsIter(["a", "b", "c"].values()));
 
@@ -533,7 +536,7 @@ describe("text-prims", () => {
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st._spreadTextOnGlobalRow(
                 0, 0, textOnGlobalLineIterFromStringsIter(["c", "d"].values()));
 
@@ -551,7 +554,7 @@ describe("text-prims", () => {
                   "+-+-+-+\n" +
                   "+-+-+-+"
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st._spreadTextOnGlobalRow(
                 0, 2, textOnGlobalLineIterFromStringsIter(["c", "d"].values()));
 
@@ -571,7 +574,7 @@ describe("text-prims", () => {
                   "+---+---+\n" +
                   "+---+---+"
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st.putPointOnGlobalPosition(point.mkOrigin(), false);
             st.removeGlobalNewline();
 
@@ -587,7 +590,7 @@ describe("text-prims", () => {
                   "|   |   |\n" +
                   "+---+---+"
 
-            const st = serialize.textEditingStateFromString(src);
+            const st = serialize.textEditingStateFromCommonStateStr(src);
             st.putPointOnGlobalPosition(point.mkP2(0, 1), false);
             st.removeGlobalNewline();
 

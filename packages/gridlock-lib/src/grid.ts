@@ -63,7 +63,7 @@ export function mk<A>(width: number, height: number, data?: A, label?: string): 
 /**
  * Iterate all of the row paths in the grid.
  */
-export function* allRowPaths<A>(g: Grid<A>): Generator<RowPath> {
+export function* allRows<A>(g: Grid<A>): Generator<RowPath> {
     for(let rowNo = 0; rowNo < g.rows.length; ++rowNo) {
         yield { rowNo };
     }
@@ -72,10 +72,21 @@ export function* allRowPaths<A>(g: Grid<A>): Generator<RowPath> {
 /**
  * Iterate all of the cell paths in the given row.
  */
-export function* allCellPaths<A>(g: Grid<A>, row: RowPath): Generator<CellPath> {
+export function* allCellsOnRow<A>(g: Grid<A>, row: RowPath): Generator<CellPath> {
     const theRow = lookupRow(g, row);
     for(let colNo = 0; colNo < theRow.cells.length; ++colNo) {
         yield { rowNo: row.rowNo, colNo };
+    }
+}
+
+/**
+ * Iterate all of the cell paths in the grid.
+ */
+export function* allCells<A>(g: Grid<A>): Generator<CellPath> {
+    for(const row of allRows(g)) {
+        for(const cell of allCellsOnRow(g, row)) {
+            yield cell;
+        }
     }
 }
 
@@ -460,15 +471,6 @@ export function* allPositionedCellsOnRow<A>(g: Grid<A>, row: RowPath): Generator
         yield [{ rowNo: row.rowNo, colNo }, rect.fromXYWH(x, y, cell.width, theRow.height)];
         x += cell.width;
     }
-}
-
-/**
- * Yield all of the cells in the grid.
- *
- * @param g The grid.
- */
-export function allCells<A>(g: Grid<A>): IteratorObject<CellPath> {
-    return allPositionedCells(g).map(([c, _]) => c);
 }
 
 /**

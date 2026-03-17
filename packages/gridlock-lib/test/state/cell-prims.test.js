@@ -9,7 +9,7 @@ import { expect } from "chai";
  * @returns {CellPrims}
  */
 function mkCellState(src) {
-    const textState = serialize.textEditingStateFromString(src);
+    const textState = serialize.textEditingStateFromCommonStateStr(src);
     return CellPrims.editCells(textState);
 }
 
