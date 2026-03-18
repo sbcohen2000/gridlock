@@ -3,11 +3,17 @@ import * as point from "../point.js";
 import * as rect from "../rect.js";
 import * as util from "../util.js";
 import { Cell, State, AnyState } from "./state-iface.js";
-import { KeysWithType, Inverse, SnapshotInverse, id } from "./inverse.js";
+import { KeysWithType, Inverse, SnapshotInverse, id, IdInverse } from "./inverse.js";
 
 interface TextOnGlobalLineIterItem {
+    /** The global column of the first character. */
     globalCol: number;
+    /** The local row of the text, relative to the text's containing
+        cell. */
     localRow: number;
+    /** The local column of the first chracter of the text, relative
+        to the text's containing cell. */
+    localCol: number;
     text: string;
     cell: grid.CellPath;
 }
@@ -17,13 +23,15 @@ export type TextOnGlobalLineIter = IteratorObject<TextOnGlobalLineIterItem>;
 /**
  * Given an iterator over text annotated with column numbers, consume
  * the iterator producing a single string which represents gaps
- * between the cells (as indicated by the column number) with spaces.
+ * between the (non-empty) cells (as indicated by the column number)
+ * with spaces.
  */
 function _concatenatePositionedText(textIter: TextOnGlobalLineIter): string {
     let out = "";
     let x: number | undefined;
 
     for(const { globalCol, text } of textIter) {
+        if(text === "") continue;
         if(x === undefined) x = globalCol;
 
         for(let xx = x; xx < globalCol; ++xx) {
@@ -35,7 +43,7 @@ function _concatenatePositionedText(textIter: TextOnGlobalLineIter): string {
         x += text.length;
     }
 
-    return out.trimEnd();
+    return out;
 }
 
 /**
@@ -127,7 +135,7 @@ export class TextPrims implements State<TextPrims> {
         return cell.data.lines.reduce((a: number, l: string) => Math.max(a, l.length), 0);
     }
 
-    private _expandLeafWidthIfNecessary(cell: grid.CellPath): void {
+    private _expandCellWidthIfNecessary(cell: grid.CellPath): void {
         const theCell = grid.lookupCell(this.grid, cell);
         const n = this._maximumLineLength(theCell) - theCell.width;
         if(0 < n) {
@@ -145,10 +153,11 @@ export class TextPrims implements State<TextPrims> {
             return {
                 globalCol: cellRect.left,
                 localRow,
+                localCol: 0,
                 text: theCell.data.lines[localRow],
                 cell,
             };
-        }) as TextOnGlobalLineIter;
+        });
     }
 
     private _lastColumnOnGlobalLine(row: number): number {
@@ -164,37 +173,48 @@ export class TextPrims implements State<TextPrims> {
         return 0;
     }
 
-    private _killLine(): TextOnGlobalLineIterItem[] {
+    private _textAfterPoint(): TextOnGlobalLineIterItem[] {
         const globalPt = this.findGlobalPoint();
         const globalRow = globalPt.y;
         const globalCol = globalPt.x;
 
         const textSegments = [...this._extractGlobalLine(globalRow)];
-        let afterPointer!: TextOnGlobalLineIterItem[];
+        let afterPoint: TextOnGlobalLineIterItem[] = [];
 
         for(let i = textSegments.length - 1; i >= 0; --i) {
             const seg = textSegments[i];
-            const segCell = grid.lookupCell(this.grid, seg.cell);
-
             if(seg.globalCol <= globalCol) {
                 let localCol = globalCol - seg.globalCol;
-                segCell.data.lines[seg.localRow] =
-                    segCell.data.lines[seg.localRow].slice(0, localCol);
 
-                afterPointer = textSegments.slice(i);
-                afterPointer[0].text = seg.text.slice(localCol);
-                afterPointer[0].globalCol += localCol;
-
-                for(let j = 1; j < afterPointer.length; ++j) {
-                    const rightSeg = afterPointer[j];
-                    const rightSegCell = grid.lookupCell(this.grid, rightSeg.cell);
-                    rightSegCell.data.lines[rightSeg.localRow] = "";
-                }
+                afterPoint = textSegments.slice(i);
+                afterPoint[0].text = seg.text.slice(localCol);
+                afterPoint[0].globalCol += localCol;
+                afterPoint[0].localCol   = localCol;
                 break;
             }
         }
 
-        return afterPointer;
+        return afterPoint;
+    }
+
+    private _killLine(): TextOnGlobalLineIterItem[] {
+        const afterPoint = this._textAfterPoint();
+
+        if(afterPoint.length === 0) return [];
+
+        const leftSeg = afterPoint[0];
+        const leftCell = grid.lookupCell(this.grid, leftSeg.cell);
+        leftCell.data.lines[leftSeg.localRow] = leftCell.data.lines[leftSeg.localRow]
+            .slice(0, leftSeg.localCol);
+
+        for(let i = 1; i < afterPoint.length; ++i) {
+            const rightSeg = afterPoint[i];
+
+            const rightSegCell = grid.lookupCell(this.grid, rightSeg.cell);
+            rightSegCell.data.lines[rightSeg.localRow] = "";
+        }
+
+        return afterPoint;
     }
 
     private _removeGlobalLine(): boolean {
@@ -241,7 +261,7 @@ export class TextPrims implements State<TextPrims> {
             if(isLast) {
                 const remainingText = _concatenatePositionedText(textIter);
                 theCell.data.lines[localRow] += remainingText;
-                this._expandLeafWidthIfNecessary(cell);
+                this._expandCellWidthIfNecessary(cell);
             } else {
                 const nextText = textIter.next();
                 if(nextText.done) {
@@ -249,7 +269,7 @@ export class TextPrims implements State<TextPrims> {
                 }
 
                 theCell.data.lines[localRow] += (nextText.value as TextOnGlobalLineIterItem).text;
-                this._expandLeafWidthIfNecessary(cell);
+                this._expandCellWidthIfNecessary(cell);
             }
         }
     }
@@ -492,7 +512,7 @@ export class TextPrims implements State<TextPrims> {
         const globalPt = this.findGlobalPoint();
         const globalRow = globalPt.y;
 
-        const afterPointer = this._killLine();
+        const afterPoint = this._killLine();
 
         const cells = [...grid.cellsUnderGlobalY(this.grid, globalRow)];
         for(const cell of cells) {
@@ -504,36 +524,82 @@ export class TextPrims implements State<TextPrims> {
         grid.modifyHeightOfRow(this.grid, cells[0], 1);
 
         const newRow = globalRow + 1;
-        this._spreadTextOnGlobalRow(newRow, 0, afterPointer.values() as TextOnGlobalLineIter);
+        this._spreadTextOnGlobalRow(newRow, 0, afterPoint.values() as TextOnGlobalLineIter);
 
         this.putPointOnGlobalPosition(point.mkP2(0, newRow), false);
 
         return new SnapshotInverse(snapshot, "insert newline");
     }
 
-    insertString(s: string, advancePoint?: boolean): Inverse<TextPrims> {
+    /**
+     * Insert a string into the document at the point, shifting all of
+     * the text on the global line to the right.
+     *
+     * @param s The string to insert.
+     * @param [advancePoint] Should the point be advanced by the
+     *     length of the string?
+     */
+    shiftString(s: string, advancePoint?: boolean): Inverse<TextPrims> {
+        advancePoint = advancePoint ?? true;
+        if(s.length === 0) return new IdInverse();
+
         const snapshot = this.clone();
 
-        if(advancePoint === undefined) {
-            advancePoint = true;
+        // 1. Find the text on the global line.
+        const globalPt = this.findGlobalPoint();
+        const lineText = this.textOnGlobalLine(globalPt.y);
+
+        // 2. Produce a string with the inserted `s`.
+        const newLineText = lineText.slice(0, globalPt.x) + s + lineText.slice(globalPt.x);
+
+        // 3. Project that string back onto the cells underneath the row.
+        let lastCellColNo: number = this.grid.rows[this.selection.cell.rowNo].cells.length - 1;
+        for(const [cell, rect] of grid.allPositionedCellsOnRow(this.grid, this.selection.cell)) {
+            const theCell  = grid.lookupCell(this.grid, cell);
+            const localRow = globalPt.y - rect.top;
+
+            if(lastCellColNo === cell.colNo) {
+                theCell.data.lines[localRow] = newLineText.slice(rect.left);
+
+                // 4. Expand the width of the last cell if necessary.
+                this._expandCellWidthIfNecessary(cell);
+            } else {
+                theCell.data.lines[localRow] = newLineText.slice(rect.left, rect.right);
+            }
         }
 
-        if(s.length === 0) return new SnapshotInverse(snapshot, "insert string");
+        if(advancePoint) {
+            this.putPointOnGlobalPosition(point.offset(globalPt, point.mkV2(s.length, 0)), true);
+        }
+
+        return new SnapshotInverse(snapshot, "shift string");
+    }
+
+    /**
+     * Insert a string into the document at the point.
+     *
+     * @param s The string to insert.
+     * @param [advancePoint] Should the point be advanced by the
+     *     length of the string?
+     */
+    insertString(s: string, advancePoint?: boolean): Inverse<TextPrims> {
+        advancePoint = advancePoint ?? true;
+        if(s.length === 0) return new IdInverse();
+
+        const snapshot = this.clone();
 
         const theCell = grid.lookupCell(this.grid, this.selection.cell);
-        const row = this.selection.pt.y;
-        const col = this.selection.pt.x;
+        const row  = this.selection.pt.y;
+        const col  = this.selection.pt.x;
         const line = theCell.data.lines[row];
-        const before = line.slice(0, col);
-        const after = line.slice(col);
-        theCell.data.lines[row] = before + s + after;
+        theCell.data.lines[row] = line.slice(0, col) + s + line.slice(col);
 
         if(advancePoint) {
             this.selection.pt.x += s.length;
             this._updateLastGlobalCol();
         }
 
-        this._expandLeafWidthIfNecessary(this.selection.cell);
+        this._expandCellWidthIfNecessary(this.selection.cell);
 
         return new SnapshotInverse(snapshot, "insert string");
     }

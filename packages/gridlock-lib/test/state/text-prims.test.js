@@ -49,8 +49,85 @@ describe("text-prims", () => {
         });
     });
 
+    describe("shiftString", () => {
+        it("Can insert a string into a state with a single cell", () => {
+            const src =
+                  "world\n"   +
+                  "+-----+\n" +
+                  "+-----+";
+
+            const st = serialize.textEditingStateFromCommonStateStr(src);
+            st.shiftString("hello ");
+
+            const exp =
+                  "hello world\n"  +
+                  "+----------+\n" +
+                  "+----------+"
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
+        it("Can insert a string into a state with two cells", () => {
+            const src =
+                  "aaa\n"       +
+                  "+---+---+\n" +
+                  "+---+---+";
+
+            const st = serialize.textEditingStateFromCommonStateStr(src);
+            st.putPointAtEndOfGlobalLine();
+            st.shiftString("bbb");
+
+            const exp =
+                  "aaabbb\n"    +
+                  "+---+---+\n" +
+                  "+---+---+";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
+        it("Expands the last cell on the line when necessary", () => {
+            const src =
+                  "aaa\n"          +
+                  "+---+--+---+\n" +
+                  "+---+--+---+";
+
+            const st = serialize.textEditingStateFromCommonStateStr(src);
+            st.putPointAtEndOfGlobalLine();
+            st.shiftString("bbbbbbbbb");
+
+            const exp =
+                  "aaabbbbbbbbb\n" +
+                  "+---+--+----+\n" +
+                  "+---+--+----+";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+
+        it("Can insert spaces after the contents of a cell", () => {
+            const src =
+                  "a\n"   +
+                  "+-----+\n" +
+                  "+-----+";
+
+            const st = serialize.textEditingStateFromCommonStateStr(src);
+            st.putPointAtEndOfGlobalLine();
+            st.shiftString(" ");
+            st.shiftString(" ");
+            st.shiftString(" ");
+            st.shiftString(" ");
+            st.shiftString("b");
+
+            const exp =
+                  "a    b\n"  +
+                  "+-----+\n" +
+                  "+-----+";
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
+    });
+
     describe("insertString", () => {
-        it("Can insert a string into a state with a single leaf", () => {
+        it("Can insert a string into a state with a single cell", () => {
             const src =
                   "world\n"   +
                   "+-----+\n" +
@@ -67,7 +144,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can insert individual spaces before a leaf", () => {
+        it("Can insert individual spaces before a cell", () => {
             const src =
                   "world\n"   +
                   "+-----+\n" +
@@ -87,7 +164,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can insert a string at the end of a single-line leaf", () => {
+        it("Can insert a string at the end of a single-line cell", () => {
             const src =
                   "hello\n"   +
                   "+-----+\n" +
@@ -107,7 +184,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can insert a string at the beginning of a new line in a two-line leaf", () => {
+        it("Can insert a string at the beginning of a new line in a two-line cell", () => {
             const src =
                   "hello\n"   +
                   "\n"        +
@@ -148,7 +225,7 @@ describe("text-prims", () => {
             }
         });
 
-        it("Can insert a string in a multi-leaf document", () => {
+        it("Can insert a string in a multi-cell document", () => {
             const src =
                   "hello other\n"   +
                   "      lines\n"   +
@@ -173,7 +250,7 @@ describe("text-prims", () => {
     });
 
     describe("putPointAtEndOfGlobalLine", () => {
-        it("Moves to end of line in a single-leaf document", () => {
+        it("Moves to end of line in a single-cell document", () => {
             const src =
                   "hello\n"   +
                   "+-----+\n" +
@@ -187,17 +264,17 @@ describe("text-prims", () => {
             expect(st.selection.pt.y).to.equal(0);
         });
 
-        it("Moves to end of rightmost leaf on the same row", () => {
+        it("Moves to end of rightmost cell on the same row", () => {
             const src =
                   "hellothere\n"  +
                   "+----+----+\n" +
                   "+----+----+";
 
             const st = serialize.textEditingStateFromCommonStateStr(src);
-            // Point starts at (0, 0) in the left leaf.
+            // Point starts at (0, 0) in the left cell.
             st.putPointAtEndOfGlobalLine();
 
-            // Should land at end of "there" (col 5) in the right leaf.
+            // Should land at end of "there" (col 5) in the right cell.
             const rightCell = grid.cellUnderPoint(st.grid, point.mkP2(5, 0));
             expect(st.selection.cell).to.deep.equal(rightCell);
             expect(st.selection.pt.x).to.equal(5);
@@ -213,7 +290,7 @@ describe("text-prims", () => {
                   "+-----+---+";
 
             const st = serialize.textEditingStateFromCommonStateStr(src);
-            // Move to second row in the left leaf.
+            // Move to second row in the left cell.
             st.putPointOnGlobalPosition(point.mkP2(0, 1));
 
             st.putPointAtEndOfGlobalLine();
@@ -227,7 +304,7 @@ describe("text-prims", () => {
     });
 
     describe("insertGlobalNewline", () => {
-        it("Can insert a newline at the end of a single-line leaf", () => {
+        it("Can insert a newline at the end of a single-line cell", () => {
             const src =
                   "hello\n" +
                   "+-----+\n" +
@@ -437,6 +514,7 @@ describe("text-prims", () => {
                 const item = {
                     globalCol: col,
                     localRow: null,
+                    localCol: 0,
                     text: str,
                     cell: null,
                 };
