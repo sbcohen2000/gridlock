@@ -190,6 +190,15 @@
     border-bottom: 1px solid gray;
 }
 
+@keyframes cell-width-flash {
+    0% { background-color: lightblue; }
+    100% { background-color: transparent; }
+}
+
+.editor-cell-width-changed {
+    animation: cell-width-flash 0.5s ease-out forwards;
+}
+
 /*****************************************************************************/
 /** Editor Toolbar                                                           */
 

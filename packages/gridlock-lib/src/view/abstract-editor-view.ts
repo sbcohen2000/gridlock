@@ -358,9 +358,17 @@ export abstract class AbstractEditorView extends AbstractView {
      * View a single cell in the grid.
      */
     #viewCell(cell: grid.CellPath, r: Recycler) {
-        r.elem({ tag: "div", key: `cell-${cell.rowNo}-${cell.colNo}`, clearAttributes: true }, (cellElem) => {
+        r.elem({ tag: "div", key: `cell-${cell.rowNo}-${cell.colNo}` }, (cellElem) => {
             const theCell = grid.lookupCell(this.state.grid, cell);
             cellElem.className = "editor-cell";
+
+            if(cellElem.getAttribute("data-last-width") !== theCell.width.toString()) {
+                cellElem.setAttribute("data-last-width", theCell.width.toString());
+
+                // Then, this cell has a new width since the last
+                // frame.
+                cellElem.classList.add("editor-cell-width-changed");
+            }
             cellElem.style.width = `${theCell.width}ch`;
 
            cellElem.onpointermove = (e) => {
