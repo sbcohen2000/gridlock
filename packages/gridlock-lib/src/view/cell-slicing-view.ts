@@ -125,8 +125,8 @@ export class CellSlicingView extends AbstractCellSlicingView {
     }
 
     #makePreviewElement(cellRect: rect.Rect, hoverGlobalPos: point.P2, recycler: Recycler) {
-        if(hoverGlobalPos.x <= cellRect.left || hoverGlobalPos.x >= cellRect.right) return;
-        if(hoverGlobalPos.y <= cellRect.top || hoverGlobalPos.y >= cellRect.bottom) return;
+        if(hoverGlobalPos.x <= cellRect.left || hoverGlobalPos.x >= cellRect.right ) return;
+        if(hoverGlobalPos.y <  cellRect.top  || hoverGlobalPos.y >= cellRect.bottom) return;
 
         const localCol = hoverGlobalPos.x - cellRect.left;
 
