@@ -123,6 +123,7 @@ export function describeToolbar(editorView) {
         iconSrc: disable_cell_guides_icon_url,
         label: "disable cell guides",
         enabled: editorView.cellGuidesDisabled,
+        disabled: !editorView.canDisableCellGuides,
         onclick: () => {
             editorView.toggleCellGuidesDisabled();
         },

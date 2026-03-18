@@ -286,13 +286,15 @@ export class TextPrims implements State<TextPrims> {
         );
     }
 
-    putPointOnGlobalPosition(pt: point.P2, updateGlobalCol?: boolean): Inverse<TextPrims> {
+    /**
+     * The same as `putPointOnGlobalPosition`, except it doesn't
+     * return an inverse.  this is useful if we know that the inverse
+     * will be unused, or if computing the inverse is invalid.
+     */
+    private _putPointOnGlobalPosition(pt: point.P2, updateGlobalCol?: boolean) {
         if(updateGlobalCol === undefined) {
             updateGlobalCol = true;
         }
-
-        const oldGlobalCol = this.selection.lastGlobalCol;
-        const oldGlobalPt = this.findGlobalPoint();
 
         const outerRect = grid.rectOfGrid(this.grid);
 
@@ -318,7 +320,12 @@ export class TextPrims implements State<TextPrims> {
         if(updateGlobalCol) {
             this.selection.lastGlobalCol = cellRect.left + relPos.x;
         }
+    }
 
+    putPointOnGlobalPosition(pt: point.P2, updateGlobalCol?: boolean): Inverse<TextPrims> {
+        const oldGlobalCol = this.selection.lastGlobalCol;
+        const oldGlobalPt = this.findGlobalPoint();
+        this._putPointOnGlobalPosition(pt, updateGlobalCol);
         return new PutPointOnGlobalPositionInverse(pt, oldGlobalPt, oldGlobalCol);
     }
 
@@ -527,7 +534,7 @@ export class TextPrims implements State<TextPrims> {
         const newRow = globalRow + 1;
         this._spreadTextOnGlobalRow(newRow, 0, afterPoint.values() as TextOnGlobalLineIter);
 
-        this.putPointOnGlobalPosition(point.mkP2(0, newRow), false);
+        this._putPointOnGlobalPosition(point.mkP2(0, newRow), false);
 
         return new SnapshotInverse(snapshot, "insert newline");
     }
@@ -559,5 +566,14 @@ export class TextPrims implements State<TextPrims> {
         this._expandCellWidthIfNecessary(this.selection.cell);
 
         return new SnapshotInverse(snapshot, "insert string");
+    }
+
+    mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): true {
+        const globalPt = this.findGlobalPoint();
+
+        f(this.grid);
+
+        this._putPointOnGlobalPosition(globalPt, true);
+        return true;
     }
 }

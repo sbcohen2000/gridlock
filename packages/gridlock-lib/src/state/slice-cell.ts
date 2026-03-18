@@ -40,4 +40,9 @@ export class SliceCellPrims implements State<SliceCellPrims> {
 
         return new SnapshotInverse(snapshot, "split cell horizontally");
     }
+
+    mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): true {
+        f(this.grid);
+        return true;
+    }
 }

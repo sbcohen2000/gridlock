@@ -663,7 +663,7 @@ export function cellUnderPoint<A>(g: Grid<A>, p: point.P2): CellPath | undefined
  * @param xs The numbers to test.
  */
 function contiguous(xs: readonly number[]): boolean {
-    const sorted = xs.toSorted();
+    const sorted = xs.toSorted((a, b) => a - b);
     for(let i = 0; i < sorted.length - 1; ++i) {
         if(sorted[i] !== sorted[i + 1] - 1) return false;
     }
@@ -677,7 +677,7 @@ function mergeCellsOnRow<A>(g: Grid<A>, rowNo: number, row: CellPath[], data: A,
     const theRow = g.rows[rowNo];
 
     const colNos = row.map(({ colNo }) => colNo);
-    colNos.sort();
+    colNos.sort((a, b) => a - b);
 
     if(!contiguous(colNos)) {
         throw new Error("invalid merge");
@@ -702,7 +702,7 @@ function mergeCellsOnRow<A>(g: Grid<A>, rowNo: number, row: CellPath[], data: A,
  * Merge the cells on multiple contiguous rows, given by `rowNos`.
  */
 function mergeRows<A>(g: Grid<A>, rowNos: number[], data: A, label?: string): CellPath {
-    rowNos.sort();
+    rowNos.sort((a, b) => a - b);
 
     if(!contiguous(rowNos)) {
         throw new Error("invalid merge");

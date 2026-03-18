@@ -28,16 +28,12 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
     #dragState: DragState | null;
 
     constructor(prev: AbstractEditorView, eeState: AnyState, dragState?: DragState) {
-        super(prev);
+        super(prev, eeState);
         if(new.target === AbstractEdgeDraggingView) {
             throw new Error("Cannot instantiate AbstractEdgeDraggingView directly");
         }
         this._eeState = eeState;
         this.#dragState = dragState ?? null;
-    }
-
-    get state(): AnyState {
-        return this._eeState;
     }
 
     applyInverse(inverse: Inverse<AnyState>) {

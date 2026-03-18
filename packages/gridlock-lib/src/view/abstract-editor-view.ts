@@ -1,6 +1,7 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
+import * as util from "../util.js";
 import { CommittableRecycler } from "../framework/index.js";
 import { HistoryView } from "./history-view.js";
 import { KeyViewEvent, AbstractView, ViewEvent } from "./abstract-view.js";
@@ -9,7 +10,9 @@ import {
     MoveCellBoundaryPrims,
     MoveRowBoundaryPrims,
     SlideCellBoundaryPrims,
-    SlideRowBoundaryPrims
+    SlideRowBoundaryPrims,
+    disableCellGuides,
+    enableCellGuides
 } from "../state/index.js";
 import { padLeftToLength } from "../util.js";
 import { withSnapshotInverse } from "../state/inverse.js";
@@ -17,7 +20,6 @@ import { withSnapshotInverse } from "../state/inverse.js";
 import type { Inverse, AnyState } from "../state/index.js";
 import type { DragState } from "./edge-editing-view.js";
 import type { Recycler } from "../framework/index.js";
-import { disableCellGuides, enableCellGuides } from "../state/disable-guides.js";
 
 export type EdgeDraggingMode = "Move" | "Slide";
 
@@ -25,13 +27,19 @@ export interface InitialViewState {
     parent: AbstractView | null;
     history: Inverse<AnyState>[];
     edgeDraggingMode: EdgeDraggingMode;
+    cellGuidesDisabled: false;
 }
 
 /**
  * Create an `InitialViewState` to bootstrap the editor view.
  */
 export function mkInitialEditorViewState(): InitialViewState {
-    return { parent: null, history: [], edgeDraggingMode: "Move" };
+    return {
+        parent: null,
+        history: [],
+        edgeDraggingMode: "Move",
+        cellGuidesDisabled: false
+    };
 }
 
 /**
@@ -55,16 +63,28 @@ export abstract class AbstractEditorView extends AbstractView {
     #edgeDraggingMode: EdgeDraggingMode = "Move";
     #lastClick: { cell: grid.CellPath } | null = null;
     #cellGuidesDisabled: boolean = false;
+    #state: AnyState;
 
-    constructor(prev: AbstractEditorView | InitialViewState) {
+    constructor(prev: AbstractEditorView | InitialViewState, state: AnyState) {
         super(prev.parent);
         this.#history = prev.history;
         this.#edgeDraggingMode = prev.edgeDraggingMode;
+        this.#state = state;
+        this.#cellGuidesDisabled = prev.cellGuidesDisabled;
+
+        if(this.#cellGuidesDisabled && !this.canDisableCellGuides) {
+            this.enableCellGuides();
+        }
     }
 
     get history(): Inverse<AnyState>[] { return this.#history; }
 
-    abstract get state(): AnyState;
+    /**
+     * Get the current (generic) editor state.
+     */
+    get state(): AnyState {
+        return this.#state;
+    }
 
     /*************************************************************************/
     /** View Factory Registry                                               **/
@@ -131,27 +151,30 @@ export abstract class AbstractEditorView extends AbstractView {
     /*************************************************************************/
     /** enable/disable guides                                               **/
 
+    /**
+     * Is it valid to disable cell guides in the current editing mode?
+     */
+    get canDisableCellGuides(): boolean {
+        return false;
+    }
 
     get cellGuidesDisabled(): boolean {
         return this.#cellGuidesDisabled;
     }
 
     set cellGuidesDisabled(disabled: boolean) {
-        if(this.#cellGuidesDisabled !== disabled) {
+        if(this.#cellGuidesDisabled !== disabled
+            || (this.#cellGuidesDisabled && !this.canDisableCellGuides)) {
             this.toggleCellGuidesDisabled();
         }
     }
 
     toggleCellGuidesDisabled() {
         if(this.#cellGuidesDisabled) {
-            this.#cellGuidesDisabled = false;
             this.enableCellGuides();
         } else {
-            this.#cellGuidesDisabled = true;
             this.disableCellGuides();
         }
-
-        this.requestRedraw();
     }
 
     /**
@@ -160,8 +183,14 @@ export abstract class AbstractEditorView extends AbstractView {
      * method is called), will be the only cell on the line.
      */
     private disableCellGuides() {
+        if(!this.canDisableCellGuides) {
+            return;
+        }
+
         console.log("Disabling cell guides");
-        disableCellGuides(this.state);
+        this.#cellGuidesDisabled = true;
+        const newSt = disableCellGuides(this.state);
+        this.requestReplaceEditorView(this.createViewForState(newSt));
     }
 
     /**
@@ -169,7 +198,9 @@ export abstract class AbstractEditorView extends AbstractView {
      */
     private enableCellGuides() {
         console.log("Enabling cell guides");
-        enableCellGuides(this.state);
+        this.#cellGuidesDisabled = false;
+        const newSt = enableCellGuides(this.state);
+        this.requestReplaceEditorView(this.createViewForState(newSt));
     }
 
     /*************************************************************************/
@@ -291,9 +322,12 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 
     /**
-     * View the disabled guide at local-column `guideX`.
+     * View the disabled guide for at local-column `guideX`. The
+     * function is passed the `disabledCell` path, which is the path
+     * of the cell, had it not been disabled. (I.e. be careful,
+     * because `disabledCell` doesn't exist in the viewed grid).
      */
-    #viewDisabledCellGuide(cell: grid.CellPath, guideX: number, r: Recycler) {
+    #viewDisabledCellGuide(disabledCell: grid.CellPath, guideX: number, r: Recycler) {
         r.elem({ tag: "div", key: `disabled-cell-guide-${guideX}` }, (disabledGuideElem) => {
             disabledGuideElem.className = "editor-cell-guide";
             disabledGuideElem.classList.add("editor-disabled-cell-guide");
@@ -304,8 +338,18 @@ export abstract class AbstractEditorView extends AbstractView {
             disabledGuideHitboxElem.style.right = `calc(100% - ${guideX}ch - 2px)`;
             disabledGuideHitboxElem.onpointerdown = (e) => {
                 e.stopPropagation();
+                console.log(JSON.stringify(disabledCell));
                 const ctx = new PointerEventContext(e, this);
-                this.onPointerDownInCellGuide(ctx, cell);
+
+                // Since cell guides are disabled before running the
+                // below, we use the hypothetical location of the
+                // disabled cell, since by the time we process the
+                // drag action, a cell at the hypothetical position
+                // will actually exist.
+                this.cellGuidesDisabled = false;
+
+                util.assert(grid.lookupCell(this.state.grid, disabledCell) !== undefined);
+                this.onPointerDownInCellGuide(ctx, disabledCell);
             }
         })
     }
@@ -332,8 +376,11 @@ export abstract class AbstractEditorView extends AbstractView {
             new CommittableRecycler(cellElem)
                 .views(theCell.data.lines.map((_: string, i: number) => i), (rowNo: number, r: Recycler) =>
                     this.viewLine(rowNo, cell, r))
-                .views(theCell.data.disabledGuides.values(), (guideX: number, r: Recycler) =>
-                    this.#viewDisabledCellGuide(cell, guideX, r))
+                .views([...theCell.data.disabledGuides.values()]
+                    .toSorted((a, b) => a - b)
+                    .map((guideX: number, colNo: number) => { console.log(cell, guideX, colNo); return [guideX, colNo]; }),
+                    ([guideX, colNo]: [number, number], r: Recycler) =>
+                        this.#viewDisabledCellGuide({ rowNo: cell.rowNo, colNo }, guideX, r))
                 .view((r: Recycler) => this.viewCellSelection(cell, r))
                 .elem({ tag: "div", key: "cell-guide-hitbox" }, (cellGuideHitboxElem) => {
                     cellGuideHitboxElem.className = "editor-cell-guide-hitbox";

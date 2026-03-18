@@ -10,3 +10,4 @@ export { SliceRowPrims } from "./slice-row.js";
 export { SlideCellBoundaryPrims } from "./slide-cell-boundary.js";
 export { SlideRowBoundaryPrims } from "./slide-row-boundary.js";
 export { TextPrims } from "./text-prims.js";
+export { disableCellGuides, enableCellGuides } from "./disable-guides.js";

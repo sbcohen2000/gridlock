@@ -8,13 +8,9 @@ import type { Inverse, AnyState } from "../state/index.js";
 export class CellEditingView extends AbstractEditorView {
     _ceState: CellPrims;
 
-    constructor(prev: AbstractEditorView, st: CellPrims) {
-        super(prev);
-        this._ceState = st;
-    }
-
-    get state(): CellPrims {
-        return this._ceState;
+    constructor(prev: AbstractEditorView, state: CellPrims) {
+        super(prev, state);
+        this._ceState = state;
     }
 
     applyInverse(inverse: Inverse<AnyState>) {

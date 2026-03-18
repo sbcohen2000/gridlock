@@ -12,13 +12,13 @@ import type { Inverse, AnyState } from "../state/index.js";
 export class TextEditingView extends AbstractEditorView {
     _teState: TextPrims;
 
-    constructor(prev: AbstractEditorView | InitialViewState, st?: TextPrims) {
-        super(prev);
-        this._teState = st!;
+    constructor(prev: AbstractEditorView | InitialViewState, state: TextPrims) {
+        super(prev, state);
+        this._teState = state;
     }
 
-    get state(): TextPrims {
-        return this._teState;
+    get canDisableCellGuides(): boolean {
+        return true;
     }
 
     applyInverse(inverse: Inverse<AnyState>) {
@@ -39,7 +39,7 @@ export class TextEditingView extends AbstractEditorView {
             const [inv, st] = withSnapshotInverse(
                 (s: TextPrims) => CellPrims.editCells(s),
                 "edit cells"
-            )(this.state);
+            )(this._teState);
             this.commitInverse(inv);
             st.selection.add(this._teState.selection.cell);
             st.selection.add(ctx.cell);

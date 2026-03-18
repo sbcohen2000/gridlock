@@ -40,4 +40,9 @@ export class SlideCellBoundaryPrims implements State<SlideCellBoundaryPrims> {
 
         return new SnapshotInverse(snapshot);
     }
+
+    mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): false {
+        f(this.grid);
+        return false;
+    }
 }

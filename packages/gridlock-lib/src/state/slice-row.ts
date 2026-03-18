@@ -34,4 +34,9 @@ export class SliceRowPrims implements State<SliceRowPrims> {
 
         return new SnapshotInverse(snapshot, "split row vertically");
     }
+
+    mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): true {
+        f(this.grid);
+        return true;
+    }
 }

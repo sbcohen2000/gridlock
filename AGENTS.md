@@ -5,7 +5,8 @@ Read the @README.md to understand how to operate this project's tooling.
 # Rules
 - NEVER say "Perfect!" or use other overly cheerful remarks.
 - NEVER use `any` or `unknown`. If you think that `any` or `unknwon` are required, ask first.
-- ALWAYS write JSDoc type definitions for functions.
+- NEVER remove comments.
+- ALWAYS write a comment above a function you declare explaining briefly what it does.
 - ALWAYS typecheck. The typechecker can be run with `npm run typecheck`.
 - If you need to import a type from another module, do NOT include files
 within the type definition like this:

@@ -1,4 +1,5 @@
 import * as grid from "../grid.js";
+import * as rect from "../rect.js";
 import * as point from "../point.js";
 import { projectTextOntoLeaves } from "./state-utils.js";
 import { SnapshotInverse, Inverse } from "./inverse.js";
@@ -74,5 +75,22 @@ export class CellPrims implements State<CellPrims> {
         this.selection = new Set([newSelectedCell]);
 
         return new SnapshotInverse(snapshot, "merge cells");
+    }
+
+    mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): true {
+        // Find the location of all of the selected cells.
+        const cellLocs = [...this.selection.values().map(cell => {
+            const r = grid.rectOfCell(this.grid, cell);
+            return rect.upperLeft(r);
+        })];
+
+        f(this.grid);
+
+        this.selection.clear();
+        for(const loc of cellLocs) {
+            this.selectCellUnderPoint(loc, false);
+        }
+
+        return true;
     }
 }

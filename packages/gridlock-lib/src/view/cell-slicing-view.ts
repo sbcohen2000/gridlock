@@ -16,16 +16,12 @@ class AbstractCellSlicingView extends AbstractEditorView {
 
     _hoveredPos: point.P2 | null = null;
 
-    constructor(prev: AbstractEditorView, st: SliceRowPrims | SliceCellPrims) {
-        super(prev);
+    constructor(prev: AbstractEditorView, state: SliceRowPrims | SliceCellPrims) {
+        super(prev, state);
         if(new.target === AbstractCellSlicingView) {
             throw new Error("Cannot instantiate AbstractCellSlicingView directly");
         }
-        this._scState = st;
-    }
-
-    get state(): SliceRowPrims | SliceCellPrims {
-        return this._scState;
+        this._scState = state;
     }
 
     applyInverse(inverse: Inverse<AnyState>) {
