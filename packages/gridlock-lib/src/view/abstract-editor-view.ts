@@ -539,7 +539,7 @@ export abstract class AbstractEditorView extends AbstractView {
         this.requestRedraw();
     }
 
-    abstract applyInverse(inverse: Inverse<AnyState>): void;
+    abstract applyInverse(inverse: Inverse<AnyState>): AnyState;
 
     undo() {
         if(this.#history.length === 0) {
@@ -547,10 +547,10 @@ export abstract class AbstractEditorView extends AbstractView {
         }
 
         const top = this.#history.pop()!;
-        this.applyInverse(top);
+        const restoredState = this.applyInverse(top);
 
-        // Replace the view with one which can view the current state.
-        this.requestReplaceEditorView(this.createViewForState(this.state));
+        // Replace the view with one which can view the restored state.
+        this.requestReplaceEditorView(this.createViewForState(restoredState));
     }
 
     /*************************************************************************/

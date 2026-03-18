@@ -36,8 +36,9 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
         this.#dragState = dragState ?? null;
     }
 
-    applyInverse(inverse: Inverse<AnyState>) {
+    applyInverse(inverse: Inverse<AnyState>): AnyState {
         inverse.apply<AbstractEdgeDraggingView, "_eeState">("_eeState", this);
+        return this._eeState;
     }
 
     /**

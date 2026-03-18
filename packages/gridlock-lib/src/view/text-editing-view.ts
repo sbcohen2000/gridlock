@@ -21,8 +21,9 @@ export class TextEditingView extends AbstractEditorView {
         return true;
     }
 
-    applyInverse(inverse: Inverse<AnyState>) {
+    applyInverse(inverse: Inverse<AnyState>): AnyState {
         inverse.apply<TextEditingView, "_teState">("_teState", this);
+        return this._teState;
     }
 
     /**

@@ -13,8 +13,9 @@ export class CellEditingView extends AbstractEditorView {
         this._ceState = state;
     }
 
-    applyInverse(inverse: Inverse<AnyState>) {
+    applyInverse(inverse: Inverse<AnyState>): AnyState {
         inverse.apply<CellEditingView, "_ceState">("_ceState", this);
+        return this._ceState;
     }
 
     /**

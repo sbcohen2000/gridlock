@@ -24,8 +24,9 @@ class AbstractCellSlicingView extends AbstractEditorView {
         this._scState = state;
     }
 
-    applyInverse(inverse: Inverse<AnyState>) {
+    applyInverse(inverse: Inverse<AnyState>): AnyState {
         inverse.apply<AbstractCellSlicingView, "_scState">("_scState", this);
+        return this._scState;
     }
 
     /**
