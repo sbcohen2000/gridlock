@@ -389,8 +389,8 @@ describe("text-prims", () => {
                   "xyzwX\n"            +
                   "\n"                 +
                   "+----+---------+\n" +
-                  "+----+---------+\n" +
-                  "+----+---------+";
+                  "+---++---------+\n" +
+                  "+---+----------+";
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });

@@ -4,6 +4,7 @@ import * as rect from "../rect.js";
 import * as util from "../util.js";
 import { Cell, State, AnyState, cloneCellData } from "./state-iface.js";
 import { KeysWithType, Inverse, SnapshotInverse, id, IdInverse } from "./inverse.js";
+import { findOptimalPartition, applyPartition } from "./find-optimal-partition.js";
 
 interface TextOnGlobalLineIterItem {
     /** The global column of the first character. */
@@ -140,9 +141,8 @@ export class TextPrims implements State<TextPrims> {
         const theCell = grid.lookupCell(this.grid, cell);
         const n = this._maximumLineLength(theCell) - theCell.width;
         if(0 < n) {
-            const globalCol = grid.rectOfCell(this.grid, cell).left;
-            const cells = [...grid.cellsUnderGlobalX(this.grid, globalCol)];
-            grid.modifyWidthOfCells(this.grid, cells, n);
+            const part = findOptimalPartition(this.grid, cell, n);
+            applyPartition(this.grid, part);
         }
     }
 
