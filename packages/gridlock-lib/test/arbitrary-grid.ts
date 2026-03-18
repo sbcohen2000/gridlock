@@ -33,11 +33,13 @@ function arbCellWidths(totalWidth: number): fc.Arbitrary<number[]> {
  */
 function arbRow(totalWidth: number): fc.Arbitrary<grid.Row<void>> {
     return fc.integer({ min: 1, max: 10 }).chain(height =>
-        arbCellWidths(totalWidth).map(widths => ({
-            type: "Row",
-            height,
-            cells: widths.map(w => ({ type: "Cell", width: w }))
-        }))
+        arbCellWidths(totalWidth)
+            .filter(widths => widths.every(w => w >= 1))
+            .map(widths => ({
+                type: "Row",
+                height,
+                cells: widths.map(w => ({ type: "Cell", width: w }))
+            }))
     );
 }
 

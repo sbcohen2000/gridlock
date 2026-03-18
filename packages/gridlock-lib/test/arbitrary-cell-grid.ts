@@ -14,7 +14,7 @@ function arbCell(width: number, height: number): fc.Arbitrary<Cell> {
     const lineArb = fc.array(printableChar, { minLength: 0, maxLength: width })
         .map(cs => cs.join(''));
     return fc.array(lineArb, { minLength: height, maxLength: height })
-        .map(lines => ({ lines }));
+        .map(lines => ({ lines, disabledGuides: new Set<number>() }));
 }
 
 /**

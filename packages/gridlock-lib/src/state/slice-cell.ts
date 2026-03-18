@@ -20,20 +20,20 @@ export class SliceCellPrims implements State<SliceCellPrims> {
     }
 
     splitCell(globalPt: point.P2): Inverse<SliceCellPrims> {
-        const snapshot = this.clone();
-
         const cell = grid.cellUnderPoint(this.grid, globalPt);
         if(!cell) return new IdInverse();
+
+        const snapshot = this.clone();
 
         const cellRect = grid.rectOfCell(this.grid, cell);
         const localCol = globalPt.x - cellRect.left;
         grid.splitCell(this.grid, cell, localCol, (cellData: Cell) => [
             {
-                lines: cellData.lines.map(line => line.slice(0, localCol)),
+                lines: cellData.lines.map(line => line.slice(0, localCol).trimEnd()),
                 disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x < localCol))
             },
             {
-                lines: cellData.lines.map(line => line.slice(localCol)),
+                lines: cellData.lines.map(line => line.slice(localCol).trimEnd()),
                 disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x > localCol))
             },
         ]);

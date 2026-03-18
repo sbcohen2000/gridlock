@@ -9,8 +9,7 @@ import {
     MoveCellBoundaryPrims,
     MoveRowBoundaryPrims,
     SlideCellBoundaryPrims,
-    SlideRowBoundaryPrims,
-    SliceCellPrims
+    SlideRowBoundaryPrims
 } from "../state/index.js";
 import { padLeftToLength } from "../util.js";
 import { withSnapshotInverse } from "../state/inverse.js";
@@ -18,6 +17,7 @@ import { withSnapshotInverse } from "../state/inverse.js";
 import type { Inverse, AnyState } from "../state/index.js";
 import type { DragState } from "./edge-editing-view.js";
 import type { Recycler } from "../framework/index.js";
+import { disableCellGuides, enableCellGuides } from "../state/disable-guides.js";
 
 export type EdgeDraggingMode = "Move" | "Slide";
 
@@ -131,41 +131,45 @@ export abstract class AbstractEditorView extends AbstractView {
     /*************************************************************************/
     /** enable/disable guides                                               **/
 
+
+    get cellGuidesDisabled(): boolean {
+        return this.#cellGuidesDisabled;
+    }
+
+    set cellGuidesDisabled(disabled: boolean) {
+        if(this.#cellGuidesDisabled !== disabled) {
+            this.toggleCellGuidesDisabled();
+        }
+    }
+
+    toggleCellGuidesDisabled() {
+        if(this.#cellGuidesDisabled) {
+            this.#cellGuidesDisabled = false;
+            this.enableCellGuides();
+        } else {
+            this.#cellGuidesDisabled = true;
+            this.disableCellGuides();
+        }
+
+        this.requestRedraw();
+    }
+
     /**
      * Disable the cell guides in the document, storing their
      * locations in the first cell on the line (which, after this
      * method is called), will be the only cell on the line.
      */
-    disableCellGuides() {
-        for(const row of grid.allRows(this.state.grid)) {
-            const guidePositions = grid.allPositionedCellsOnRow(this.state.grid, row)
-                .drop(1)
-                .map(([_, rect]) => rect.left);
-
-            const theRow = grid.lookupRow(this.state.grid, row);
-            const rowWidth = rect.width(grid.rectOfRow(this.state.grid, row));
-            const firstCell = theRow.cells[0];
-            firstCell.data.disabledGuides = new Set(guidePositions);
-            firstCell.width = rowWidth;
-            theRow.cells = [firstCell];
-        }
+    private disableCellGuides() {
+        console.log("Disabling cell guides");
+        disableCellGuides(this.state);
     }
 
     /**
      * Re-enable cell guides after they have been disabled.
      */
-    enableCellGuides() {
-        const cells = [...grid.allPositionedCells(this.state.grid)];
-        const st = SliceCellPrims.sliceCell(this.state);
-
-        for(const [cell, rect] of cells) {
-            const theCell = grid.lookupCell(this.state.grid, cell);
-            const guideXs = [...theCell.data.disabledGuides.values().map(x => x + rect.left)];
-
-            guideXs.forEach(x => {
-                st.splitCell(point.mkP2(rect.top, x));
-            });
-        }
+    private enableCellGuides() {
+        console.log("Enabling cell guides");
+        enableCellGuides(this.state);
     }
 
     /*************************************************************************/
@@ -287,6 +291,26 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 
     /**
+     * View the disabled guide at local-column `guideX`.
+     */
+    #viewDisabledCellGuide(cell: grid.CellPath, guideX: number, r: Recycler) {
+        r.elem({ tag: "div", key: `disabled-cell-guide-${guideX}` }, (disabledGuideElem) => {
+            disabledGuideElem.className = "editor-cell-guide";
+            disabledGuideElem.classList.add("editor-disabled-cell-guide");
+            disabledGuideElem.style.right = `calc(100% - ${guideX}ch - 0.5px)`;
+        })
+        r.elem({ tag: "div", key: `disabled-cell-guide-hitbox-${guideX}` }, (disabledGuideHitboxElem) => {
+            disabledGuideHitboxElem.className = "editor-cell-guide-hitbox";
+            disabledGuideHitboxElem.style.right = `calc(100% - ${guideX}ch - 2px)`;
+            disabledGuideHitboxElem.onpointerdown = (e) => {
+                e.stopPropagation();
+                const ctx = new PointerEventContext(e, this);
+                this.onPointerDownInCellGuide(ctx, cell);
+            }
+        })
+    }
+
+    /**
      * View a single cell in the grid.
      */
     #viewCell(cell: grid.CellPath, r: Recycler) {
@@ -295,7 +319,7 @@ export abstract class AbstractEditorView extends AbstractView {
             cellElem.className = "editor-cell";
             cellElem.style.width = `${theCell.width}ch`;
 
-            cellElem.onpointermove = (e) => {
+           cellElem.onpointermove = (e) => {
                 const ctx = new PointerInCellEventContext(e, this, cell);
                 this.onPointerMoveInCell(ctx);
             }
@@ -308,6 +332,8 @@ export abstract class AbstractEditorView extends AbstractView {
             new CommittableRecycler(cellElem)
                 .views(theCell.data.lines.map((_: string, i: number) => i), (rowNo: number, r: Recycler) =>
                     this.viewLine(rowNo, cell, r))
+                .views(theCell.data.disabledGuides.values(), (guideX: number, r: Recycler) =>
+                    this.#viewDisabledCellGuide(cell, guideX, r))
                 .view((r: Recycler) => this.viewCellSelection(cell, r))
                 .elem({ tag: "div", key: "cell-guide-hitbox" }, (cellGuideHitboxElem) => {
                     cellGuideHitboxElem.className = "editor-cell-guide-hitbox";
@@ -492,19 +518,6 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .commit();
         });
-    }
-
-    /*************************************************************************/
-    /** Cell Guides Enable/Disable                                          **/
-
-    get cellGuidesDisabled(): boolean {
-        return this.#cellGuidesDisabled;
-    }
-
-    toggleCellGuidesDisabled() {
-        this.#cellGuidesDisabled = !this.#cellGuidesDisabled;
-
-        this.requestRedraw();
     }
 
     /*************************************************************************/
