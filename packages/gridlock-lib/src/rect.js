@@ -2,10 +2,10 @@ import * as point from "./point.js";
 
 /**
  * @typedef {Object} Rect
- * @param {number} left
- * @param {number} right
- * @param {number} top
- * @param {number} bottom
+ * @property {number} left
+ * @property {number} right
+ * @property {number} top
+ * @property {number} bottom
  */
 
 /**

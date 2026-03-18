@@ -2,7 +2,7 @@ import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
 import * as util from "../util.js";
-import { Cell, State, AnyState } from "./state-iface.js";
+import { Cell, State, AnyState, cloneCellData } from "./state-iface.js";
 import { KeysWithType, Inverse, SnapshotInverse, id, IdInverse } from "./inverse.js";
 
 interface TextOnGlobalLineIterItem {
@@ -95,7 +95,7 @@ export class TextPrims implements State<TextPrims> {
     }
 
     clone(): TextPrims {
-        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+        const g = grid.clone(this.grid, cloneCellData);
         return new TextPrims(g, {
             pt: point.cloneP2(this.selection.pt),
             cell: this.selection.cell,
@@ -119,7 +119,8 @@ export class TextPrims implements State<TextPrims> {
      * Construct a new `TextPrims` state with an empty grid.
      */
     static mkEmpty(): TextPrims {
-        const g = grid.mk(1, 1, { lines: [""] });
+        const data: Cell = { lines: [""], disabledGuides: new Set() };
+        const g = grid.mk(1, 1, data);
         return TextPrims.editText({ grid: g });
     }
 
@@ -464,11 +465,11 @@ export class TextPrims implements State<TextPrims> {
     }
 
     removeGlobalNewline(): Inverse<TextPrims> {
-        const snapshot = this.clone();
-
         const globalPt = this.findGlobalPoint();
-        if(globalPt.y === 0) return new SnapshotInverse(snapshot, "remove newline");
-        if(globalPt.x > 0) return new SnapshotInverse(snapshot, "remove newline");
+        if(globalPt.y === 0) return new IdInverse();
+        if(globalPt.x > 0) return new IdInverse();
+
+        const snapshot = this.clone();
 
         const globalRow = globalPt.y;
         const textOnLine = [...this._extractGlobalLine(globalRow)];
@@ -532,50 +533,6 @@ export class TextPrims implements State<TextPrims> {
     }
 
     /**
-     * Insert a string into the document at the point, shifting all of
-     * the text on the global line to the right.
-     *
-     * @param s The string to insert.
-     * @param [advancePoint] Should the point be advanced by the
-     *     length of the string?
-     */
-    shiftString(s: string, advancePoint?: boolean): Inverse<TextPrims> {
-        advancePoint = advancePoint ?? true;
-        if(s.length === 0) return new IdInverse();
-
-        const snapshot = this.clone();
-
-        // 1. Find the text on the global line.
-        const globalPt = this.findGlobalPoint();
-        const lineText = this.textOnGlobalLine(globalPt.y);
-
-        // 2. Produce a string with the inserted `s`.
-        const newLineText = lineText.slice(0, globalPt.x) + s + lineText.slice(globalPt.x);
-
-        // 3. Project that string back onto the cells underneath the row.
-        let lastCellColNo: number = this.grid.rows[this.selection.cell.rowNo].cells.length - 1;
-        for(const [cell, rect] of grid.allPositionedCellsOnRow(this.grid, this.selection.cell)) {
-            const theCell  = grid.lookupCell(this.grid, cell);
-            const localRow = globalPt.y - rect.top;
-
-            if(lastCellColNo === cell.colNo) {
-                theCell.data.lines[localRow] = newLineText.slice(rect.left);
-
-                // 4. Expand the width of the last cell if necessary.
-                this._expandCellWidthIfNecessary(cell);
-            } else {
-                theCell.data.lines[localRow] = newLineText.slice(rect.left, rect.right);
-            }
-        }
-
-        if(advancePoint) {
-            this.putPointOnGlobalPosition(point.offset(globalPt, point.mkV2(s.length, 0)), true);
-        }
-
-        return new SnapshotInverse(snapshot, "shift string");
-    }
-
-    /**
      * Insert a string into the document at the point.
      *
      * @param s The string to insert.
@@ -603,5 +560,4 @@ export class TextPrims implements State<TextPrims> {
 
         return new SnapshotInverse(snapshot, "insert string");
     }
-
 }

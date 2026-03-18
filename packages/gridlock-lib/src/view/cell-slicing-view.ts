@@ -110,7 +110,7 @@ export class CellSlicingView extends AbstractCellSlicingView {
 
     sliceAt(globalPos: point.P2) {
         this.commitInverse(
-            (this.state as SliceCellPrims).splitCellHorizontallyAtGlobalCol(globalPos)
+            (this.state as SliceCellPrims).splitCell(globalPos)
         );
     }
 

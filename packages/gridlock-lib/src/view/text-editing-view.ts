@@ -83,11 +83,7 @@ export class TextEditingView extends AbstractEditorView {
                 case "f": this.commitInverse(this._teState.putPointOnNextGlobalCol()); break;
                 }
             } else {
-                if(this.cellGuidesDisabled) {
-                    this.commitInverse(this._teState.shiftString(e.key));
-                } else {
-                    this.commitInverse(this._teState.insertString(e.key));
-                }
+                this.commitInverse(this._teState.insertString(e.key));
             }
         } else {
             // Only if there's no command state do we allow the

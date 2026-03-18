@@ -1,5 +1,5 @@
 import * as grid from "../grid.js";
-import { Cell, State } from "./state-iface.js";
+import { Cell, cloneCellData, State } from "./state-iface.js";
 import { Inverse, SnapshotInverse } from "./inverse.js";
 
 function trimEmptyLines(n: number, lines: string[]): void {
@@ -37,7 +37,7 @@ export class MoveRowBoundaryPrims implements State<MoveRowBoundaryPrims> {
     }
 
     clone(): MoveRowBoundaryPrims {
-        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+        const g = grid.clone(this.grid, cloneCellData);
         return new MoveRowBoundaryPrims(g, this.rowNo);
     }
 

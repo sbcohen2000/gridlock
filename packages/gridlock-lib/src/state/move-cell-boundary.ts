@@ -1,5 +1,5 @@
 import * as grid from "../grid.js";
-import { Cell, State } from "./state-iface.js";
+import { Cell, cloneCellData, State } from "./state-iface.js";
 import { Inverse, SnapshotInverse } from "./inverse.js";
 
 export class MoveCellBoundaryPrims implements State<MoveCellBoundaryPrims> {
@@ -14,7 +14,7 @@ export class MoveCellBoundaryPrims implements State<MoveCellBoundaryPrims> {
     }
 
     clone(): MoveCellBoundaryPrims {
-        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+        const g = grid.clone(this.grid, cloneCellData);
         return new MoveCellBoundaryPrims(g, this.rowNo, this.colNo);
     }
 

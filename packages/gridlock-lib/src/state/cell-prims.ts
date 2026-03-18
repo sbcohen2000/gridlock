@@ -2,7 +2,7 @@ import * as grid from "../grid.js";
 import * as point from "../point.js";
 import { projectTextOntoLeaves } from "./state-utils.js";
 import { SnapshotInverse, Inverse } from "./inverse.js";
-import { Cell, State } from "./state-iface.js";
+import { Cell, cloneCellData, State } from "./state-iface.js";
 
 export class CellPrims implements State<CellPrims> {
     grid: grid.Grid<Cell>;
@@ -14,7 +14,7 @@ export class CellPrims implements State<CellPrims> {
     }
 
     clone(): CellPrims {
-        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+        const g = grid.clone(this.grid, cloneCellData);
         const selection = new Set(this.selection.values().map(cell => ({ ...cell })));
         return new CellPrims(g, selection);
     }
@@ -55,7 +55,18 @@ export class CellPrims implements State<CellPrims> {
 
         let newSelectedCell!: grid.CellPath;
         const newGrid = projectTextOntoLeaves((g) => {
-            newSelectedCell = grid.mergeCells(g, [...this.selection.values()], { lines: [] });
+
+            // Merge all of the disabled guides from the merged cells
+            // into a single set.
+            const disabledGuides = new Set<number>();
+            this.selection.values().forEach(cell => {
+                const theCell = grid.lookupCell(g, cell);
+                theCell.data.disabledGuides.forEach(guide => {
+                    disabledGuides.add(guide);
+                });
+            });
+
+            newSelectedCell = grid.mergeCells(g, [...this.selection.values()], { lines: [], disabledGuides });
             return g;
         }, this.grid);
 

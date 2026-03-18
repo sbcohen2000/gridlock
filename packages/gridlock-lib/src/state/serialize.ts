@@ -59,7 +59,7 @@ export function parseCommonState(src: string): grid.Grid<Cell> {
     for(const [cellPath, cellRect] of grid.allPositionedCells(g)) {
         const cell = grid.lookupCell(g, cellPath);
         const h = rect.height(cellRect);
-        cell.data = { lines: [] };
+        cell.data = { lines: [], disabledGuides: new Set() };
         for(let row = cellRect.top; row < cellRect.top + h; ++row) {
             cell.data.lines.push(srcLines[row].slice(cellRect.left, cellRect.right).trimEnd());
         }

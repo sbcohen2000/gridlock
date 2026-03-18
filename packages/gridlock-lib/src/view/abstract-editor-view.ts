@@ -9,7 +9,8 @@ import {
     MoveCellBoundaryPrims,
     MoveRowBoundaryPrims,
     SlideCellBoundaryPrims,
-    SlideRowBoundaryPrims
+    SlideRowBoundaryPrims,
+    SliceCellPrims
 } from "../state/index.js";
 import { padLeftToLength } from "../util.js";
 import { withSnapshotInverse } from "../state/inverse.js";
@@ -70,7 +71,10 @@ export abstract class AbstractEditorView extends AbstractView {
 
     static #viewForState = new Map<Function | symbol, (prev: AbstractEditorView, st: AnyState, ...args: any[]) => AbstractEditorView>();
 
-    static registerViewFactory(stCtor: Function | symbol, viewCtor: (prev: AbstractEditorView, st: AnyState, ...args: any[]) => AbstractEditorView) {
+    static registerViewFactory(
+        stCtor: Function | symbol,
+        viewCtor: (prev: AbstractEditorView, st: AnyState, ...args: any[]) => AbstractEditorView
+    ) {
         AbstractEditorView.#viewForState.set(stCtor, viewCtor);
     }
 
@@ -125,7 +129,47 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 
     /*************************************************************************/
-    /** Edge Dragging                                                       **/
+    /** enable/disable guides                                               **/
+
+    /**
+     * Disable the cell guides in the document, storing their
+     * locations in the first cell on the line (which, after this
+     * method is called), will be the only cell on the line.
+     */
+    disableCellGuides() {
+        for(const row of grid.allRows(this.state.grid)) {
+            const guidePositions = grid.allPositionedCellsOnRow(this.state.grid, row)
+                .drop(1)
+                .map(([_, rect]) => rect.left);
+
+            const theRow = grid.lookupRow(this.state.grid, row);
+            const rowWidth = rect.width(grid.rectOfRow(this.state.grid, row));
+            const firstCell = theRow.cells[0];
+            firstCell.data.disabledGuides = new Set(guidePositions);
+            firstCell.width = rowWidth;
+            theRow.cells = [firstCell];
+        }
+    }
+
+    /**
+     * Re-enable cell guides after they have been disabled.
+     */
+    enableCellGuides() {
+        const cells = [...grid.allPositionedCells(this.state.grid)];
+        const st = SliceCellPrims.sliceCell(this.state);
+
+        for(const [cell, rect] of cells) {
+            const theCell = grid.lookupCell(this.state.grid, cell);
+            const guideXs = [...theCell.data.disabledGuides.values().map(x => x + rect.left)];
+
+            guideXs.forEach(x => {
+                st.splitCell(point.mkP2(rect.top, x));
+            });
+        }
+    }
+
+    /*************************************************************************/
+    /** Guide Dragging                                                      **/
 
     /**
      * Try to start dragging a row guide.
@@ -275,9 +319,6 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "cell-guide" }, (cellGuideElem) => {
                     cellGuideElem.className = "editor-cell-guide";
-                    if(this.cellGuidesDisabled) {
-                        cellGuideElem.classList.add("editor-disabled-cell-guide");
-                    }
                 })
                 .commit();
         });

@@ -35,7 +35,6 @@ const TEXT_PRIMS = [
     { method: "removeGlobalNewline", args: [], const: false, description: "Remove the newline before the current line" },
     { method: "removeString", args: ["number"], const: false, description: "Remove characters before point" },
     { method: "insertGlobalNewline", args: [], const: false, description: "Insert a newline" },
-    { method: "shiftString", args: ["string", "boolean"], const: false, description: "Insert a string by shifting" },
     { method: "insertString", args: ["string", "boolean"], const: false, description: "Insert a string by expanding" },
 ];
 

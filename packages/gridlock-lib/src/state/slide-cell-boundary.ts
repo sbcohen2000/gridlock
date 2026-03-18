@@ -1,7 +1,7 @@
 import * as grid from "../grid.js";
 import * as util from "../util.js";
 import {  projectTextOntoLeaves } from "./state-utils.js";
-import { Cell, State } from "./state-iface.js";
+import { Cell, cloneCellData, State } from "./state-iface.js";
 import { Inverse, SnapshotInverse } from "./inverse.js";
 
 export class SlideCellBoundaryPrims implements State<SlideCellBoundaryPrims> {
@@ -16,7 +16,7 @@ export class SlideCellBoundaryPrims implements State<SlideCellBoundaryPrims> {
     }
 
     clone(): SlideCellBoundaryPrims {
-        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+        const g = grid.clone(this.grid, cloneCellData);
         return new SlideCellBoundaryPrims(g, this.rowNo, this.colNo);
     }
 

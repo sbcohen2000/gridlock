@@ -1,7 +1,7 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import { Inverse, IdInverse, SnapshotInverse } from "./inverse.js";
-import { Cell, State } from "./state-iface.js";
+import { Cell, cloneCellData, State } from "./state-iface.js";
 
 export class SliceCellPrims implements State<SliceCellPrims> {
     grid: grid.Grid<Cell>;
@@ -11,7 +11,7 @@ export class SliceCellPrims implements State<SliceCellPrims> {
     }
 
     clone(): SliceCellPrims {
-        const g = grid.clone(this.grid, data => ({ lines: [...data.lines] }));
+        const g = grid.clone(this.grid, cloneCellData);
         return new SliceCellPrims(g);
     }
 
@@ -19,7 +19,7 @@ export class SliceCellPrims implements State<SliceCellPrims> {
         return new SliceCellPrims(st.grid);
     }
 
-    splitCellHorizontallyAtGlobalCol(globalPt: point.P2): Inverse<SliceCellPrims> {
+    splitCell(globalPt: point.P2): Inverse<SliceCellPrims> {
         const snapshot = this.clone();
 
         const cell = grid.cellUnderPoint(this.grid, globalPt);
@@ -28,8 +28,14 @@ export class SliceCellPrims implements State<SliceCellPrims> {
         const cellRect = grid.rectOfCell(this.grid, cell);
         const localCol = globalPt.x - cellRect.left;
         grid.splitCell(this.grid, cell, localCol, (cellData: Cell) => [
-            { lines: cellData.lines.map(line => line.slice(0, localCol)) },
-            { lines: cellData.lines.map(line => line.slice(localCol)) },
+            {
+                lines: cellData.lines.map(line => line.slice(0, localCol)),
+                disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x < localCol))
+            },
+            {
+                lines: cellData.lines.map(line => line.slice(localCol)),
+                disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x > localCol))
+            },
         ]);
 
         return new SnapshotInverse(snapshot, "split cell horizontally");
