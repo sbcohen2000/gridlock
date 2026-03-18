@@ -62,8 +62,8 @@ export class TextEditingView extends AbstractEditorView {
             recycler.elem({ tag: "div", key: "cursor" }, (cursorElem) => {
                 cursorElem.className = "editor-cursor";
                 cursorElem.style.position = "absolute";
-                cursorElem.style.left = `${this.state.selection.pt.x}ch`;
-                cursorElem.style.top  = `${this.state.selection.pt.y}em`;
+                cursorElem.style.left = `${this._teState.selection.pt.x}ch`;
+                cursorElem.style.top  = `${this._teState.selection.pt.y}em`;
             });
             recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
                 haloElem.className = "editor-cell-halo";

@@ -49,13 +49,13 @@ export function describeToolbar(editorView) {
         key: "merge-cells-button",
         iconSrc: merge_cells_icon_url,
         label: "merge cells",
-        disabled: !(editorView instanceof view.CellEditingView) || !editorView.state.canMergeSelectedCells(),
+        disabled: !(editorView instanceof view.CellEditingView) || !editorView._ceState.canMergeSelectedCells(),
         onclick: () => {
             if(!(editorView instanceof view.CellEditingView)) {
                 return;
             }
 
-            const inv = editorView.state.mergeSelectedCells();
+            const inv = editorView._ceState.mergeSelectedCells();
             editorView.commitInverse(inv);
         }
     }, {
