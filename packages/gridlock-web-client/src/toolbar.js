@@ -1,5 +1,6 @@
 import { state, util, view, point } from "gridlock-lib";
 
+import { EXAMPLES } from "./examples.js";
 import { SHORT_COMMIT_HASH, COMMIT_HASH } from "./commit-hash.js";
 
 import disable_cell_guides_icon_url from "../www/assets/disable-cell-guides-icon.png";
@@ -146,20 +147,27 @@ export function describeToolbar(editorView) {
         label: "load",
         iconSrc: load_icon_url,
         onclick: (e) => {
+            /** @type {view.cmenu.ContextMenuItem[]} */
+            const examples = [...Object.entries(EXAMPLES).map(([nm, src]) =>
+                view.cmenu.button(nm, () => {
+                    const freshView = editorView.createViewForState(state.serialize.textEditingStateFromCommonStateStr(src));
+                    editorView.requestReplaceEditorView(freshView);
+                })
+            )];
+
+            /** @type {view.cmenu.ContextMenuItem[]} */
+            const footer = [
+                view.cmenu.divider(),
+                view.cmenu.button("clear", () => {
+                    const freshView = editorView.createViewForState(state.TextPrims.mkEmpty());
+                    editorView.requestReplaceEditorView(freshView);
+                })
+            ];
+
             /** @type {view.cmenu.ContextMenuDescription} */
             const menuDescr = {
                 origin: point.mkP2(e.clientX, e.clientY),
-                menu: [
-                    view.cmenu.label("examples"),
-                    view.cmenu.button("example 1"),
-                    view.cmenu.button("example 2"),
-                    view.cmenu.button("example 3"),
-                    view.cmenu.divider(),
-                    view.cmenu.button("clear", () => {
-                        const freshView = editorView.createViewForState(state.TextPrims.mkEmpty());
-                        editorView.requestReplaceEditorView(freshView);
-                    })
-                ]
+                menu: examples.concat(footer)
             };
             editorView.notify(new view.cmenu.OpenContextMenu(editorView, menuDescr));
         },

@@ -81,13 +81,13 @@ export function padLeftToLength(str, len) {
  * @param {string} str
  */
 export function showMultilineString(str) {
-    const pfx = "localStorage.setItem(\n  \"editorState\",\n"
-    const linePfx = "  ";
+    const pfx = "\"example_name\":\n("
+    const linePfx = " ";
     const lines   = str.split("\n");
     const escaped = lines.map(line => JSON.stringify(line + "\n"));
     const longest = escaped.reduce((maxL, line) => Math.max(maxL, line.length), 0);
     const padded  = escaped.map(line => padRightToLength(line, longest));
-    return pfx + linePfx + padded.join(`+\n${linePfx}`) + ");"
+    return pfx + linePfx + padded.join(`+\n${linePfx}`) + "),"
 }
 
 /**
