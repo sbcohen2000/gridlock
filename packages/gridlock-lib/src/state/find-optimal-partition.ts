@@ -169,6 +169,16 @@ export function ensureCellWidth(g: grid.Grid<Cell>, cell: grid.CellPath): void {
  *
  * @see ensureCellWidth
  */
+export function ensureAllCellWidthsOnRow(g: grid.Grid<Cell>, rowPath: grid.RowPath) {
+    grid.allCellsOnRow(g, rowPath).forEach(c => ensureCellWidth(g, c));
+}
+
+/**
+ * Ensure that the width of every cell in `g` is sufficient to
+ * match the width of its longest line.
+ *
+ * @see ensureCellWidth
+ */
 export function ensureAllCellWidths(g: grid.Grid<Cell>) {
     grid.allCells(g).forEach(c => ensureCellWidth(g, c));
 }

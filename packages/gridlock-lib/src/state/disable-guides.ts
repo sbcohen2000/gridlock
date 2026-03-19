@@ -5,8 +5,8 @@ import * as util from "../util.js";
 import { SliceCellPrims } from "./slice-cell.js";
 import { AnyState } from "./state-iface.js";
 import { TextPrims } from "./text-prims.js";
-import { projectTextOntoLeaves } from "./state-utils.js";
-import { ensureCellWidth } from "./find-optimal-partition.js";
+import { projectTextOntoCells } from "./project-text-onto-cells.js";
+import { ensureAllCellWidthsOnRow } from "./find-optimal-partition.js";
 
 /**
  * Do the real work if disabling the cell guides, returning a boolean
@@ -14,11 +14,10 @@ import { ensureCellWidth } from "./find-optimal-partition.js";
  *
  * @see disableCellGuides
  */
-function _disableCellGuides(st: AnyState, rows?: grid.RowPath[]): boolean {
+function _disableCellGuides(st: AnyState, rows: grid.RowPath[]): boolean {
     return st.mutateGrid(g => {
-        projectTextOntoLeaves(g => {
-            const rowsIter = rows?.values() ?? grid.allRows(g);
-            for(const row of rowsIter) {
+        projectTextOntoCells(g => {
+            for(const row of rows) {
                 const guidePositions = [...grid.allPositionedCellsOnRow(g, row)
                     .drop(1)
                     .map(([_, rect]) => rect.left)];
@@ -47,12 +46,8 @@ function _disableCellGuides(st: AnyState, rows?: grid.RowPath[]): boolean {
 export function disableCellGuides(st: AnyState, rows?: grid.RowPath[]): AnyState {
     // Ensure that each of the rows is expanded, since we can't hide
     // cell content with disabled guides.
-    if(rows) {
-        rows.forEach(row => {
-            const cells = grid.allCellsOnRow(st.grid, row);
-            cells.forEach(cell => ensureCellWidth(st.grid, cell));
-        });
-    }
+    rows = rows ?? [...grid.allRows(st.grid)];
+    rows.forEach(row => ensureAllCellWidthsOnRow(st.grid, row));
 
     if(st instanceof TextPrims) {
         // This special case exists so that when we disable cell

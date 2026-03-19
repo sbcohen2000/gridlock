@@ -26,7 +26,7 @@ describe("cell-prims", () => {
             expect(st.selection.size).to.equal(1);
         });
 
-        it("Accumulates leaves when clear is false", () => {
+        it("Accumulates cells when clear is false", () => {
             const src =
                   "hello there\n" +
                   "+-----+-----+\n" +

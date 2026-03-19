@@ -1,9 +1,9 @@
 import * as grid from "../grid.js";
-import * as rect from "../rect.js";
 import * as point from "../point.js";
-import { projectTextOntoLeaves } from "./state-utils.js";
-import { SnapshotInverse, Inverse } from "./inverse.js";
+import * as rect from "../rect.js";
 import { Cell, cloneCellData, State } from "./state-iface.js";
+import { SnapshotInverse, Inverse } from "./inverse.js";
+import { projectTextOntoCells } from "./project-text-onto-cells.js";
 
 export class CellPrims implements State<CellPrims> {
     grid: grid.Grid<Cell>;
@@ -55,7 +55,7 @@ export class CellPrims implements State<CellPrims> {
         const snapshot = this.clone();
 
         let newSelectedCell!: grid.CellPath;
-        const newGrid = projectTextOntoLeaves((g) => {
+        const newGrid = projectTextOntoCells((g) => {
 
             // Merge all of the disabled guides from the merged cells
             // into a single set.

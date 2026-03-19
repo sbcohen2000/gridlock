@@ -2,7 +2,7 @@ import * as grid from "../grid.js";
 import * as util from "../util.js";
 import { Cell, cloneCellData, State } from "./state-iface.js";
 import { Inverse, SnapshotInverse } from "./inverse.js";
-import { projectTextOntoLeaves } from "./state-utils.js";
+import { projectTextOntoCells } from "./project-text-onto-cells.js";
 
 export class SlideRowBoundaryPrims implements State<SlideRowBoundaryPrims> {
     grid: grid.Grid<Cell>;
@@ -30,7 +30,7 @@ export class SlideRowBoundaryPrims implements State<SlideRowBoundaryPrims> {
 
         n = util.clamp(-(topRow.height - 1), n, bottomRow.height - 1);
 
-        projectTextOntoLeaves((g) => {
+        projectTextOntoCells((g) => {
             topRow.height += n;
             bottomRow.height -= n;
             return g;

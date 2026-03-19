@@ -559,7 +559,7 @@ export function modifyWidthOfCells<A>(g: Grid<A>, cells: CellPath[], n: number) 
     // Find the position of each leaf.
     const positioned: [CellPath, rect.Rect][] = cells.map(cell => [cell, rectOfCell(g, cell)]);
 
-    // Sort the leaves by increasing `y` position.
+    // Sort the cells by increasing `y` position.
     positioned.sort(([_cA, rectA], [_cB, rectB]) => rectA.top - rectB.top);
 
     // Ensure that there are no gaps, and that the cells cover the

@@ -249,7 +249,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can insert a newline between leaves", () => {
+        it("Can insert a newline between cells", () => {
             const src =
                   "hellothere\n"  +
                   "+----+----+\n" +
@@ -271,7 +271,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can insert a newline within leaves", () => {
+        it("Can insert a newline within cells", () => {
             const src =
                   "hellothere\n"  +
                   "+----+----+\n" +
@@ -291,7 +291,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can split a row of leaves. (1)", () => {
+        it("Can split a row of cells. (1)", () => {
             const src =
                   "one  two  three\n"  +
                   "one  two  three\n"  +
@@ -317,7 +317,7 @@ describe("text-prims", () => {
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
 
-        it("Can split a row of leaves. (2)", () => {
+        it("Can split a row of cells. (2)", () => {
             const src =
                   "one  two  three\n"  +
                   "one  two  three\n"  +

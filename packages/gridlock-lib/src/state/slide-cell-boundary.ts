@@ -1,8 +1,9 @@
 import * as grid from "../grid.js";
 import * as util from "../util.js";
-import {  projectTextOntoLeaves } from "./state-utils.js";
+import { projectTextOntoCells } from "./project-text-onto-cells.js";
 import { Cell, cloneCellData, State } from "./state-iface.js";
 import { Inverse, SnapshotInverse } from "./inverse.js";
+import { ensureCellWidth } from "./find-optimal-partition.js";
 
 export class SlideCellBoundaryPrims implements State<SlideCellBoundaryPrims> {
     grid: grid.Grid<Cell>;
@@ -27,12 +28,17 @@ export class SlideCellBoundaryPrims implements State<SlideCellBoundaryPrims> {
     slideVerticalEdge(n: number): Inverse<SlideCellBoundaryPrims> {
         const snapshot = this.clone();
 
-        const leftCell = grid.lookupCell(this.grid, { rowNo: this.rowNo, colNo: this.colNo });
-        const rightCell = grid.lookupCell(this.grid, { rowNo: this.rowNo, colNo: this.colNo + 1 });
+        const leftCellPath  = { rowNo: this.rowNo, colNo: this.colNo };
+        const rightCellPath = { rowNo: this.rowNo, colNo: this.colNo + 1 };
+        const leftCell  = grid.lookupCell(this.grid, leftCellPath);
+        const rightCell = grid.lookupCell(this.grid, rightCellPath);
+
+        ensureCellWidth(this.grid, leftCellPath);
+        ensureCellWidth(this.grid, rightCellPath);
 
         n = util.clamp(-(leftCell.width - 1), n, rightCell.width - 1);
 
-        projectTextOntoLeaves((g) => {
+        projectTextOntoCells((g) => {
             leftCell.width += n;
             rightCell.width -= n;
             return g;
