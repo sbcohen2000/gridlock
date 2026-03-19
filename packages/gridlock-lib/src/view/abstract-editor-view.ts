@@ -394,7 +394,7 @@ export abstract class AbstractEditorView extends AbstractView {
             }
             cellElem.style.width = `${theCell.width}ch`;
 
-           cellElem.onpointermove = (e) => {
+            cellElem.onpointermove = (e) => {
                 const ctx = new PointerInCellEventContext(e, this, cell);
                 this.onPointerMoveInCell(ctx);
             }
@@ -406,8 +406,8 @@ export abstract class AbstractEditorView extends AbstractView {
 
             new CommittableRecycler(cellElem)
                 .views(theCell.data.lines
-                    .map((_: string, i: number) => i)
-                    .filter(i => i < rowHeight)
+                    .map((_: string, rowNo: number) => rowNo)
+                    .filter(rowNo => rowNo < rowHeight)
                     , (rowNo: number, r: Recycler) =>
                         this.viewLine(rowNo, cell, r))
                 .views([...theCell.data.disabledGuides.values()]
@@ -426,6 +426,16 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "cell-guide" }, (cellGuideElem) => {
                     cellGuideElem.className = "editor-cell-guide";
+                })
+                .elem({ tag: "div", key: "row-blind" }, (rowBlindElem) => {
+                    rowBlindElem.className = "editor-row-blind";
+                    const incomplete = rowHeight < theCell.data.lines.length;
+                    rowBlindElem.style.display = incomplete ? "block" : "none";
+                })
+                .elem({ tag: "div", key: "cell-blind" }, (cellBlindElem) => {
+                    cellBlindElem.className = "editor-cell-blind";
+                    const incomplete = util.maximum(theCell.data.lines.map(line => line.length).values()) > theCell.width;
+                    cellBlindElem.style.display = incomplete ? "block" : "none";
                 })
                 .commit();
         });
@@ -462,7 +472,7 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "row-guide" }, (rowGuideElem) => {
                     rowGuideElem.className = "editor-row-guide";
-                 })
+                })
                 .commit();
         });
     }
