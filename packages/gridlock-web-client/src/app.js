@@ -144,7 +144,14 @@ class AppView extends view.AbstractView {
         const old = this.#editorView;
         this.#editorView = newView;
         newView.parent = this;
-        this.notifyViewDeleted(old);
+
+        if(old !== newView) {
+            this.notifyViewDeleted(old);
+
+            // Here, we `freeze` old in an attempt to catch bugs where
+            // we use an editor view after it has been replaced.
+            Object.freeze(old);
+        }
         this.requestRedraw();
     }
 
@@ -155,6 +162,9 @@ class AppView extends view.AbstractView {
     handleEvent(e) {
         if (e instanceof view.ReplaceEditorViewEvent) {
             this.#replaceViewFromState(e.newView);
+            if(e.andThen) {
+                e.andThen(e.newView);
+            }
             e.newView.requestFocus();
             return true;
         }

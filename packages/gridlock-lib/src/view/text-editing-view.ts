@@ -108,7 +108,7 @@ export class TextEditingView extends AbstractEditorView {
     }
 
     handleEvent(e: ViewEvent): boolean {
-        if(this.handleUndoKey(e)) {
+        if(this.handleUndoKey(e) || this.handleCopyKey(e) || this.handlePasteKey(e)) {
             return true;
         }
 
@@ -118,6 +118,18 @@ export class TextEditingView extends AbstractEditorView {
             return this.#handleKeyEvent(e.e);
         }
         return false;
+    }
+
+    /*************************************************************************/
+    /** Copy & Paste                                                        **/
+
+    doCopy(): string | undefined {
+        return undefined;
+    }
+
+    doPaste(): string | undefined {
+        
+        return undefined;
     }
 }
 

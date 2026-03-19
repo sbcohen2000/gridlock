@@ -28,6 +28,7 @@ export interface InitialViewState {
     history: Inverse<AnyState>[];
     edgeDraggingMode: EdgeDraggingMode;
     cellGuidesDisabled: false;
+    clipboard: string;
 }
 
 /**
@@ -38,7 +39,8 @@ export function mkInitialEditorViewState(): InitialViewState {
         parent: null,
         history: [],
         edgeDraggingMode: "Move",
-        cellGuidesDisabled: false
+        cellGuidesDisabled: false,
+        clipboard: ""
     };
 }
 
@@ -64,6 +66,7 @@ export abstract class AbstractEditorView extends AbstractView {
     #lastClick: { cell: grid.CellPath } | null = null;
     #cellGuidesDisabled: boolean = false;
     #state: AnyState;
+    #clipboard: string;
 
     constructor(prev: AbstractEditorView | InitialViewState, state: AnyState) {
         super(prev.parent);
@@ -71,6 +74,8 @@ export abstract class AbstractEditorView extends AbstractView {
         this.#edgeDraggingMode = prev.edgeDraggingMode;
         this.#state = state;
         this.#cellGuidesDisabled = prev.cellGuidesDisabled;
+        this.#clipboard = prev.clipboard;
+        this._root = prev instanceof AbstractEditorView ? prev._root : undefined;
 
         if(this.#cellGuidesDisabled && !this.canDisableCellGuides) {
             this.enableCellGuides();
@@ -89,7 +94,10 @@ export abstract class AbstractEditorView extends AbstractView {
     /*************************************************************************/
     /** View Factory Registry                                               **/
 
-    static #viewForState = new Map<Function | symbol, (prev: AbstractEditorView, st: AnyState, ...args: any[]) => AbstractEditorView>();
+    static #viewForState = new Map<
+        Function | symbol,
+        (prev: AbstractEditorView, st: AnyState, ...args: any[]) => AbstractEditorView
+    >();
 
     static registerViewFactory(
         stCtor: Function | symbol,
@@ -162,18 +170,11 @@ export abstract class AbstractEditorView extends AbstractView {
         return this.#cellGuidesDisabled;
     }
 
-    set cellGuidesDisabled(disabled: boolean) {
-        if(this.#cellGuidesDisabled !== disabled
-            || (this.#cellGuidesDisabled && !this.canDisableCellGuides)) {
-            this.toggleCellGuidesDisabled();
-        }
-    }
-
-    toggleCellGuidesDisabled() {
+    toggleCellGuidesDisabled(andThen?: ReplaceEditorViewCB) {
         if(this.#cellGuidesDisabled) {
-            this.enableCellGuides();
+            this.enableCellGuides(andThen);
         } else {
-            this.disableCellGuides();
+            this.disableCellGuides(andThen);
         }
     }
 
@@ -182,25 +183,35 @@ export abstract class AbstractEditorView extends AbstractView {
      * locations in the first cell on the line (which, after this
      * method is called), will be the only cell on the line.
      */
-    private disableCellGuides() {
-        if(!this.canDisableCellGuides) {
+    private disableCellGuides(andThen?: ReplaceEditorViewCB) {
+        if(!this.canDisableCellGuides || this.#cellGuidesDisabled) {
+            if(andThen) {
+                andThen(this);
+            }
             return;
         }
 
         console.log("Disabling cell guides");
         this.#cellGuidesDisabled = true;
         const newSt = disableCellGuides(this.state);
-        this.requestReplaceEditorView(this.createViewForState(newSt));
+        this.requestReplaceEditorView(this.createViewForState(newSt), andThen);
     }
 
     /**
      * Re-enable cell guides after they have been disabled.
      */
-    private enableCellGuides() {
+    private enableCellGuides(andThen?: ReplaceEditorViewCB) {
+        if(!this.#cellGuidesDisabled) {
+            if(andThen) {
+                andThen(this);
+            }
+            return;
+        }
+
         console.log("Enabling cell guides");
         this.#cellGuidesDisabled = false;
         const newSt = enableCellGuides(this.state);
-        this.requestReplaceEditorView(this.createViewForState(newSt));
+        this.requestReplaceEditorView(this.createViewForState(newSt), andThen);
     }
 
     /*************************************************************************/
@@ -338,18 +349,17 @@ export abstract class AbstractEditorView extends AbstractView {
             disabledGuideHitboxElem.style.right = `calc(100% - ${guideX}ch - 2px)`;
             disabledGuideHitboxElem.onpointerdown = (e) => {
                 e.stopPropagation();
-                console.log(JSON.stringify(disabledCell));
-                const ctx = new PointerEventContext(e, this);
 
                 // Since cell guides are disabled before running the
                 // below, we use the hypothetical location of the
                 // disabled cell, since by the time we process the
                 // drag action, a cell at the hypothetical position
                 // will actually exist.
-                this.cellGuidesDisabled = false;
-
-                util.assert(grid.lookupCell(this.state.grid, disabledCell) !== undefined);
-                this.onPointerDownInCellGuide(ctx, disabledCell);
+                this.enableCellGuides(newView => {
+                    const ctx = new PointerEventContext(e, newView);
+                    util.assert(grid.lookupCell(newView.state.grid, disabledCell) !== undefined);
+                    newView.onPointerDownInCellGuide(ctx, disabledCell);
+                });
             }
         })
     }
@@ -386,7 +396,7 @@ export abstract class AbstractEditorView extends AbstractView {
                     this.viewLine(rowNo, cell, r))
                 .views([...theCell.data.disabledGuides.values()]
                     .toSorted((a, b) => a - b)
-                    .map((guideX: number, colNo: number) => { console.log(cell, guideX, colNo); return [guideX, colNo]; }),
+                    .map((guideX: number, colNo: number) => [guideX, colNo]),
                     ([guideX, colNo]: [number, number], r: Recycler) =>
                         this.#viewDisabledCellGuide({ rowNo: cell.rowNo, colNo }, guideX, r))
                 .view((r: Recycler) => this.viewCellSelection(cell, r))
@@ -428,7 +438,10 @@ export abstract class AbstractEditorView extends AbstractView {
                     rowClipBoxElem.className = "editor-row-clip-box";
                     rowClipBoxElem.style.height = `${theRow.height}em`;
                     new CommittableRecycler(rowClipBoxElem)
-                        .views(grid.allCellsOnRow(this.state.grid, row), (cell: grid.CellPath, r: Recycler) => this.#viewCell(cell, r))
+                        .views(grid.allCellsOnRow(
+                            this.state.grid, row),
+                            (cell: grid.CellPath, r: Recycler) =>
+                                this.#viewCell(cell, r))
                         .commit();
                 })
                 .view((r: Recycler) => this.viewRowSelection(row, r))
@@ -457,10 +470,18 @@ export abstract class AbstractEditorView extends AbstractView {
             .view((r: Recycler) => this.#viewLineNumbers(r))
             .elem("div", (gridRoot) => {
                 gridRoot.className = "grid-root";
+
+                // We must be careful that this._root is always recycled,
+                // since we might have pointer events attached to it, and those
+                // pointer events must survive `ReplaceEditorViewEvent`s.
+                util.assert(!this._root || this._root === gridRoot);
                 this._root = gridRoot;
 
                 new CommittableRecycler(gridRoot)
-                    .views(grid.allRows(this.state.grid), (row: grid.RowPath, r: Recycler) => this.#viewRow(row, r))
+                    .views(
+                        grid.allRows(this.state.grid),
+                        (row: grid.RowPath, r: Recycler) =>
+                            this.#viewRow(row, r))
                     .commit();
             })
             .view((r: Recycler) => HistoryView(r, this.#history))
@@ -493,8 +514,11 @@ export abstract class AbstractEditorView extends AbstractView {
         void ctx;
     }
 
-    requestReplaceEditorView(newView: AbstractEditorView) {
-        this.notify(new ReplaceEditorViewEvent(this, newView));
+    requestReplaceEditorView(
+        newView: AbstractEditorView,
+        andThen?: (newView: AbstractEditorView) => void
+    ) {
+        this.notify(new ReplaceEditorViewEvent(this, newView, andThen));
     }
 
     /**
@@ -511,8 +535,77 @@ export abstract class AbstractEditorView extends AbstractView {
         return false;
     }
 
+    /*************************************************************************/
+    /** Event Handlers / Copy & Paste                                       **/
+
+    /**
+     * Set the clipboard to `str`.
+     */
+    set clipboard(str: string) {
+        this.#clipboard = str;
+    }
+
+    /**
+     * Get the contents of the clipboard as a string.
+     */
+    get clipboard() {
+        return this.#clipboard;
+    }
+
+    /**
+     * A subclass may implement this method in order to specify a
+     * string which, at this moment, should be committed to the
+     * clipboard.
+     *
+     * If it returns `undefined`, then the clipboard is unchanged.
+     */
+    doCopy(): string | undefined {
+        return undefined;
+    }
+
+    /**
+     * Test if `e` is a key-event matching the description of the copy
+     * chord, and if so, call `doCopy`.
+     */
+    handleCopyKey(e: ViewEvent): boolean {
+        if(e instanceof KeyViewEvent) {
+            if(e.e.ctrlKey && e.e.key === "w") {
+                const clipping = this.doCopy();
+                if(clipping !== undefined) {
+                    this.clipboard = clipping;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Paste the clipboard contents (given by `str`) into the view.
+     *
+     * Subclasses should implement this.
+     */
+    doPaste(str: string) {
+        void str;
+        // By default, do nothing.
+    }
+
+    /**
+     * Test if `e` is a key-event matching the description of the
+     * paste chord, and if so, call `doPaste`.
+     */
+    handlePasteKey(e: ViewEvent): boolean {
+        if(e instanceof KeyViewEvent) {
+            if(e.e.ctrlKey && e.e.key === "y") {
+                this.doPaste(this.clipboard);
+                return true;
+            }
+        }
+        return false;
+    }
+
     handleEvent(e: ViewEvent): boolean {
-        return this.handleUndoKey(e);
+        return this.handleUndoKey(e) || this.handleCopyKey(e) || this.handlePasteKey(e);
     }
 
     /*************************************************************************/
@@ -587,18 +680,30 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 }
 
+type ReplaceEditorViewCB = (newView: AbstractEditorView) => void;
+
 /**
  * Notify that an editor view should be replaced.
+ *
+ * The event takes an optional function to apply to the new editor
+ * view after it has been instantiated.
  */
 export class ReplaceEditorViewEvent extends ViewEvent {
     #newView: AbstractEditorView;
+    #andThen: ReplaceEditorViewCB | undefined;
 
-    constructor(initiator: AbstractView, newView: AbstractEditorView) {
+    constructor(
+        initiator: AbstractView,
+        newView: AbstractEditorView,
+        andThen?: ReplaceEditorViewCB
+    ) {
         super(initiator, true);
         this.#newView = newView;
+        this.#andThen = andThen;
     }
 
     get newView(): AbstractEditorView { return this.#newView; }
+    get andThen(): ReplaceEditorViewCB | undefined { return this.#andThen };
 }
 
 /**
