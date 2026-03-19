@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="86" height="86" alt="gridlock-logo" src="https://github.com/user-attachments/assets/142d9d2b-caea-4245-bd51-f31b5670a9b8" />
+  <img width="100" height="100" alt="gridlock-logo" src="https://github.com/user-attachments/assets/26b39c5b-dc30-41ed-b69c-e8e9710864d2" />
 </p>
 
 # Gridlock
