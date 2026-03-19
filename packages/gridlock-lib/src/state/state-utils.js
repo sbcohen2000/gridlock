@@ -1,5 +1,7 @@
 import * as grid from "../grid.js";
 import * as rect from "../rect.js";
+import * as util from "../util.js";
+import { cellContentExceedsCellWidth } from "./state-iface.js";
 
 /** @import { Cell } from "./state-iface.js"; */
 
@@ -25,6 +27,14 @@ export function projectTextOntoLeaves(f, g) {
     const projOntoText = (positionedCell) => {
         const [cell, cellRect] = positionedCell;
         const theCell = grid.lookupCell(g, cell);
+
+        util.assert(
+            !cellContentExceedsCellWidth(theCell),
+            "Found a cell whose content exceeds its width in " +
+                "projectTextOntoLeaves. The cell's content will " +
+                "be destroyed if we continue."
+        );
+
         for(let i = 0; i < theCell.data.lines.length; ++i) {
             const line = theCell.data.lines[i];
             const row = i + cellRect.top;

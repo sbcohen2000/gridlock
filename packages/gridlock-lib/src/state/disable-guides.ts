@@ -13,10 +13,11 @@ import { projectTextOntoLeaves } from "./state-utils.js";
  *
  * @see disableCellGuides
  */
-function _disableCellGuides(st: AnyState): boolean {
+function _disableCellGuides(st: AnyState, rows?: IteratorObject<grid.RowPath>): boolean {
     return st.mutateGrid(g => {
         projectTextOntoLeaves(g => {
-            for(const row of grid.allRows(g)) {
+            const rowsIter = rows ?? grid.allRows(g);
+            for(const row of rowsIter) {
                 const guidePositions = [...grid.allPositionedCellsOnRow(g, row)
                     .drop(1)
                     .map(([_, rect]) => rect.left)];
@@ -38,8 +39,11 @@ function _disableCellGuides(st: AnyState): boolean {
  * Disable the cell guides in the document, storing their
  * locations in the first cell on the line (which, after this
  * method is called), will be the only cell on the line.
+ *
+ * If `rows` is passed, then cell guides will be disabled only for the
+ * given rows.
  */
-export function disableCellGuides(st: AnyState): AnyState {
+export function disableCellGuides(st: AnyState, rows?: IteratorObject<grid.RowPath>): AnyState {
     if(st instanceof TextPrims) {
         // This special case exists so that when we disable cell
         // guides when in text-editing mode, we can avoid moving the
@@ -53,7 +57,7 @@ export function disableCellGuides(st: AnyState): AnyState {
 
         const oldGlobalPt = st.findGlobalPoint();
 
-        const stateIsValid = _disableCellGuides(st);
+        const stateIsValid = _disableCellGuides(st, rows);
         // This is safe because `mutateGrid` on `TextPrims` is always
         // able to recover a valid state.
         util.assert(stateIsValid);
@@ -68,7 +72,7 @@ export function disableCellGuides(st: AnyState): AnyState {
         }
         return st;
     } else {
-        const stateIsValid = _disableCellGuides(st);
+        const stateIsValid = _disableCellGuides(st, rows);
         if(!stateIsValid) {
             // If the surrounding editor state was invalidated by the grid
             // modification, construct a new generic state.
