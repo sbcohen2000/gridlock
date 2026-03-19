@@ -6,6 +6,7 @@ import { SliceCellPrims } from "./slice-cell.js";
 import { AnyState } from "./state-iface.js";
 import { TextPrims } from "./text-prims.js";
 import { projectTextOntoLeaves } from "./state-utils.js";
+import { ensureCellWidth } from "./find-optimal-partition.js";
 
 /**
  * Do the real work if disabling the cell guides, returning a boolean
@@ -13,10 +14,10 @@ import { projectTextOntoLeaves } from "./state-utils.js";
  *
  * @see disableCellGuides
  */
-function _disableCellGuides(st: AnyState, rows?: IteratorObject<grid.RowPath>): boolean {
+function _disableCellGuides(st: AnyState, rows?: grid.RowPath[]): boolean {
     return st.mutateGrid(g => {
         projectTextOntoLeaves(g => {
-            const rowsIter = rows ?? grid.allRows(g);
+            const rowsIter = rows?.values() ?? grid.allRows(g);
             for(const row of rowsIter) {
                 const guidePositions = [...grid.allPositionedCellsOnRow(g, row)
                     .drop(1)
@@ -41,9 +42,18 @@ function _disableCellGuides(st: AnyState, rows?: IteratorObject<grid.RowPath>): 
  * method is called), will be the only cell on the line.
  *
  * If `rows` is passed, then cell guides will be disabled only for the
- * given rows.
+ * given rows. Otherwise, the guides on all rows will be disabled.
  */
-export function disableCellGuides(st: AnyState, rows?: IteratorObject<grid.RowPath>): AnyState {
+export function disableCellGuides(st: AnyState, rows?: grid.RowPath[]): AnyState {
+    // Ensure that each of the rows is expanded, since we can't hide
+    // cell content with disabled guides.
+    if(rows) {
+        rows.forEach(row => {
+            const cells = grid.allCellsOnRow(st.grid, row);
+            cells.forEach(cell => ensureCellWidth(st.grid, cell));
+        });
+    }
+
     if(st instanceof TextPrims) {
         // This special case exists so that when we disable cell
         // guides when in text-editing mode, we can avoid moving the
