@@ -1,3 +1,7 @@
+<p align="center">
+  <img width="86" height="86" alt="gridlock-logo" src="https://github.com/user-attachments/assets/142d9d2b-caea-4245-bd51-f31b5670a9b8" />
+</p>
+
 # Gridlock
 
 [live demo](https://sbcohen2000.github.io/gridlock/)
