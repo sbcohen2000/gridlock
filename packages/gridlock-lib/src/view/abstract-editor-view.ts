@@ -380,7 +380,7 @@ export abstract class AbstractEditorView extends AbstractView {
     /**
      * View a single cell in the grid.
      */
-    #viewCell(cell: grid.CellPath, r: Recycler) {
+    #viewCell(cell: grid.CellPath, rowHeight: number, r: Recycler) {
         r.elem({ tag: "div", key: `cell-${cell.rowNo}-${cell.colNo}` }, (cellElem) => {
             const theCell = grid.lookupCell(this.state.grid, cell);
             cellElem.className = "editor-cell";
@@ -405,8 +405,11 @@ export abstract class AbstractEditorView extends AbstractView {
             }
 
             new CommittableRecycler(cellElem)
-                .views(theCell.data.lines.map((_: string, i: number) => i), (rowNo: number, r: Recycler) =>
-                    this.viewLine(rowNo, cell, r))
+                .views(theCell.data.lines
+                    .map((_: string, i: number) => i)
+                    .filter(i => i < rowHeight)
+                    , (rowNo: number, r: Recycler) =>
+                        this.viewLine(rowNo, cell, r))
                 .views([...theCell.data.disabledGuides.values()]
                     .toSorted((a, b) => a - b)
                     .map((guideX: number, colNo: number) => [guideX, colNo]),
@@ -447,16 +450,8 @@ export abstract class AbstractEditorView extends AbstractView {
             rowElem.style.height = `${theRow.height}em`;
 
             new CommittableRecycler(rowElem)
-                .elem({ tag: "div", key: "row-clip-box" }, (rowClipBoxElem) => {
-                    rowClipBoxElem.className = "editor-row-clip-box";
-                    rowClipBoxElem.style.height = `${theRow.height}em`;
-                    new CommittableRecycler(rowClipBoxElem)
-                        .views(grid.allCellsOnRow(
-                            this.state.grid, row),
-                            (cell: grid.CellPath, r: Recycler) =>
-                                this.#viewCell(cell, r))
-                        .commit();
-                })
+                .views(grid.allCellsOnRow(this.state.grid, row), (cell: grid.CellPath, r: Recycler) =>
+                    this.#viewCell(cell, theRow.height, r))
                 .view((r: Recycler) => this.viewRowSelection(row, r))
                 .elem({ tag: "div", key: "row-guide-hitbox" }, (rowGuideHitboxElem) => {
                     rowGuideHitboxElem.className = "editor-row-guide-hitbox";

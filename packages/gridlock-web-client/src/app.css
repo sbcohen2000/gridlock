@@ -120,13 +120,9 @@
 /** Editor Rows                                                              */
 
 .editor-row {
-    position: relative;
-}
-
-.editor-row-clip-box {
     display: flex;
     flex-direction: row;
-    overflow-y: clip;
+    position: relative;
 }
 
 /*****************************************************************************/
