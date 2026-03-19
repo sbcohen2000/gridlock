@@ -571,7 +571,7 @@ export abstract class AbstractEditorView extends AbstractView {
             if(e.e.ctrlKey && e.e.key === "w") {
                 const clipping = this.doCopy();
                 if(clipping !== undefined) {
-                    this.clipboard = clipping;
+                    console.error("TODO: Copy to clipboard");
                 }
                 return true;
             }
