@@ -203,7 +203,12 @@
     right: 0;
 
     mix-blend-mode: darken;
-    background-image: linear-gradient(to left, #bfbfbf, white);
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 4px,
+        gray 4px,
+        gray 5px);
 }
 
 .editor-row-blind {
@@ -214,7 +219,12 @@
     bottom: 0;
 
     mix-blend-mode: darken;
-    background-image: linear-gradient(to top, #bfbfbf, white);
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 4px,
+        gray 4px,
+        gray 5px);
 }
 
 /*****************************************************************************/
