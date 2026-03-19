@@ -1,4 +1,5 @@
-import type { Grid } from "../grid.js";
+import { maximum } from "../util.js";
+import * as grid from "../grid.js";
 
 export interface Cell {
     lines: string[];
@@ -15,8 +16,16 @@ export function cloneCellData(data: Cell): Cell {
     };
 }
 
+export function maximumLineLength(data: Cell): number {
+    return maximum(data.lines.map(line => line.length).values());
+}
+
+export function cellContentExceedsCellWidth(cell: grid.Cell<Cell>): boolean {
+    return maximumLineLength(cell.data) > cell.width;
+}
+
 export interface State<P> {
-    readonly grid: Grid<Cell>;
+    readonly grid: grid.Grid<Cell>;
 
     /**
      * Clone the editor state.
@@ -40,7 +49,7 @@ export interface State<P> {
      * caller's responsibility, in this case, to come up with a new
      * editor since `f` will have invalidated this one beyond repair.
      */
-    mutateGrid(f: (grid: Grid<Cell>) => Grid<Cell>): boolean;
+    mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): boolean;
 };
 
 export type AnyState = State<any>;

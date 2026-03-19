@@ -14,6 +14,7 @@ import {
     disableCellGuides,
     enableCellGuides
 } from "../state/index.js";
+import { cellContentExceedsCellWidth } from "../state/state-iface.js";
 import { padLeftToLength } from "../util.js";
 import { withSnapshotInverse } from "../state/inverse.js";
 
@@ -434,7 +435,7 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "cell-blind" }, (cellBlindElem) => {
                     cellBlindElem.className = "editor-cell-blind";
-                    const incomplete = util.maximum(theCell.data.lines.map(line => line.length).values()) > theCell.width;
+                    const incomplete = cellContentExceedsCellWidth(theCell);
                     cellBlindElem.style.display = incomplete ? "block" : "none";
                 })
                 .commit();

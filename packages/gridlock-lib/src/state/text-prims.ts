@@ -4,7 +4,7 @@ import * as rect from "../rect.js";
 import * as util from "../util.js";
 import { Cell, State, AnyState, cloneCellData } from "./state-iface.js";
 import { KeysWithType, Inverse, SnapshotInverse, id, IdInverse } from "./inverse.js";
-import { findOptimalPartition, applyPartition } from "./find-optimal-partition.js";
+import { ensureCellWidth } from "./find-optimal-partition.js";
 
 interface TextOnGlobalLineIterItem {
     /** The global column of the first character. */
@@ -133,19 +133,6 @@ export class TextPrims implements State<TextPrims> {
         this.selection.lastGlobalCol = globalCol;
     }
 
-    private _maximumLineLength(cell: grid.Cell<Cell>): number {
-        return cell.data.lines.reduce((a: number, l: string) => Math.max(a, l.length), 0);
-    }
-
-    private _expandCellWidthIfNecessary(cell: grid.CellPath): void {
-        const theCell = grid.lookupCell(this.grid, cell);
-        const n = this._maximumLineLength(theCell) - theCell.width;
-        if(0 < n) {
-            const part = findOptimalPartition(this.grid, cell, n);
-            applyPartition(this.grid, part);
-        }
-    }
-
     private _extractGlobalLine(globalRow: number): TextOnGlobalLineIter {
         return grid.cellsUnderGlobalY(this.grid, globalRow).map((cell: grid.CellPath) => {
             const cellRect = grid.rectOfCell(this.grid, cell);
@@ -262,7 +249,7 @@ export class TextPrims implements State<TextPrims> {
             if(isLast) {
                 const remainingText = _concatenatePositionedText(textIter);
                 theCell.data.lines[localRow] += remainingText;
-                this._expandCellWidthIfNecessary(cell);
+                ensureCellWidth(this.grid, cell);
             } else {
                 const nextText = textIter.next();
                 if(nextText.done) {
@@ -270,7 +257,7 @@ export class TextPrims implements State<TextPrims> {
                 }
 
                 theCell.data.lines[localRow] += (nextText.value as TextOnGlobalLineIterItem).text;
-                this._expandCellWidthIfNecessary(cell);
+                ensureCellWidth(this.grid, cell);
             }
         }
     }
@@ -563,7 +550,7 @@ export class TextPrims implements State<TextPrims> {
             this._updateLastGlobalCol();
         }
 
-        this._expandCellWidthIfNecessary(this.selection.cell);
+        ensureCellWidth(this.grid, this.selection.cell);
 
         return new SnapshotInverse(snapshot, "insert string");
     }

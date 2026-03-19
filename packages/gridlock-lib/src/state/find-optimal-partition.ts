@@ -7,7 +7,7 @@
 
 import * as grid from "../grid.js";
 import { minimum } from "../util.js";
-import { Cell } from "./state-iface.js";
+import { Cell, maximumLineLength } from "./state-iface.js";
 
 type Partition = { cell: grid.CellPath, amount: number }[];
 
@@ -148,4 +148,27 @@ export function applyPartition(g: grid.Grid<Cell>, partition: Partition) {
     for(const { cell, amount } of partition) {
         grid.lookupCell(g, cell).width += amount;
     }
+}
+
+/**
+ * Expand the width of the given cell in `g`, but only if the width of
+ * its maximum line exceeds the width of the cell.
+ */
+export function ensureCellWidth(g: grid.Grid<Cell>, cell: grid.CellPath): void {
+    const theCell = grid.lookupCell(g, cell);
+    const n = maximumLineLength(theCell.data) - theCell.width;
+    if(0 < n) {
+        const part = findOptimalPartition(g, cell, n);
+        applyPartition(g, part);
+    }
+}
+
+/**
+ * Ensure that the width of every cell in `g` is sufficient to
+ * match the width of its longest line.
+ *
+ * @see ensureCellWidth
+ */
+export function ensureAllCellWidths(g: grid.Grid<Cell>) {
+    grid.allCells(g).forEach(c => ensureCellWidth(g, c));
 }
