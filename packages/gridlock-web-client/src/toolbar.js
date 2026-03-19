@@ -137,8 +137,7 @@ export function describeToolbar(editorView) {
         iconSrc: save_icon_url,
         label: "save",
         onclick: () => {
-            const serialized = state.serialize.printCommonState(editorView.state);
-            console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
+            const serialized = state.serialize.printCompactGrid(editorView.state);
             localStorage.setItem("editorState", serialized);
         },
     }, {
@@ -191,6 +190,15 @@ export function describeToolbar(editorView) {
                     view.cmenu.button(SHORT_COMMIT_HASH, () => {
                         window.open(`https://github.com/sbcohen2000/gridlock/commit/${COMMIT_HASH}`, "_blank");
                     }),
+                    view.cmenu.divider(),
+                    view.cmenu.button("Print ASCII Repr.", () => {
+                        const serialized = state.serialize.printCommonState(editorView.state);
+                        console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
+                    }),
+                    view.cmenu.button("Print Compact Repr.", () => {
+                        const serialized = state.serialize.printCompactGrid(editorView.state);
+                        console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
+                    })
                 ]
             };
             editorView.notify(new view.cmenu.OpenContextMenu(editorView, menuDescr))

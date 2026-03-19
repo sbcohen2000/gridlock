@@ -183,12 +183,17 @@ function main() {
 
     /** @type {view.AbstractEditorView} */
     let initialView;
-    if(initialStateStr) {
+    try {
+        if(!initialStateStr) {
+            throw new Error("No saved state");
+        }
+        const g = state.serialize.parseCompactGrid(initialStateStr);
         initialView = new view.TextEditingView(
             initialViewState,
-            state.serialize.textEditingStateFromCommonStateStr(initialStateStr)
+            state.TextPrims.editText({ grid: g })
         );
-    } else {
+    } catch(e) {
+        console.error(e);
         initialView = new view.TextEditingView(
             initialViewState,
             state.TextPrims.mkEmpty()

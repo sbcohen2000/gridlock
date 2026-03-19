@@ -9,9 +9,23 @@ describe("serialize", () => {
             fc.property(
                 arbCellGrid,
                 (g) => {
-                    const src0 = serialize.printCommonState(TextPrims.editText({ grid: g }));
+                    const src0 = serialize.printCommonState({ grid: g });
                     const g1 = serialize.parseCommonState(src0);
-                    const src1 = serialize.printCommonState(TextPrims.editText({ grid: g1 }));
+                    const src1 = serialize.printCommonState({ grid: g1 });
+                    expect(src0).to.equal(src1);
+                }
+            )
+        );
+    });
+
+    it("printCompactGrid and parseCompactGrid are inverses", () => {
+        fc.assert(
+            fc.property(
+                arbCellGrid,
+                (g) => {
+                    const src0 = serialize.printCompactGrid({ grid: g });
+                    const g1 = serialize.parseCompactGrid(src0);
+                    const src1 = serialize.printCompactGrid({ grid: g1 });
                     expect(src0).to.equal(src1);
                 }
             )
