@@ -44,6 +44,20 @@ export function assert(cond, msg) {
 }
 
 /**
+ * Produce a string of spaces with length `n`.
+ *
+ * @param {number} n The number of spaces.
+ * @returns {string}
+ */
+export function whitespace(n) {
+    let out = "";
+    for(; n > 0; --n) {
+        out += " ";
+    }
+    return out;
+}
+
+/**
  * Pad a string to the right with spaces so that it's length is equal
  * to `len`. If the input string's length is greater than `len`, this
  * function returns the input unchanged.
@@ -53,11 +67,7 @@ export function assert(cond, msg) {
  * @returns {string}
  */
 export function padRightToLength(str, len) {
-    let out = str;
-    for(let i = str.length; i < len; ++i) {
-        out += " ";
-    }
-    return out;
+    return str + whitespace(Math.max(0, len - str.length));
 }
 
 /**
@@ -68,11 +78,7 @@ export function padRightToLength(str, len) {
  * @returns {string}
  */
 export function padLeftToLength(str, len) {
-    let out = str;
-    for(let i = str.length; i < len; ++i) {
-        out = " " + out;
-    }
-    return out;
+    return whitespace(Math.max(0, len - str.length)) + str;
 }
 
 /**

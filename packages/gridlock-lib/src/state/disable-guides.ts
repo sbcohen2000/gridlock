@@ -1,18 +1,20 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
-import { AnyState } from "./state-iface.js";
+import * as util from "../util.js";
 import { SliceCellPrims } from "./slice-cell.js";
-import { projectTextOntoLeaves } from "./state-utils.js";
+import { AnyState } from "./state-iface.js";
 import { TextPrims } from "./text-prims.js";
+import { projectTextOntoLeaves } from "./state-utils.js";
 
 /**
- * Disable the cell guides in the document, storing their
- * locations in the first cell on the line (which, after this
- * method is called), will be the only cell on the line.
+ * Do the real work if disabling the cell guides, returning a boolean
+ * which signals if the input state is still valid.
+ *
+ * @see disableCellGuides
  */
-export function disableCellGuides(st: AnyState): AnyState {
-    const stateIsValid = st.mutateGrid(g => {
+function _disableCellGuides(st: AnyState): boolean {
+    return st.mutateGrid(g => {
         projectTextOntoLeaves(g => {
             for(const row of grid.allRows(g)) {
                 const guidePositions = [...grid.allPositionedCellsOnRow(g, row)
@@ -30,13 +32,50 @@ export function disableCellGuides(st: AnyState): AnyState {
         }, g);
         return g;
     });
+}
 
-    if(!stateIsValid) {
-        // If the surrounding editor state was invalidated by the grid
-        // modification, construct a new generic state.
-        return TextPrims.editText(st);
+/**
+ * Disable the cell guides in the document, storing their
+ * locations in the first cell on the line (which, after this
+ * method is called), will be the only cell on the line.
+ */
+export function disableCellGuides(st: AnyState): AnyState {
+    if(st instanceof TextPrims) {
+        // This special case exists so that when we disable cell
+        // guides when in text-editing mode, we can avoid moving the
+        // global point if the cell underneath it goes away. We do
+        // this by inserting spaces.
+        //
+        // Note that this operation does change the document content
+        // in a meaningful way because we will only insert trailing
+        // spaces, and these trailing spaces will ultimately be
+        // trimmed when the user enables the cell guides again.
+
+        const oldGlobalPt = st.findGlobalPoint();
+
+        const stateIsValid = _disableCellGuides(st);
+        // This is safe because `mutateGrid` on `TextPrims` is always
+        // able to recover a valid state.
+        util.assert(stateIsValid);
+
+        const newGlobalPt = st.findGlobalPoint();
+        if(oldGlobalPt.y === newGlobalPt.y) {
+            // If the new and old global points are on the same row,
+            // then insert enough spaces to get our pointer to the
+            // same location it was at before.
+
+            st.insertString(util.whitespace(oldGlobalPt.x - newGlobalPt.x));
+        }
+        return st;
+    } else {
+        const stateIsValid = _disableCellGuides(st);
+        if(!stateIsValid) {
+            // If the surrounding editor state was invalidated by the grid
+            // modification, construct a new generic state.
+            return TextPrims.editText(st);
+        }
+        return st;
     }
-    return st;
 }
 
 /**
