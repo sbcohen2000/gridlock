@@ -388,9 +388,9 @@ describe("text-prims", () => {
             const exp =
                   "xyzwX\n"            +
                   "\n"                 +
-                  "+----+---------+\n" +
-                  "+---++---------+\n" +
-                  "+---+----------+";
+                  "+----+--------+\n" +
+                  "+---++--------+\n" +
+                  "+---+---------+";
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
@@ -543,8 +543,8 @@ describe("text-prims", () => {
 
             const exp =
                   "aacbbd\n"   +
-                  "+--+--+-+\n" +
-                  "+--+--+-+"
+                  "+--+--++\n" +
+                  "+--+--++"
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
@@ -561,8 +561,8 @@ describe("text-prims", () => {
 
             const exp =
                   "aabbcd\n"   +
-                  "+-+--+-+\n" +
-                  "+-+--+-+"
+                  "+-+--++\n" +
+                  "+-+--++"
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });

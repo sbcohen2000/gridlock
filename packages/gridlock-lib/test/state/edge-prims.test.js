@@ -87,9 +87,9 @@ describe("edge-prims", () => {
             edgeState.moveVerticalEdge(-10);
 
             const exp =
-                  "++---+\n" +
-                  "||   |\n" +
-                  "++---+";
+                  "++------+\n" +
+                  "||      |\n" +
+                  "++------+";
 
             expect(grid.printASCII(edgeState.grid)).to.equal(exp);
         });

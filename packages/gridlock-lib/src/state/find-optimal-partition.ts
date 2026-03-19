@@ -14,42 +14,72 @@ type Partition = { cell: grid.CellPath, amount: number }[];
 /**
  * Find an optimal partition of the cells in `g` which should all be
  * widened/shrunk in response to the widening and shrinking of `cell`.
- *
- * The partition is subject to the following constraints:
- *
- * 1. Each cell on the same row in the partition's `amount` must sum
- *    to `n`.
- * 2. `cell` must be included in the partition, and there can be no
- *    other cell on `cell`'s row.
- * 3. The cells in the partition must cover all of the rows.
  */
 export function findOptimalPartition(
     g: grid.Grid<Cell>,
     cell: grid.CellPath,
     n: number
 ): Partition {
+    const theCell = grid.lookupCell(g, cell);
+    n = Math.max(-(theCell.width - 1), n);
+
     // The rows of the grid are independent, so we can find an optimal
     // partition by considering each row separately, and combining the
     // results.
 
-    const partition: Partition = [];
-    const theCell = grid.lookupCell(g, cell);
-    n = Math.max(-(theCell.width - 1), n);
+    // First, try to find a partition of `cell`'s row which would
+    // allow us to expand/contract `cell` by just adding/removing
+    // whitespace on the same row.
+
+    const sameRowPart = findOptimalPartitionOfRow(g, cell, -n,
+        [
+            (candidatePath, candidate) => {
+                // Don't allow the partition to contain any cell to
+                // the left of `cell`.
+                if(candidatePath.colNo <= cell.colNo) return undefined;
+                // Only allow whitespace.
+                return Math.min(
+                    colsOfTrailingWhitespace(candidate),
+                    candidate.width - 1
+                );
+            }
+        ]
+    );
+
+    if(sameRowPart.length > 0) {
+        // We found a partition.
+        sameRowPart.push({
+            cell,
+            amount: n
+        });
+        return sameRowPart;
+    }
+
+    // Otherwise, we'll try to find a partition of the rows _other
+    // than_ `cell`'s.
+    const multiRowPart: Partition = [];
 
     for(let rowNo = 0; rowNo < g.rows.length; ++rowNo) {
         if(rowNo === cell.rowNo) {
             // Then, this is the row with `cell`. The partition must
             // always be just `cell`.
-            partition.push({
+            multiRowPart.push({
                 cell,
                 amount: n
             });
         } else {
-            partition.push(...findOptimalPartitionOfRow(g, { rowNo }, n));
+            multiRowPart.push(...findOptimalPartitionOfRow(g, { rowNo }, n,
+                [
+                    // Try to find a solution using only whitespace.
+                    (_, cell) => colsOfTrailingWhitespace(cell),
+                    // Then fall back to a solution using non-whitespace.
+                    (_, cell) => cell.width - 1,
+                ]
+            ));
         }
     }
 
-    return partition;
+    return multiRowPart;
 }
 
 /**
@@ -64,7 +94,8 @@ function colsOfTrailingWhitespace(
 function findOptimalPartitionOfRow(
     g: grid.Grid<Cell>,
     row: grid.RowPath,
-    n: number
+    n: number,
+    phases: ((cellPath: grid.CellPath, cell: grid.Cell<Cell>) => number | undefined)[]
 ): Partition {
     // We prefer taking space from cells to the right in the document.
     //
@@ -83,19 +114,15 @@ function findOptimalPartitionOfRow(
     const amounts = new Map<grid.CellPath, number>();
 
     // Each phase defines how much of each cell's width is available
-    // to shrink. We iterate through phases in order, preferring to
-    // remove trailing whitespace before removing content.
-    const phases: ((cell: grid.Cell<Cell>) => number)[] = [
-        (cell) => colsOfTrailingWhitespace(cell),
-        (cell) => cell.width - 1,
-    ];
-
-    for(const available of phases) {
+    // to shrink. We iterate through phases in order.
+    for(const phase of phases) {
         for(const cell of cells) {
             const theCell = grid.lookupCell(g, cell);
             const alreadyTaken = -(amounts.get(cell) ?? 0);
-            const remaining = available(theCell) - alreadyTaken;
-            const dn = Math.max(-remaining, n);
+            const avail = phase(cell, theCell);
+            if(avail === undefined) continue;
+            const remain = avail - alreadyTaken;
+            const dn = Math.max(-remain, n);
             if(dn === 0) continue;
             amounts.set(cell, (amounts.get(cell) ?? 0) + dn);
             n -= dn;
@@ -103,6 +130,10 @@ function findOptimalPartitionOfRow(
         }
         if(n === 0) break;
     }
+
+    // If we couldn't reduce the space, return an empty partition to
+    // signal that there was no solution.
+    if(n !== 0) return [];
 
     return [...amounts.entries()]
         .filter(([_, amount]) => amount !== 0)
