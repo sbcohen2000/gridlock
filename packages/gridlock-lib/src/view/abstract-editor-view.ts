@@ -28,7 +28,6 @@ export interface InitialViewState {
     history: Inverse<AnyState>[];
     edgeDraggingMode: EdgeDraggingMode;
     cellGuidesDisabled: false;
-    clipboard: string;
 }
 
 /**
@@ -39,8 +38,7 @@ export function mkInitialEditorViewState(): InitialViewState {
         parent: null,
         history: [],
         edgeDraggingMode: "Move",
-        cellGuidesDisabled: false,
-        clipboard: ""
+        cellGuidesDisabled: false
     };
 }
 
@@ -74,7 +72,6 @@ export abstract class AbstractEditorView extends AbstractView {
         this.#edgeDraggingMode = prev.edgeDraggingMode;
         this.#state = state;
         this.#cellGuidesDisabled = prev.cellGuidesDisabled;
-        this.#clipboard = prev.clipboard;
         this._root = prev instanceof AbstractEditorView ? prev._root : undefined;
 
         if(this.#cellGuidesDisabled && !this.canDisableCellGuides) {
@@ -183,7 +180,7 @@ export abstract class AbstractEditorView extends AbstractView {
      * locations in the first cell on the line (which, after this
      * method is called), will be the only cell on the line.
      */
-    private disableCellGuides(andThen?: ReplaceEditorViewCB) {
+    disableCellGuides(andThen?: ReplaceEditorViewCB) {
         if(!this.canDisableCellGuides || this.#cellGuidesDisabled) {
             if(andThen) {
                 andThen(this);
@@ -200,7 +197,7 @@ export abstract class AbstractEditorView extends AbstractView {
     /**
      * Re-enable cell guides after they have been disabled.
      */
-    private enableCellGuides(andThen?: ReplaceEditorViewCB) {
+    enableCellGuides(andThen?: ReplaceEditorViewCB) {
         if(!this.#cellGuidesDisabled) {
             if(andThen) {
                 andThen(this);
@@ -212,6 +209,22 @@ export abstract class AbstractEditorView extends AbstractView {
         this.#cellGuidesDisabled = false;
         const newSt = enableCellGuides(this.state);
         this.requestReplaceEditorView(this.createViewForState(newSt), andThen);
+    }
+
+    /**
+     * Run an action while the cell guides are disabled, enabling the
+     * guides again if they were enabled at the time this method was
+     * called.
+     */
+    withCellGuidesDisabled(action: ReplaceEditorViewCB) {
+        if(this.cellGuidesDisabled) {
+            action(this);
+        } else {
+            this.disableCellGuides(newView => {
+                action(newView);
+                newView.enableCellGuides();
+            });
+        }
     }
 
     /*************************************************************************/
@@ -539,20 +552,6 @@ export abstract class AbstractEditorView extends AbstractView {
     /** Event Handlers / Copy & Paste                                       **/
 
     /**
-     * Set the clipboard to `str`.
-     */
-    set clipboard(str: string) {
-        this.#clipboard = str;
-    }
-
-    /**
-     * Get the contents of the clipboard as a string.
-     */
-    get clipboard() {
-        return this.#clipboard;
-    }
-
-    /**
      * A subclass may implement this method in order to specify a
      * string which, at this moment, should be committed to the
      * clipboard.
@@ -597,7 +596,10 @@ export abstract class AbstractEditorView extends AbstractView {
     handlePasteKey(e: ViewEvent): boolean {
         if(e instanceof KeyViewEvent) {
             if(e.e.ctrlKey && e.e.key === "y") {
-                this.doPaste(this.clipboard);
+                navigator.clipboard.readText()
+                    .then(text => this.doPaste(text))
+                    .catch(err => console.error('Failed to read clipboard:', err));
+
                 return true;
             }
         }

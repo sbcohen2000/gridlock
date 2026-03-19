@@ -165,7 +165,11 @@ class AppView extends view.AbstractView {
             if(e.andThen) {
                 e.andThen(e.newView);
             }
-            e.newView.requestFocus();
+            // Only request focus if e.newView is still the current
+            // view — it may have been replaced during andThen.
+            if(this.#editorView === e.newView) {
+                e.newView.requestFocus();
+            }
             return true;
         }
         return false;

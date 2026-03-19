@@ -1,7 +1,8 @@
-import { TextPrims, CellPrims } from "../state/index.js";
+import * as util from "../util.js";
 import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
 import { KeyViewEvent } from "./abstract-view.js";
-import { withSnapshotInverse } from "../state/inverse.js";
+import { TextPrims, CellPrims } from "../state/index.js";
+import { SnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 
 import type * as grid from "../grid.js";
 import type { InitialViewState } from "./abstract-editor-view.js";
@@ -127,9 +128,24 @@ export class TextEditingView extends AbstractEditorView {
         return undefined;
     }
 
-    doPaste(): string | undefined {
-        
-        return undefined;
+    doPaste(clipboard: string) {
+        const snapshot = this._teState.clone();
+        this.commitInverse(new SnapshotInverse(snapshot, "paste text"));
+
+        this.withCellGuidesDisabled(newView => {
+            util.assert(newView instanceof TextEditingView);
+            util.assert(newView.cellGuidesDisabled);
+
+            const lines = clipboard.split("\n");
+            for(let i = 0; i < lines.length; ++i) {
+                const isLast = i === lines.length - 1;
+
+                newView._teState.insertString(lines[i]);
+                if(!isLast) {
+                    newView._teState.insertGlobalNewline();
+                }
+            }
+        });
     }
 }
 
