@@ -147,13 +147,17 @@ export function describeToolbar(editorView) {
         iconSrc: load_icon_url,
         onclick: (e) => {
             /** @type {view.cmenu.ContextMenuItem[]} */
-            const examples = [...Object.entries(EXAMPLES).map(([nm, src]) =>
-                view.cmenu.button(nm, () => {
-                    const grid = state.serialize.parseCompactGrid(src);
-                    const freshView = editorView.createViewForState(state.TextPrims.editText({ grid }));
-                    editorView.requestReplaceEditorView(freshView);
-                })
-            )];
+            const examples = [...Object.entries(EXAMPLES).map(([key, val]) => {
+                if(key === "LABEL") {
+                    return view.cmenu.label(val);
+                } else {
+                    return view.cmenu.button(key, () => {
+                        const grid = state.serialize.parseCompactGrid(val);
+                        const freshView = editorView.createViewForState(state.TextPrims.editText({ grid }));
+                        editorView.requestReplaceEditorView(freshView);
+                    })
+                }
+            })];
 
             /** @type {view.cmenu.ContextMenuItem[]} */
             const footer = [
