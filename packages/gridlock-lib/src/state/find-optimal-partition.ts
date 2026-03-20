@@ -1,19 +1,28 @@
 /**
  * When widening/shrinking cells, we need to find a set of cells whose
  * width must be modified so that the length of every row is the
- * same. The purpose of this module is to find the set of cells which
- * is most "optimal".
+ * same. This module finds those cells by adjusting only the rightmost
+ * cell on each row.
  */
 
 import * as grid from "../grid.js";
-import { minimum } from "../util.js";
+import * as util from "../util.js";
 import { Cell, maximumLineLength } from "./state-iface.js";
 
 type Partition = { cell: grid.CellPath, amount: number }[];
 
 /**
- * Find an optimal partition of the cells in `g` which should all be
- * widened/shrunk in response to the widening and shrinking of `cell`.
+ * Find the rightmost cell on a row.
+ */
+function rightmostCell(g: grid.Grid<Cell>, rowNo: number): grid.CellPath {
+    const row = grid.lookupRow(g, { rowNo });
+    return { rowNo, colNo: row.cells.length - 1 };
+}
+
+/**
+ * Find a partition of cells in `g` which should all be
+ * widened/shrunk in response to the widening/shrinking of `cell`.
+ * Only the rightmost cell on each row is adjusted.
  */
 export function findOptimalPartition(
     g: grid.Grid<Cell>,
@@ -21,123 +30,33 @@ export function findOptimalPartition(
     n: number
 ): Partition {
     const theCell = grid.lookupCell(g, cell);
-    n = Math.max(-(theCell.width - 1), n);
+    const right = rightmostCell(g, cell.rowNo);
+    const theRight = grid.lookupCell(g, right);
 
-    // The rows of the grid are independent, so we can find an optimal
-    // partition by considering each row separately, and combining the
-    // results.
+    n = util.clamp(-(theCell.width - 1), n, theRight.width - 1);
 
-    // First, try to find a partition of `cell`'s row which would
-    // allow us to expand/contract `cell` by just adding/removing
-    // whitespace on the same row.
-
-    const sameRowPart = findOptimalPartitionOfRow(g, cell, -n,
-        [
-            (candidatePath, candidate) => {
-                // Don't allow the partition to contain any cell to
-                // the left of `cell`.
-                if(candidatePath.colNo <= cell.colNo) return undefined;
-                // Only allow whitespace.
-                return Math.min(
-                    colsOfTrailingWhitespace(candidate),
-                    candidate.width - 1
-                );
-            }
-        ]
-    );
-
-    if(sameRowPart.length > 0) {
-        // We found a partition.
-        sameRowPart.push({
-            cell,
-            amount: n
-        });
-        return sameRowPart;
+    // If the cell is not the rightmost on its row, move the boundary:
+    // shrink the cell and grow the rightmost cell.
+    if(right.colNo !== cell.colNo) {
+        return [
+            { cell, amount: n },
+            { cell: right, amount: -n },
+        ];
     }
 
-    // Otherwise, we'll try to find a partition of the rows _other
-    // than_ `cell`'s.
-    const multiRowPart: Partition = [];
-
+    // Otherwise, we have to adjust the width of all of the last cells
+    // on their respective rows.
+    const partition: Partition = [{ cell, amount: n }];
     for(let rowNo = 0; rowNo < g.rows.length; ++rowNo) {
-        if(rowNo === cell.rowNo) {
-            // Then, this is the row with `cell`. The partition must
-            // always be just `cell`.
-            multiRowPart.push({
-                cell,
-                amount: n
-            });
-        } else {
-            multiRowPart.push(...findOptimalPartitionOfRow(g, { rowNo }, n,
-                [
-                    // Try to find a solution using only whitespace.
-                    (_, cell) => colsOfTrailingWhitespace(cell),
-                    // Then fall back to a solution using non-whitespace.
-                    (_, cell) => cell.width - 1,
-                ]
-            ));
-        }
+        if(rowNo === cell.rowNo) continue;
+        const right = rightmostCell(g, rowNo);
+        const theRight = grid.lookupCell(g, right);
+        // Give up if the rightmost cell can't absorb the change.
+        if(n < 0 && theRight.width - 1 < -n) return [];
+        partition.push({ cell: right, amount: n });
     }
 
-    return multiRowPart;
-}
-
-/**
- * Find the number of columns of trailing whitespace in a cell.
- */
-function colsOfTrailingWhitespace(
-    cell: grid.Cell<Cell>
-): number {
-    return minimum(cell.data.lines.map(line => Math.max(0, cell.width - line.trimEnd().length)).values());
-}
-
-function findOptimalPartitionOfRow(
-    g: grid.Grid<Cell>,
-    row: grid.RowPath,
-    n: number,
-    phases: ((cellPath: grid.CellPath, cell: grid.Cell<Cell>) => number | undefined)[]
-): Partition {
-    // We prefer taking space from cells to the right in the document.
-    //
-    // Our strategy is to rank the cells from right-to-left, then
-    // iterate throught them in two phases. In the first phase, we
-    // take whitespace from every cell. Only if we didn't adjust the
-    // row to the desired width, we iterate again, taking space from
-    // cells with text.
-
-    const cmp = (a: grid.CellPath, b: grid.CellPath): number => {
-        // Prefer cells to the right.
-        return b.colNo - a.colNo;
-    };
-
-    const cells = [...grid.allCellsOnRow(g, row)].toSorted(cmp);
-    const amounts = new Map<grid.CellPath, number>();
-
-    // Each phase defines how much of each cell's width is available
-    // to shrink. We iterate through phases in order.
-    for(const phase of phases) {
-        for(const cell of cells) {
-            const theCell = grid.lookupCell(g, cell);
-            const alreadyTaken = -(amounts.get(cell) ?? 0);
-            const avail = phase(cell, theCell);
-            if(avail === undefined) continue;
-            const remain = avail - alreadyTaken;
-            const dn = Math.max(-remain, n);
-            if(dn === 0) continue;
-            amounts.set(cell, (amounts.get(cell) ?? 0) + dn);
-            n -= dn;
-            if(n === 0) break;
-        }
-        if(n === 0) break;
-    }
-
-    // If we couldn't reduce the space, return an empty partition to
-    // signal that there was no solution.
-    if(n !== 0) return [];
-
-    return [...amounts.entries()]
-        .filter(([_, amount]) => amount !== 0)
-        .map(([cell, amount]) => ({ cell, amount }));
+    return partition;
 }
 
 
