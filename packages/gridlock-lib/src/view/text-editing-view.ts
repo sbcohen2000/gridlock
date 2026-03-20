@@ -142,23 +142,18 @@ export class TextEditingView extends AbstractEditorView {
 
     doPaste(clipboard: string) {
         const snapshot = this._teState.clone();
-        this.commitInverse(new SnapshotInverse(snapshot, "paste text"));
 
-        // TODO: Disable cell guides only for the row we need.
-        this.withCellGuidesDisabled(newView => {
-            util.assert(newView instanceof TextEditingView);
-            util.assert(newView.cellGuidesDisabled);
+        const lines = clipboard.split("\n");
+        for(let i = 0; i < lines.length; ++i) {
+            const isLast = i === lines.length - 1;
 
-            const lines = clipboard.split("\n");
-            for(let i = 0; i < lines.length; ++i) {
-                const isLast = i === lines.length - 1;
-
-                newView._teState.insertString(lines[i]);
-                if(!isLast) {
-                    newView._teState.insertGlobalNewline();
-                }
+            this._teState.insertString(lines[i]);
+            if(!isLast) {
+                this._teState.insertLocalNewline();
             }
-        });
+        }
+
+        this.commitInverse(new SnapshotInverse(snapshot, "paste text"));
     }
 }
 

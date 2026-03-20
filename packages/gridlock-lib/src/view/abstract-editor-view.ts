@@ -211,22 +211,6 @@ export abstract class AbstractEditorView extends AbstractView {
         this.requestReplaceEditorView(this.createViewForState(newSt), andThen);
     }
 
-    /**
-     * Run an action while the cell guides are disabled, enabling the
-     * guides again if they were enabled at the time this method was
-     * called.
-     */
-    withCellGuidesDisabled(action: ReplaceEditorViewCB) {
-        if(this.cellGuidesDisabled) {
-            action(this);
-        } else {
-            this.disableCellGuides(newView => {
-                action(newView);
-                newView.enableCellGuides();
-            });
-        }
-    }
-
     /*************************************************************************/
     /** Guide Dragging                                                      **/
 
