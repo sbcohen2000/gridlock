@@ -304,7 +304,7 @@ export abstract class AbstractEditorView extends AbstractView {
     /**
      * Build the contents (span fragments) for a line element.
      */
-    #buildLineFragments(lineElem: HTMLElement, line: string) {
+    #buildLineFragments(lineElem: HTMLElement, line: string, cellWidth: number) {
         const groups = [...groupBySpaces(line)];
         for(let i = 0; i < groups.length; ++i) {
             const group = groups[i];
@@ -331,6 +331,13 @@ export abstract class AbstractEditorView extends AbstractView {
                 lineElem.appendChild(fragElem);
             }
         }
+
+        if(line.length > cellWidth) {
+            const overflowShadowCaster = document.createElement("span");
+            overflowShadowCaster.style.width = `${line.length - cellWidth}ch`;
+            overflowShadowCaster.className = "editor-line-overflow-shadow-caster";
+            lineElem.appendChild(overflowShadowCaster);
+        }
     }
 
     /**
@@ -342,7 +349,9 @@ export abstract class AbstractEditorView extends AbstractView {
         const line = theCell.data.lines[lineNo];
         r.elem({ tag: "div", key: `line-${lineNo}`, clearChildren: true }, (lineElem) => {
             lineElem.className = "editor-line";
-            this.#buildLineFragments(lineElem, line);
+            lineElem.style.minWidth = `${line.length}ch`;
+
+            this.#buildLineFragments(lineElem, line, theCell.width);
         });
     }
 
@@ -353,6 +362,15 @@ export abstract class AbstractEditorView extends AbstractView {
     viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
         void cell;
         void recycler;
+    }
+
+    /**
+     * Implemented by subclasses to inform this view if it should
+     * display the clipped text of a cell.
+     */
+    displayClippedText(cell: grid.CellPath): boolean {
+        void cell;
+        return false;
     }
 
     /**
@@ -396,6 +414,11 @@ export abstract class AbstractEditorView extends AbstractView {
             const theCell = grid.lookupCell(this.state.grid, cell);
             cellElem.className = "editor-cell";
 
+            const displayClippedText = this.displayClippedText(cell);
+            if(displayClippedText) {
+                cellElem.classList.add("editor-cell-display-clipped");
+            }
+
             if(cellElem.getAttribute("data-last-width") !== theCell.width.toString()) {
                 cellElem.setAttribute("data-last-width", theCell.width.toString());
 
@@ -416,11 +439,19 @@ export abstract class AbstractEditorView extends AbstractView {
             }
 
             new CommittableRecycler(cellElem)
-                .views(theCell.data.lines
-                    .map((_: string, rowNo: number) => rowNo)
-                    .filter(rowNo => rowNo < rowHeight)
-                    , (rowNo: number, r: Recycler) =>
-                        this.viewLine(rowNo, cell, r))
+                .elem({ tag: "div", key: "cell-lines-clip-box", clearAttributes: true }, (cellLinesClipBoxElem) => {
+                    if(!displayClippedText) {
+                        cellLinesClipBoxElem.className = "editor-cell-clip-box";
+                    }
+
+                    new CommittableRecycler(cellLinesClipBoxElem)
+                        .views(theCell.data.lines
+                            .map((_: string, rowNo: number) => rowNo)
+                            .filter(rowNo => rowNo < rowHeight),
+                            (rowNo: number, r: Recycler) =>
+                                this.viewLine(rowNo, cell, r))
+                        .commit();
+                })
                 .views([...theCell.data.disabledGuides.values()]
                     .toSorted((a, b) => a - b)
                     .map((guideX: number, colNo: number) => [guideX, colNo]),

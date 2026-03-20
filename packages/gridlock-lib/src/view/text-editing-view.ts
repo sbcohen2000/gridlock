@@ -54,13 +54,21 @@ export class TextEditingView extends AbstractEditorView {
     }
 
     /**
+     * Test if the given `cell` is the selected cell.
+     */
+    private isSelected(cell: grid.CellPath) {
+        return this._teState.selection.cell.rowNo === cell.rowNo
+            && this._teState.selection.cell.colNo === cell.colNo;
+    }
+
+    /**
      * Draw the selection of a cell, if any, by adding items to the
      * recycler.
      */
     viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
         super.viewCellSelection(cell, recycler);
 
-        if(this._teState.selection.cell.rowNo === cell.rowNo && this._teState.selection.cell.colNo === cell.colNo) {
+        if(this.isSelected(cell)) {
             recycler.elem({ tag: "div", key: "cursor" }, (cursorElem) => {
                 cursorElem.className = "editor-cursor";
                 cursorElem.style.position = "absolute";
@@ -71,6 +79,10 @@ export class TextEditingView extends AbstractEditorView {
                 haloElem.className = "editor-cell-halo";
             });
         }
+    }
+
+    displayClippedText(cell: grid.CellPath): boolean {
+        return this.isSelected(cell);
     }
 
     #handleKeyEvent(e: KeyboardEvent): boolean {

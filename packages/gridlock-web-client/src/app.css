@@ -81,7 +81,7 @@
 
 .editor-row-guide-hitbox,
 .editor-cell-guide-hitbox {
-    z-index: 2;
+    z-index: 3;
 }
 
 .editor-cell-guide-hitbox,
@@ -141,12 +141,21 @@
     position: relative;
 }
 
+.editor-cell-display-clipped {
+    z-index: 1;
+}
+
+.editor-cell-clip-box {
+    overflow-x: clip;
+}
+
 .editor-line {
+    position: relative;
     height: 1em;
     outline: 1px solid rgba(0, 0, 0, 0.03);
     outline-offset: -0.5px;
     white-space: preserve nowrap;
-    overflow-x: clip;
+    background-color: white;
 }
 
 .editor-space-fragment {
@@ -168,6 +177,17 @@
         transparent                      20%,
         transparent                     100%
     );
+ }
+
+.editor-line-overflow-shadow-caster {
+    height: 1em;
+    position: absolute;
+    right: 0;
+    z-index: -1;
+    /* A left-pointing triangle. */
+    background-image: url("data:image/svg+xml,<svg height=\"10\" width=\"10\" xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"0,5 10,10 10,0\" style=\"fill:black\" /></svg>");
+    background-size: 100% 100%;
+    filter: blur(4px);
 }
 
 @keyframes blink {
@@ -179,7 +199,7 @@
     pointer-events: none;
     width: 1ch;
     height: 1em;
-    z-index: 3;
+    z-index: 4;
     backdrop-filter: invert(100%) saturate(0%);
 
     /* animation: blink 1s ease-in-out infinite; */
@@ -226,6 +246,7 @@
     right: 0;
     bottom: 0;
 
+    z-index: 2;
     background: repeating-linear-gradient(
         60deg,
         var(--guide-blind-color-a),
@@ -271,7 +292,7 @@
     left: 0;
     top: 0;
     position: absolute;
-    z-index: 1;
+    z-index: 2;
     outline: var(--selection-halo-thick) solid var(--selection-color);
     outline-offset: calc(-1 * var(--selection-halo-thick) / 2);
 }
@@ -289,7 +310,7 @@
     max-width: 90vw;
     max-height: 90vh;
     box-shadow: var(--shadow-elevation-medium);
-    z-index: 4;
+    z-index: 5;
 }
 
 .editor-context-menu-screen {
