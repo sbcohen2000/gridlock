@@ -333,6 +333,11 @@ export abstract class AbstractEditorView extends AbstractView {
         }
 
         if(line.length > cellWidth) {
+            const overflowTape = document.createElement("span");
+            overflowTape.style.width = `${line.length - cellWidth}ch`;
+            overflowTape.className = "editor-line-overflow-tape";
+            lineElem.appendChild(overflowTape);
+
             const overflowShadowCaster = document.createElement("span");
             overflowShadowCaster.style.width = `${line.length - cellWidth}ch`;
             overflowShadowCaster.className = "editor-line-overflow-shadow-caster";

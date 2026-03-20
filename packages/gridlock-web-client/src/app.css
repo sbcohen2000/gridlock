@@ -155,7 +155,6 @@
     outline: 1px solid rgba(0, 0, 0, 0.03);
     outline-offset: -0.5px;
     white-space: preserve nowrap;
-    background-color: white;
 }
 
 .editor-space-fragment {
@@ -179,11 +178,19 @@
     );
  }
 
-.editor-line-overflow-shadow-caster {
+.editor-line-overflow-tape {
     height: 1em;
     position: absolute;
     right: 0;
     z-index: -1;
+    background-color: white;
+}
+
+.editor-line-overflow-shadow-caster {
+    height: 1em;
+    position: absolute;
+    right: 0;
+    z-index: -2;
     /* A left-pointing triangle. */
     background-image: url("data:image/svg+xml,<svg height=\"10\" width=\"10\" xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"0,5 10,10 10,0\" style=\"fill:black\" /></svg>");
     background-size: 100% 100%;
