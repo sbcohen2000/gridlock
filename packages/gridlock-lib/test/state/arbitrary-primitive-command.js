@@ -34,7 +34,8 @@ const TEXT_PRIMS = [
     { method: "removeGlobalLine", args: [], const: false, description: "Remove the current line" },
     { method: "removeGlobalNewline", args: [], const: false, description: "Remove the newline before the current line" },
     { method: "removeString", args: ["number"], const: false, description: "Remove characters before point" },
-    { method: "insertGlobalNewline", args: [], const: false, description: "Insert a newline" },
+    { method: "insertGlobalNewline", args: [], const: false, description: "Insert a global newline" },
+    { method: "insertLocalNewline", args: [], const: false, description: "Insert a local newline" },
     { method: "insertString", args: ["string", "boolean"], const: false, description: "Insert a string by expanding" },
 ];
 

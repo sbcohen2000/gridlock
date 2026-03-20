@@ -503,25 +503,62 @@ export class TextPrims implements State<TextPrims> {
         const snapshot = this.clone();
 
         const globalPt = this.findGlobalPoint();
-        const globalRow = globalPt.y;
+        const localRow = this.selection.pt.y;
+        const rowNo = this.selection.cell.rowNo;
+        const row = grid.lookupRow(this.grid, this.selection.cell);
 
         const afterPoint = this._killLine();
 
-        const cells = [...grid.cellsUnderGlobalY(this.grid, globalRow)];
-        for(const cell of cells) {
-            const cellRect = grid.rectOfCell(this.grid, cell);
-            const localRow = globalRow - cellRect.top;
-            grid.lookupCell(this.grid, cell).data.lines.splice(localRow + 1, 0, "");
+        // Insert an empty line in every cell on this row.
+        for(const cell of row.cells) {
+            cell.data.lines.splice(localRow + 1, 0, "");
         }
 
-        grid.modifyHeightOfRow(this.grid, cells[0], 1);
+        grid.modifyHeightOfRow(this.grid, { rowNo }, 1);
 
-        const newRow = globalRow + 1;
+        const newRow = globalPt.y + 1;
         this._spreadTextOnGlobalRow(newRow, 0, afterPoint.values() as TextOnGlobalLineIter);
 
         this._putPointOnGlobalPosition(point.mkP2(0, newRow), false);
 
-        return new SnapshotInverse(snapshot, "insert newline");
+        return new SnapshotInverse(snapshot, "insert global newline");
+    }
+
+    /**
+     * Similar to `insertGlobalNewline`, except it resets the pointer
+     * to the next line of the cell, and does not shift content from the global line
+     * onto the next line.
+     *
+     * This is the default when copy-pasting multi-line content, or
+     * editing in a cell whose content exceeds its boundary.
+     */
+    insertLocalNewline(): Inverse<TextPrims> {
+        const snapshot = this.clone();
+
+        const theCell  = grid.lookupCell(this.grid, this.selection.cell);
+        const localRow = this.selection.pt.y;
+        const line     = theCell.data.lines[localRow];
+        const beforePt = line.slice(0, this.selection.pt.x);
+        const afterPt  = line.slice(this.selection.pt.x);
+
+        // Split the current line in the active cell, and insert
+        // empty lines in all sibling cells on the same row.
+        theCell.data.lines[localRow] = beforePt;
+        const row = grid.lookupRow(this.grid, this.selection.cell);
+        for(const cell of row.cells) {
+            if(cell === grid.lookupCell(this.grid, this.selection.cell)) {
+                cell.data.lines.splice(localRow + 1, 0, afterPt);
+            } else {
+                cell.data.lines.splice(localRow + 1, 0, "");
+            }
+        }
+        grid.modifyHeightOfRow(this.grid, this.selection.cell, 1);
+
+        // Update the selection.
+        this.selection.pt.x  = 0;
+        this.selection.pt.y += 1;
+
+        return new SnapshotInverse(snapshot, "insert local newline");
     }
 
     /**
