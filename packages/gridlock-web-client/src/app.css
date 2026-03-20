@@ -8,6 +8,7 @@
 
     /* selections */
     --selection-color: #77a0ed;
+    --selection-halo-thick: 2px;
 
     /* shadows */
     --shadow-color: 0deg 0% 52%;
@@ -18,7 +19,13 @@
         -9.3px 4.6px 10.2px -3.4px hsl(var(--shadow-color) / 0.39);
 
     /* Guide lines */
-    --guide-line-thick: 2px;
+    --guide-thick: 1px;
+    --guide-hitbox-thick: 4px;
+    --guide-blind-thick: 1.5px;
+
+    --guide-color: #ccc;
+    --guide-blind-color-a: rgba(255, 0, 0, 0.1);
+    --guide-blind-color-b: rgba(255, 0, 0, 1.0);
 }
 
 /*****************************************************************************/
@@ -58,7 +65,6 @@
     text-align: right;
     color: gray;
     height: 1em;
-    margin-right: 1px;
     white-space: preserve;
 }
 
@@ -85,8 +91,8 @@
 }
 
 .editor-cell-guide {
-    right: -0.5px;
-    border-right: 1px solid gray;
+    right: calc(-1 * var(--guide-thick) / 2);
+    border-right: var(--guide-thick) solid var(--guide-color);
 }
 
 .editor-disabled-cell-guide {
@@ -94,8 +100,8 @@
 }
 
 .editor-cell-guide-hitbox {
-    right: -2px;
-    width: 4px;
+    right: calc(-1 * var(--guide-hitbox-thick) / 2);
+    width: var(--guide-hitbox-thick);
 }
 
 .editor-row-guide-hitbox,
@@ -105,13 +111,13 @@
 }
 
 .editor-row-guide {
-    bottom: -0.5px;
-    border-bottom: 1px solid gray;
+    bottom: calc(-1 * var(--guide-thick) / 2);
+    border-bottom: var(--guide-thick) solid var(--guide-color);
 }
 
 .editor-row-guide-hitbox {
-    bottom: -2px;
-    height: 4px;
+    bottom: calc(-1 * var(--guide-hitbox-thick) / 2);
+    height: var(--guide-hitbox-thick);
 }
 
 .editor-cell-guide-hitbox:hover,
@@ -205,13 +211,12 @@
     bottom: 0;
     right: 0;
 
-    mix-blend-mode: darken;
     background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 4px,
-        gray 4px,
-        gray 5px);
+        40deg,
+        var(--guide-blind-color-a),
+        var(--guide-blind-color-a) 4px,
+        var(--guide-blind-color-b) 4px,
+        var(--guide-blind-color-b) calc(4px + var(--guide-blind-thick)));
 }
 
 .editor-row-blind {
@@ -221,13 +226,12 @@
     right: 0;
     bottom: 0;
 
-    mix-blend-mode: darken;
     background: repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 4px,
-        gray 4px,
-        gray 5px);
+        60deg,
+        var(--guide-blind-color-a),
+        var(--guide-blind-color-a) 4px,
+        var(--guide-blind-color-b) 4px,
+        var(--guide-blind-color-b) calc(4px + var(--guide-blind-thick)));
 }
 
 /*****************************************************************************/
@@ -268,8 +272,8 @@
     top: 0;
     position: absolute;
     z-index: 1;
-    outline: 1px solid var(--selection-color);
-    outline-offset: -0.5px;
+    outline: var(--selection-halo-thick) solid var(--selection-color);
+    outline-offset: calc(-1 * var(--selection-halo-thick) / 2);
 }
 
 .editor-context-menu {

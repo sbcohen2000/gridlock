@@ -1,4 +1,5 @@
 # Before Deadline
+- [ ] Line numbers are wrong for incomplete rows
 - [ ] Specify fill character
 - [ ] Mode where we view the program text, entirely expanded, without grid lines
   - Edits can be disallowed in this mode
