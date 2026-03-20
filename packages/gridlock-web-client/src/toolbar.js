@@ -149,7 +149,8 @@ export function describeToolbar(editorView) {
             /** @type {view.cmenu.ContextMenuItem[]} */
             const examples = [...Object.entries(EXAMPLES).map(([nm, src]) =>
                 view.cmenu.button(nm, () => {
-                    const freshView = editorView.createViewForState(state.serialize.textEditingStateFromCommonStateStr(src));
+                    const grid = state.serialize.parseCompactGrid(src);
+                    const freshView = editorView.createViewForState(state.TextPrims.editText({ grid }));
                     editorView.requestReplaceEditorView(freshView);
                 })
             )];
