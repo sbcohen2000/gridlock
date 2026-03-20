@@ -23,7 +23,7 @@ describe("cell-prims", () => {
 
             const st = mkCellState(src);
             st.selectCellUnderPoint(point.mkP2(0, 0), true);
-            expect(st.selection.size).to.equal(1);
+            expect(st.selection.length).to.equal(1);
         });
 
         it("Accumulates cells when clear is false", () => {
@@ -35,7 +35,7 @@ describe("cell-prims", () => {
             const st = mkCellState(src);
             st.selectCellUnderPoint(point.mkP2(0, 0), true);
             st.selectCellUnderPoint(point.mkP2(6, 0), false);
-            expect(st.selection.size).to.equal(2);
+            expect(st.selection.length).to.equal(2);
         });
 
         it("Replaces selection when clear is true", () => {
@@ -47,7 +47,7 @@ describe("cell-prims", () => {
             const st = mkCellState(src);
             st.selectCellUnderPoint(point.mkP2(0, 0), true);
             st.selectCellUnderPoint(point.mkP2(6, 0), true);
-            expect(st.selection.size).to.equal(1);
+            expect(st.selection.length).to.equal(1);
         });
     });
 });

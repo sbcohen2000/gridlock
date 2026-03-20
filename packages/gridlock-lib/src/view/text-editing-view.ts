@@ -43,8 +43,8 @@ export class TextEditingView extends AbstractEditorView {
                 "edit cells"
             )(this._teState);
             this.commitInverse(inv);
-            st.selection.add(this._teState.selection.cell);
-            st.selection.add(ctx.cell);
+            st.addCell(this._teState.selection.cell);
+            st.addCell(ctx.cell);
             this.requestReplaceEditorView(this.createViewForState(st));
         } else {
             // Move the point to `gridPt`.
