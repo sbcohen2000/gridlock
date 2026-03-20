@@ -14,7 +14,7 @@ import {
     disableCellGuides,
     enableCellGuides
 } from "../state/index.js";
-import { cellContentExceedsCellWidth } from "../state/state-iface.js";
+import { cellContentExceedsCellWidth, rowContentExceedsRowHeight } from "../state/state-iface.js";
 import { padLeftToLength } from "../util.js";
 import { withSnapshotInverse } from "../state/inverse.js";
 
@@ -65,7 +65,6 @@ export abstract class AbstractEditorView extends AbstractView {
     #lastClick: { cell: grid.CellPath } | null = null;
     #cellGuidesDisabled: boolean = false;
     #state: AnyState;
-    #clipboard: string;
 
     constructor(prev: AbstractEditorView | InitialViewState, state: AnyState) {
         super(prev.parent);
@@ -235,7 +234,12 @@ export abstract class AbstractEditorView extends AbstractView {
      * Try to start dragging a row guide.
      */
     startDraggingRowGuide(ctx: PointerEventContext, row: grid.RowPath): boolean {
-        const [inv, st] = this.edgeDraggingMode === "Move"
+        // If the row is incomplete (its content overflows its boundary), we can't
+        // slide it. So, we move it instead.
+        const theRow = grid.lookupRow(ctx.state.grid, row);
+        const incomplete = rowContentExceedsRowHeight(theRow);
+
+        const [inv, st] = this.edgeDraggingMode === "Move" || incomplete
               ? withSnapshotInverse(MoveRowBoundaryPrims.moveRowBoundary)(this.state, row.rowNo)
               : withSnapshotInverse(SlideRowBoundaryPrims.slideRowBoundary)(this.state, row.rowNo);
 
@@ -260,7 +264,12 @@ export abstract class AbstractEditorView extends AbstractView {
      * Try to start dragging a cell guide.
      */
     startDraggingCellGuide(ctx: PointerEventContext, cell: grid.CellPath): boolean {
-        const [inv, st] = this.edgeDraggingMode === "Move"
+        // If the cell is incomplete (its content overflows its boundary), we can't
+        // slide it. So, we move it instead.
+        const theCell = grid.lookupCell(ctx.state.grid, cell);
+        const incomplete = cellContentExceedsCellWidth(theCell);
+
+        const [inv, st] = this.edgeDraggingMode === "Move" || incomplete
               ? withSnapshotInverse(MoveCellBoundaryPrims.moveCellBoundary)(this.state, cell.rowNo, cell.colNo)
               : withSnapshotInverse(SlideCellBoundaryPrims.slideCellBoundary)(this.state, cell.rowNo, cell.colNo);
 
@@ -428,11 +437,6 @@ export abstract class AbstractEditorView extends AbstractView {
                 .elem({ tag: "div", key: "cell-guide" }, (cellGuideElem) => {
                     cellGuideElem.className = "editor-cell-guide";
                 })
-                .elem({ tag: "div", key: "row-blind" }, (rowBlindElem) => {
-                    rowBlindElem.className = "editor-row-blind";
-                    const incomplete = rowHeight < theCell.data.lines.length;
-                    rowBlindElem.style.display = incomplete ? "block" : "none";
-                })
                 .elem({ tag: "div", key: "cell-blind" }, (cellBlindElem) => {
                     cellBlindElem.className = "editor-cell-blind";
                     const incomplete = cellContentExceedsCellWidth(theCell);
@@ -473,6 +477,11 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "row-guide" }, (rowGuideElem) => {
                     rowGuideElem.className = "editor-row-guide";
+                })
+                .elem({ tag: "div", key: "row-blind" }, (rowBlindElem) => {
+                    rowBlindElem.className = "editor-row-blind";
+                    const incomplete = rowContentExceedsRowHeight(theRow);
+                    rowBlindElem.style.display = incomplete ? "block" : "none";
                 })
                 .commit();
         });

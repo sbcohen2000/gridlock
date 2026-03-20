@@ -132,6 +132,7 @@ export class TextEditingView extends AbstractEditorView {
         const snapshot = this._teState.clone();
         this.commitInverse(new SnapshotInverse(snapshot, "paste text"));
 
+        // TODO: Disable cell guides only for the row we need.
         this.withCellGuidesDisabled(newView => {
             util.assert(newView instanceof TextEditingView);
             util.assert(newView.cellGuidesDisabled);

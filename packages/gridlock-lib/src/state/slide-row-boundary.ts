@@ -1,8 +1,7 @@
 import * as grid from "../grid.js";
 import * as util from "../util.js";
-import { Cell, cloneCellData, State } from "./state-iface.js";
+import { Cell, cloneCellData, rowContentExceedsRowHeight, State } from "./state-iface.js";
 import { Inverse, SnapshotInverse } from "./inverse.js";
-import { projectTextOntoCells } from "./project-text-onto-cells.js";
 
 export class SlideRowBoundaryPrims implements State<SlideRowBoundaryPrims> {
     grid: grid.Grid<Cell>;
@@ -27,14 +26,26 @@ export class SlideRowBoundaryPrims implements State<SlideRowBoundaryPrims> {
 
         const topRow = grid.lookupRow(this.grid, { rowNo: this.rowNo });
         const bottomRow = grid.lookupRow(this.grid, { rowNo: this.rowNo + 1 });
+        util.assert(!rowContentExceedsRowHeight(topRow));
 
         n = util.clamp(-(topRow.height - 1), n, bottomRow.height - 1);
 
-        projectTextOntoCells((g) => {
-            topRow.height += n;
-            bottomRow.height -= n;
-            return g;
-        }, this.grid);
+        // For each column, stack the top and bottom cell lines,
+        // then re-split at the new row boundary.
+        for (let colNo = 0; colNo < topRow.cells.length; ++colNo) {
+            const topCell = topRow.cells[colNo].data;
+            const bottomCell = bottomRow.cells[colNo].data;
+            const combined = [
+                ...topCell.lines,
+                ...Array.from({ length: topRow.height - topCell.lines.length }, () => ""),
+                ...bottomCell.lines,
+            ];
+            topCell.lines = combined.slice(0, topRow.height + n);
+            bottomCell.lines = combined.slice(topRow.height + n);
+        }
+
+        topRow.height += n;
+        bottomRow.height -= n;
 
         return new SnapshotInverse(snapshot);
     }

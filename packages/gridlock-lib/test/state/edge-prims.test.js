@@ -159,5 +159,9 @@ describe("edge-prims", () => {
             expect(serialize.printCommonState(edgeState)).to.equal(exp);
         });
 
+        it("Can shift text between cells in a grid with clipped cells", () => {
+            // TODO: Write this test and a few others.
+            expect(false).to.be.true;
+        });
     });
 });

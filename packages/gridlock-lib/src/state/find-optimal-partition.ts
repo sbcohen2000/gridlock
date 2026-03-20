@@ -88,7 +88,7 @@ export function findOptimalPartition(
 function colsOfTrailingWhitespace(
     cell: grid.Cell<Cell>
 ): number {
-    return minimum(cell.data.lines.map(line => cell.width - line.trimEnd().length).values());
+    return minimum(cell.data.lines.map(line => Math.max(0, cell.width - line.trimEnd().length)).values());
 }
 
 function findOptimalPartitionOfRow(

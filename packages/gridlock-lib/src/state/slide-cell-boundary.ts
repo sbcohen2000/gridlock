@@ -1,9 +1,7 @@
 import * as grid from "../grid.js";
 import * as util from "../util.js";
-import { projectTextOntoCells } from "./project-text-onto-cells.js";
-import { Cell, cloneCellData, State } from "./state-iface.js";
+import { Cell, cellContentExceedsCellWidth, cloneCellData, State } from "./state-iface.js";
 import { Inverse, SnapshotInverse } from "./inverse.js";
-import { ensureCellWidth } from "./find-optimal-partition.js";
 
 export class SlideCellBoundaryPrims implements State<SlideCellBoundaryPrims> {
     grid: grid.Grid<Cell>;
@@ -28,23 +26,29 @@ export class SlideCellBoundaryPrims implements State<SlideCellBoundaryPrims> {
     slideVerticalEdge(n: number): Inverse<SlideCellBoundaryPrims> {
         const snapshot = this.clone();
 
-        const leftCellPath  = { rowNo: this.rowNo, colNo: this.colNo };
-        const rightCellPath = { rowNo: this.rowNo, colNo: this.colNo + 1 };
-        const leftCell  = grid.lookupCell(this.grid, leftCellPath);
-        const rightCell = grid.lookupCell(this.grid, rightCellPath);
-
-        ensureCellWidth(this.grid, leftCellPath);
-        ensureCellWidth(this.grid, rightCellPath);
+        const leftCell  = grid.lookupCell(this.grid, { rowNo: this.rowNo, colNo: this.colNo });
+        const rightCell = grid.lookupCell(this.grid, { rowNo: this.rowNo, colNo: this.colNo + 1 });
+        util.assert(!cellContentExceedsCellWidth(leftCell));
 
         n = util.clamp(-(leftCell.width - 1), n, rightCell.width - 1);
 
-        projectTextOntoCells((g) => {
-            leftCell.width += n;
-            rightCell.width -= n;
-            return g;
-        }, this.grid);
+        const rowHeight = grid.lookupRow(this.grid, { rowNo: this.rowNo }).height;
 
-        return new SnapshotInverse(snapshot);
+        // For each line, join the left and right cell text, then
+        // re-split at the new boundary.
+        for (let i = 0; i < rowHeight; ++i) {
+            const leftLine  = leftCell.data.lines[i]  ?? "";
+            const rightLine = rightCell.data.lines[i] ?? "";
+            const combined  = leftLine.padEnd(leftCell.width) + rightLine;
+            const newLeftWidth = leftCell.width + n;
+            leftCell.data.lines[i]  = combined.slice(0, newLeftWidth).trimEnd();
+            rightCell.data.lines[i] = combined.slice(newLeftWidth).trimEnd();
+        }
+
+        leftCell.width += n;
+        rightCell.width -= n;
+
+        return new SnapshotInverse(snapshot, `Slide cell boundary by ${n}`);
     }
 
     mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): false {

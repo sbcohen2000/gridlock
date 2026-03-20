@@ -29,7 +29,7 @@ export class MoveCellBoundaryPrims implements State<MoveCellBoundaryPrims> {
         const part = findOptimalPartition(this.grid, { rowNo: this.rowNo, colNo: this.colNo }, n);
         applyPartition(this.grid, part);
 
-        return new SnapshotInverse(snapshot);
+        return new SnapshotInverse(snapshot, `Move cell boundary by ${n}`);
     }
 
     mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): false {

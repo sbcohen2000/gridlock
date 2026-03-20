@@ -24,6 +24,10 @@ export function cellContentExceedsCellWidth(cell: grid.Cell<Cell>): boolean {
     return maximumLineLength(cell.data) > cell.width;
 }
 
+export function rowContentExceedsRowHeight(row: grid.Row<Cell>): boolean {
+    return row.cells.some(cell => row.height < cell.data.lines.length);
+}
+
 export interface State<P> {
     readonly grid: grid.Grid<Cell>;
 

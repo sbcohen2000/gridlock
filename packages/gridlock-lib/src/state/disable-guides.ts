@@ -2,11 +2,11 @@ import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
 import * as util from "../util.js";
-import { SliceCellPrims } from "./slice-cell.js";
 import { AnyState } from "./state-iface.js";
+import { SliceCellPrims } from "./slice-cell.js";
 import { TextPrims } from "./text-prims.js";
-import { projectTextOntoCells } from "./project-text-onto-cells.js";
 import { ensureAllCellWidthsOnRow } from "./find-optimal-partition.js";
+import { projectTextOntoCellsInAdjacentRows } from "./project-text-onto-cells.js";
 
 /**
  * Do the real work if disabling the cell guides, returning a boolean
@@ -16,7 +16,7 @@ import { ensureAllCellWidthsOnRow } from "./find-optimal-partition.js";
  */
 function _disableCellGuides(st: AnyState, rows: grid.RowPath[]): boolean {
     return st.mutateGrid(g => {
-        projectTextOntoCells(g => {
+        projectTextOntoCellsInAdjacentRows(g => {
             for(const row of rows) {
                 const guidePositions = [...grid.allPositionedCellsOnRow(g, row)
                     .drop(1)
@@ -30,7 +30,7 @@ function _disableCellGuides(st: AnyState, rows: grid.RowPath[]): boolean {
                 theRow.cells = [firstCell];
             }
             return g;
-        }, g);
+        }, g, rows);
         return g;
     });
 }
