@@ -1,9 +1,8 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
-import { Cell, cloneCellData, State } from "./state-iface.js";
+import { Cell, cloneCellData, State, horizontallyCatCellLines, rowLines } from "./state-iface.js";
 import { SnapshotInverse, Inverse } from "./inverse.js";
-import { projectTextOntoCells } from "./project-text-onto-cells.js";
 
 export class CellPrims implements State<CellPrims> {
     grid: grid.Grid<Cell>;
@@ -54,24 +53,47 @@ export class CellPrims implements State<CellPrims> {
     mergeSelectedCells(): Inverse<CellPrims> {
         const snapshot = this.clone();
 
-        let newSelectedCell!: grid.CellPath;
-        const newGrid = projectTextOntoCells((g) => {
+        const cells = [...this.selection.values()];
+        const g = this.grid;
 
-            // Merge all of the disabled guides from the merged cells
-            // into a single set.
-            const disabledGuides = new Set<number>();
-            this.selection.values().forEach(cell => {
-                const theCell = grid.lookupCell(g, cell);
-                theCell.data.disabledGuides.forEach(guide => {
-                    disabledGuides.add(guide);
-                });
-            });
+        // Group cells by row to determine single-row vs multi-row merge.
+        const byRow = new Map<number, grid.CellPath[]>();
+        for(const cell of cells) {
+            const inRow = byRow.get(cell.rowNo);
+            if(inRow) inRow.push(cell);
+            else byRow.set(cell.rowNo, [cell]);
+        }
 
-            newSelectedCell = grid.mergeCells(g, [...this.selection.values()], { lines: [], disabledGuides });
-            return g;
-        }, this.grid);
+        // Compute the text for the merged cell.
+        let lines: string[];
+        if(byRow.size === 1) {
+            // We've got a single row, so horizontally concatentate
+            // the selected cells.
+            const sortedCells = cells
+                .toSorted((a, b) => a.colNo - b.colNo)
+                .map(c => grid.lookupCell(g, c));
+            lines = horizontallyCatCellLines(sortedCells);
+        } else {
+            // We've got multiple rows, so vertically concatentate
+            // each row's text.
+            const rowNos = [...byRow.keys()].toSorted((a, b) => a - b);
+            lines = rowNos.flatMap(rowNo => rowLines(grid.lookupRow(g, { rowNo })));
+        }
 
-        this.grid = newGrid;
+        // Merge disabled guides, adjusting offsets relative to the
+        // merged cell's left edge.
+        const mergedRect = rect.unions(...cells.map(cell => grid.rectOfCell(g, cell)));
+        const disabledGuides = new Set<number>();
+        for(const cell of cells) {
+            const theCell = grid.lookupCell(g, cell);
+            const cellRect = grid.rectOfCell(g, cell);
+            const offset = cellRect.left - mergedRect.left;
+            for(const guide of theCell.data.disabledGuides) {
+                disabledGuides.add(guide + offset);
+            }
+        }
+
+        const newSelectedCell = grid.mergeCells(g, cells, { lines, disabledGuides });
         this.selection = new Set([newSelectedCell]);
 
         return new SnapshotInverse(snapshot, "merge cells");

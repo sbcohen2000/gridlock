@@ -1,4 +1,4 @@
-import { maximum } from "../util.js";
+import { maximum, padRightToLength } from "../util.js";
 import * as grid from "../grid.js";
 
 export interface Cell {
@@ -57,3 +57,30 @@ export interface State<P> {
 };
 
 export type AnyState = State<any>;
+
+/**
+ * Produce lines representing the horizontal concatenation of cell text.
+ */
+export function horizontallyCatCellLines(cells: Iterable<grid.Cell<Cell>>): string[] {
+    const cellArray = [...cells];
+    const height = maximum(cellArray.values().map(cell => cell.data.lines.length));
+
+    let out: string[] = Array.from({ length: height }, () => "");
+    for(const cell of cellArray) {
+        for(let j = 0; j < cell.data.lines.length; ++j) {
+            out[j] += padRightToLength(cell.data.lines[j], cell.width);
+        }
+    }
+
+    return out.map(line => line.trimEnd());
+}
+
+/**
+ * Get lines of text from a row by horizontally concatenating its cells,
+ * padded to the row's height.
+ */
+export function rowLines(row: grid.Row<Cell>): string[] {
+    const lines = horizontallyCatCellLines(row.cells);
+    while(lines.length < row.height) lines.push("");
+    return lines;
+}

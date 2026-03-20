@@ -1,12 +1,10 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
-import * as rect from "../rect.js";
 import * as util from "../util.js";
-import { AnyState } from "./state-iface.js";
+import { Cell, AnyState, cellContentExceedsCellWidth, horizontallyCatCellLines } from "./state-iface.js";
 import { SliceCellPrims } from "./slice-cell.js";
 import { TextPrims } from "./text-prims.js";
 import { ensureAllCellWidthsOnRow } from "./find-optimal-partition.js";
-import { projectTextOntoCellsInAdjacentRows } from "./project-text-onto-cells.js";
 
 /**
  * Do the real work if disabling the cell guides, returning a boolean
@@ -16,21 +14,43 @@ import { projectTextOntoCellsInAdjacentRows } from "./project-text-onto-cells.js
  */
 function _disableCellGuides(st: AnyState, rows: grid.RowPath[]): boolean {
     return st.mutateGrid(g => {
-        projectTextOntoCellsInAdjacentRows(g => {
-            for(const row of rows) {
-                const guidePositions = [...grid.allPositionedCellsOnRow(g, row)
-                    .drop(1)
-                    .map(([_, rect]) => rect.left)];
 
-                const theRow = grid.lookupRow(g, row);
-                const rowWidth = rect.width(grid.rectOfRow(g, row));
-                const firstCell = theRow.cells[0];
+        for(const row of rows) {
+            const theRow = grid.lookupRow(g, row);
+
+            const cells: grid.Cell<Cell>[] = [];
+            const currentGroup: { cell: grid.Cell<Cell>, leftEdge: number }[] = [];
+
+            const commitGroup = () => {
+                if(currentGroup.length === 0) return;
+
+                const groupWidth     = currentGroup.reduce((sum, { cell }) => cell.width + sum, 0);
+                const firstCell      = currentGroup[0].cell;
+                const firstLeftEdge  = currentGroup[0].leftEdge;
+                const guidePositions = currentGroup.slice(1).map(({ leftEdge }) => leftEdge - firstLeftEdge);
+
+                // Place the text of each cell into `firstCell`.
                 firstCell.data.disabledGuides = new Set(guidePositions);
-                firstCell.width = rowWidth;
-                theRow.cells = [firstCell];
+                firstCell.width = groupWidth;
+                firstCell.data.lines = horizontallyCatCellLines(currentGroup.values().map(elt => elt.cell));
+
+                cells.push(firstCell);
             }
-            return g;
-        }, g, rows);
+
+            for(const cell of theRow.cells) {
+                const incomplete = cellContentExceedsCellWidth(cell);
+                if(incomplete) {
+                    // If the cell is incomplete, then we can't
+                    // disable its guides.
+                    commitGroup();
+                }
+
+                cells.push(cell);
+            }
+
+            commitGroup();
+        }
+
         return g;
     });
 }
