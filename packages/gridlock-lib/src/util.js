@@ -85,15 +85,19 @@ export function padLeftToLength(str, len) {
  * Log the given string as a copy-pastable JavaScript expression.
  *
  * @param {string} str
+ * @param {boolean} [pad] Should the line delimiters be padded to the
+ *     same column? (Default is false).
  */
-export function showMultilineString(str) {
+export function showMultilineString(str, pad) {
     const pfx = "\"example_name\":\n("
     const linePfx = " ";
     const lines   = str.split("\n");
-    const escaped = lines.map(line => JSON.stringify(line + "\n"));
-    const longest = escaped.reduce((maxL, line) => Math.max(maxL, line.length), 0);
-    const padded  = escaped.map(line => padRightToLength(line, longest));
-    return pfx + linePfx + padded.join(`+\n${linePfx}`) + "),"
+    let out = lines.map(line => JSON.stringify(line + "\n"));
+    if(pad) {
+        const longest = out.reduce((maxL, line) => Math.max(maxL, line.length), 0);
+        out = out.map(line => padRightToLength(line, longest));
+    }
+    return pfx + linePfx + out.join(`+\n${linePfx}`) + "),"
 }
 
 /**

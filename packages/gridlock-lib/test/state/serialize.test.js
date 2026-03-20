@@ -18,6 +18,23 @@ describe("serialize", () => {
         );
     });
 
+    it("_printCompactGridSpec and _parseCompactGridSpec are inverses", () => {
+        fc.assert(
+            fc.property(
+                arbCellGrid,
+                (g) => {
+                    const { grid: expanded } = serialize._expandGrid({ grid: g });
+                    // Strip the `lines` field so we have a Grid<CompactGridData>.
+                    expanded.rows.forEach(row =>
+                        row.cells.forEach(cell => delete cell.data.lines));
+                    const encoded = serialize._printCompactGridSpec(expanded);
+                    const decoded = serialize._parseCompactGridSpec(encoded);
+                    expect(decoded).to.deep.equal(expanded);
+                }
+            )
+        );
+    });
+
     it("printCompactGrid and parseCompactGrid are inverses", () => {
         fc.assert(
             fc.property(

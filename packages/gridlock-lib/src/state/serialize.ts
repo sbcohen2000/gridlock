@@ -89,7 +89,7 @@ type ExpandedGridData = { lines: string[] } & CompactGridData;
  * which records the rectangle of text in this source-text
  * corresponding to each cell.
  */
-function expandGrid(st: { grid: grid.Grid<Cell> }): {
+export function _expandGrid(st: { grid: grid.Grid<Cell> }): {
     src: string,
     grid: grid.Grid<ExpandedGridData>
 } {
@@ -128,7 +128,7 @@ function expandGrid(st: { grid: grid.Grid<Cell> }): {
                 }
             });
 
-            textX += Math.min(cell.width, maxTextWidth);
+            textX += Math.max(cell.width, maxTextWidth);
         }
 
         textY += maxHeight;
@@ -172,14 +172,14 @@ function expandGrid(st: { grid: grid.Grid<Cell> }): {
  * their contents.
  */
 export function printCompactGrid(st: { grid: grid.Grid<Cell> }): string {
-    const { src, grid } = expandGrid(st);
+    const { src, grid } = _expandGrid(st);
 
     // Forget the `lines` field of `grid`. It's okay to do this
     // mutably because `expandGrid` returns only a copy of its input.
     grid.rows.forEach(row =>
         row.cells.forEach(cell => delete cell.data.lines));
 
-    return JSON.stringify(grid) + "\n" + src;
+    return _printCompactGridSpec(grid) + "\n" + src;
 }
 
 /**
@@ -217,13 +217,31 @@ export function parseCompactGrid(src: string): grid.Grid<Cell> {
     }
     const gridSpec = src.slice(0, firstNL);
     const srcText  = src.slice(firstNL + 1);
-    return compactGrid(srcText, JSON.parse(gridSpec));
+    return compactGrid(srcText, _parseCompactGridSpec(gridSpec));
+}
+
+/** Encode a Uint8Array as a base64 string. */
+function bytesToBase64(bytes: Uint8Array): string {
+    let binary = "";
+    for(let i = 0; i < bytes.length; ++i) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+/** Decode a base64 string into a Uint8Array. */
+function base64ToBytes(str: string): Uint8Array {
+    const binary = atob(str);
+    const bytes = new Uint8Array(binary.length);
+    for(let i = 0; i < binary.length; ++i) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
 }
 
 /**
- * Produce a string which encodes the metrics of each cell in the
- * grid. The string is designed to be as compact as possible so that
- * we can embed it in test files without too much trouble.
+ * We use a custom format to encode grid data which is more efficient
+ * than JSON (so that we don't need verbose JSON blobs everywhere).
  *
  * The format is as follows:
  *             |<-------------- per-row data ------------->|<--- per-cell data --- ...
@@ -240,25 +258,35 @@ export function parseCompactGrid(src: string): grid.Grid<Cell> {
  *
  *     ------ per-line data ---------->|
  */
-function printCompactGridSpec(g: grid.Grid<CompactGridData>): string {
-    const BYTES_PER_NUM  = 2;
-    const nRows          = g.rows.length;
-    const nCells         = [...grid.allCells(g)].length;
-    const nLines         = grid.allCells(g).reduce((sum, cell) => {
+
+const BYTES_PER_NUM = 2;
+const BYTES_PER_ROW_ENTRY  = 3 * BYTES_PER_NUM; // begin, end, height
+const BYTES_PER_CELL_ENTRY = 5 * BYTES_PER_NUM; // begin, end, width, x, y
+const BYTES_PER_LINE_ENTRY = 1 * BYTES_PER_NUM; // length
+
+/**
+ * Produce a string which encodes the metrics of each cell in the
+ * grid. See the above format diagram.
+ */
+export function _printCompactGridSpec(g: grid.Grid<CompactGridData>): string {
+
+    const nRows       = g.rows.length;
+    const nCells      = [...grid.allCells(g)].length;
+    const nLines      = grid.allCells(g).reduce((sum, cell) => {
         const theCell = grid.lookupCell(g, cell);
         return sum + theCell.data.lineLengths.length;
     }, 0);
-    const BYTES_PER_ROW_ENTRY  = 3 * BYTES_PER_NUM; // begin, end, height
-    const BYTES_PER_CELL_ENTRY = 5 * BYTES_PER_NUM; // begin, end, width, x, y
-    const BYTES_PER_LINE_ENTRY = 1 * BYTES_PER_NUM; // length
-
     const rowDataOffset  = BYTES_PER_NUM;
-    const cellDataOffset = rowDataOffset + BYTES_PER_ROW_ENTRY * nRows;
+    const cellDataOffset = rowDataOffset  + BYTES_PER_ROW_ENTRY  * nRows;
     const lineDataOffset = cellDataOffset + BYTES_PER_CELL_ENTRY * nCells;
     const data = new ArrayBuffer(
         lineDataOffset + BYTES_PER_LINE_ENTRY * nLines
     );
     const dv = new DataView(data);
+
+    // Write the end-offset of the row data section so the parser
+    // can determine the number of rows.
+    dv.setUint16(0, cellDataOffset);
 
     let rowDataPtr  = rowDataOffset;
     let cellDataPtr = cellDataOffset;
@@ -272,9 +300,9 @@ function printCompactGridSpec(g: grid.Grid<CompactGridData>): string {
         rowDataPtr += BYTES_PER_NUM;
 
         for(const cell of row.cells) {
-            dv.setUint16(cellDataPtr, cellDataPtr); // begin
+            dv.setUint16(cellDataPtr, lineDataPtr); // begin
             cellDataPtr += BYTES_PER_NUM;
-            dv.setUint16(cellDataPtr, cellDataPtr + BYTES_PER_LINE_ENTRY * cell.data.lineLengths.length); // end
+            dv.setUint16(cellDataPtr, lineDataPtr + BYTES_PER_LINE_ENTRY * cell.data.lineLengths.length); // end
             cellDataPtr += BYTES_PER_NUM;
             dv.setUint16(cellDataPtr, cell.width); // width
             cellDataPtr += BYTES_PER_NUM;
@@ -290,5 +318,71 @@ function printCompactGridSpec(g: grid.Grid<CompactGridData>): string {
         }
     }
 
-    return (new Uint8Array(data)).toBase64();
+    return bytesToBase64(new Uint8Array(data));
+}
+
+/**
+ * Parse a compact grid spec from a base64 string, reversing
+ * the encoding produced by `_printCompactGridSpec`.
+ */
+export function _parseCompactGridSpec(src: string): grid.Grid<CompactGridData> {
+    const bytes = base64ToBytes(src);
+    const dv    = new DataView(bytes.buffer);
+
+    const rowDataOffset  = BYTES_PER_NUM;
+    const cellDataOffset = dv.getUint16(0);
+    const nRows = (cellDataOffset - rowDataOffset) / BYTES_PER_ROW_ENTRY;
+
+    // The first cell's `begin` field points to the start of the
+    // line data section.
+    let lineDataPtr = dv.getUint16(cellDataOffset);
+
+    const rows: grid.Row<CompactGridData>[] = [];
+    let rowDataPtr = rowDataOffset;
+    for(let r = 0; r < nRows; ++r) {
+        const cellsBegin = dv.getUint16(rowDataPtr);
+        rowDataPtr += BYTES_PER_NUM;
+        const cellsEnd = dv.getUint16(rowDataPtr);
+        rowDataPtr += BYTES_PER_NUM;
+        const height = dv.getUint16(rowDataPtr);
+        rowDataPtr += BYTES_PER_NUM;
+
+        const nCells = (cellsEnd - cellsBegin) / BYTES_PER_CELL_ENTRY;
+        const cells: grid.Cell<CompactGridData>[] = [];
+
+        let cellDataPtr = cellsBegin;
+        for(let c = 0; c < nCells; ++c) {
+            const lineBegin = dv.getUint16(cellDataPtr);
+            cellDataPtr += BYTES_PER_NUM;
+            const lineEnd = dv.getUint16(cellDataPtr);
+            cellDataPtr += BYTES_PER_NUM;
+            const width = dv.getUint16(cellDataPtr);
+            cellDataPtr += BYTES_PER_NUM;
+            const x = dv.getUint16(cellDataPtr);
+            cellDataPtr += BYTES_PER_NUM;
+            const y = dv.getUint16(cellDataPtr);
+            cellDataPtr += BYTES_PER_NUM;
+
+            const nLines = (lineEnd - lineBegin) / BYTES_PER_LINE_ENTRY;
+
+            const lineLengths: number[] = [];
+            for(let l = 0; l < nLines; ++l) {
+                lineLengths.push(dv.getUint16(lineDataPtr));
+                lineDataPtr += BYTES_PER_LINE_ENTRY;
+            }
+
+            cells.push({
+                type: "Cell",
+                width,
+                data: {
+                    upperLeft: point.mkP2(x, y),
+                    lineLengths
+                }
+            });
+        }
+
+        rows.push({ type: "Row", height, cells });
+    }
+
+    return { type: "Grid", rows };
 }

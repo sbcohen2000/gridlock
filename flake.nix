@@ -16,7 +16,7 @@
       in
       {
         devShells.default = pkgs.mkShell { packages = [
-          pkgs.nodejs_22
+          pkgs.nodejs_24
           pkgs.typescript
           pkgs.typescript-language-server
         ]; };
