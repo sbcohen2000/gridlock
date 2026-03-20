@@ -14,7 +14,7 @@ import {
     disableCellGuides,
     enableCellGuides
 } from "../state/index.js";
-import { cellContentExceedsCellWidth, rowContentExceedsRowHeight } from "../state/state-iface.js";
+import { cellContentExceedsCellWidth, maximumCellHeight, rowContentExceedsRowHeight } from "../state/state-iface.js";
 import { padLeftToLength } from "../util.js";
 import { withSnapshotInverse } from "../state/inverse.js";
 
@@ -527,7 +527,24 @@ export abstract class AbstractEditorView extends AbstractView {
         root.className = "editor-root";
 
         new CommittableRecycler(root)
-            .view((r: Recycler) => this.#viewLineNumbers(r))
+            .elem({ tag: "div", key: "line-numbers-margin" }, (lineNumsElem) => {
+                let y = 1;
+                const lineNos = grid.allRows(this.state.grid).flatMap(row => {
+                    const theRow = grid.lookupRow(this.state.grid, row);
+                    const lineNos = Array.from({ length: theRow.height }, (_, i) => i + y);
+                    y += maximumCellHeight(theRow);
+                    return lineNos;
+                });
+
+                lineNumsElem.className = "editor-line-nums-margin";
+
+                new CommittableRecycler(lineNumsElem)
+                    .elems(lineNos, "span", (lineNo, label) => {
+                        label.className = "editor-line-num";
+                        label.innerText = padLeftToLength(lineNo.toString(), 2);
+                    })
+                    .commit();
+            })
             .elem("div", (gridRoot) => {
                 gridRoot.className = "grid-root";
 
@@ -693,28 +710,6 @@ export abstract class AbstractEditorView extends AbstractView {
 
         // Replace the view with one which can view the restored state.
         this.requestReplaceEditorView(this.createViewForState(restoredState));
-    }
-
-    /*************************************************************************/
-    /** Visual Decorations                                                  **/
-
-    /**
-     * View a strip of line numbers to the left of the editor.
-     */
-    #viewLineNumbers(recycler: Recycler) {
-        recycler.elem({ tag: "div", key: "line-numbers-margin" }, (lineNumsElem) => {
-            lineNumsElem.className = "editor-line-nums-margin";
-
-            const nLines = rect.height(grid.rectOfGrid(this.state.grid));
-            const lineNos = Array.from({ length: nLines }, (_, i) => i + 1);
-
-            new CommittableRecycler(lineNumsElem)
-                .elems(lineNos, "span", (lineNo, label) => {
-                    label.className = "editor-line-num";
-                    label.innerText = padLeftToLength(lineNo.toString(), 2);
-                })
-                .commit();
-        });
     }
 
     /*************************************************************************/

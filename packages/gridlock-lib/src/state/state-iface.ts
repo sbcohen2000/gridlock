@@ -20,6 +20,10 @@ export function maximumLineLength(data: Cell): number {
     return maximum(data.lines.map(line => line.length).values());
 }
 
+export function maximumCellHeight(row: grid.Row<Cell>): number {
+    return maximum(row.cells.map(cell => cell.data.lines.length).values());
+}
+
 export function cellContentExceedsCellWidth(cell: grid.Cell<Cell>): boolean {
     return maximumLineLength(cell.data) > cell.width;
 }
