@@ -392,6 +392,7 @@ export abstract class AbstractEditorView extends AbstractView {
      */
     #viewCell(cell: grid.CellPath, rowHeight: number, r: Recycler) {
         r.elem({ tag: "div", key: `cell-${cell.rowNo}-${cell.colNo}` }, (cellElem) => {
+            const isLastOnRow = grid.lookupRow(this.state.grid, cell).cells.length - 1 === cell.colNo;
             const theCell = grid.lookupCell(this.state.grid, cell);
             cellElem.className = "editor-cell";
 
@@ -436,6 +437,11 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "cell-guide" }, (cellGuideElem) => {
                     cellGuideElem.className = "editor-cell-guide";
+                    if(isLastOnRow) {
+                        cellGuideElem.style.display = "none";
+                    } else {
+                        cellGuideElem.style.display = "block";
+                    }
                 })
                 .elem({ tag: "div", key: "cell-blind" }, (cellBlindElem) => {
                     cellBlindElem.className = "editor-cell-blind";
@@ -460,6 +466,7 @@ export abstract class AbstractEditorView extends AbstractView {
      */
     #viewRow(row: grid.RowPath, r: Recycler) {
         r.elem({ tag: "div", key: `row-${row.rowNo}`, clearAttributes: true }, (rowElem) => {
+            const isLastInGrid = this.state.grid.rows.length - 1 === row.rowNo;
             const theRow = grid.lookupRow(this.state.grid, row);
             rowElem.className = "editor-row";
             rowElem.style.height = `${theRow.height}em`;
@@ -477,6 +484,11 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "row-guide" }, (rowGuideElem) => {
                     rowGuideElem.className = "editor-row-guide";
+                   if(isLastInGrid) {
+                       rowGuideElem.style.display = "none";
+                   } else {
+                       rowGuideElem.style.display = "block";
+                   }
                 })
                 .elem({ tag: "div", key: "row-blind" }, (rowBlindElem) => {
                     rowBlindElem.className = "editor-row-blind";

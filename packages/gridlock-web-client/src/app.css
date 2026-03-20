@@ -16,6 +16,9 @@
         -1.2px 0.6px 1.3px -1.1px hsl(var(--shadow-color) / 0.57),
         -3.5px 1.7px 3.8px -2.3px hsl(var(--shadow-color) / 0.48),
         -9.3px 4.6px 10.2px -3.4px hsl(var(--shadow-color) / 0.39);
+
+    /* Guide lines */
+    --guide-line-thick: 2px;
 }
 
 /*****************************************************************************/
