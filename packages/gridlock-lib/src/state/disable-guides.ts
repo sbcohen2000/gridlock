@@ -4,7 +4,6 @@ import * as util from "../util.js";
 import { Cell, AnyState, cellContentExceedsCellWidth, horizontallyCatCellLines } from "./state-iface.js";
 import { SliceCellPrims } from "./slice-cell.js";
 import { TextPrims } from "./text-prims.js";
-import { ensureAllCellWidthsOnRow } from "./find-optimal-partition.js";
 
 /**
  * Do the real work if disabling the cell guides, returning a boolean
@@ -22,7 +21,7 @@ function _disableCellGuides(st: AnyState, rows: grid.RowPath[]): boolean {
             const currentGroup: { cell: grid.Cell<Cell>, leftEdge: number }[] = [];
 
             const commitGroup = () => {
-                if(currentGroup.length === 0) return;
+                util.assert(currentGroup.length > 0);
 
                 const groupWidth     = currentGroup.reduce((sum, { cell }) => cell.width + sum, 0);
                 const firstCell      = currentGroup[0].cell;
@@ -30,25 +29,38 @@ function _disableCellGuides(st: AnyState, rows: grid.RowPath[]): boolean {
                 const guidePositions = currentGroup.slice(1).map(({ leftEdge }) => leftEdge - firstLeftEdge);
 
                 // Place the text of each cell into `firstCell`.
+                // Compute lines before mutating the width, since
+                // horizontallyCatCellLines pads by cell.width.
+                firstCell.data.lines = horizontallyCatCellLines(currentGroup.values().map(elt => elt.cell));
                 firstCell.data.disabledGuides = new Set(guidePositions);
                 firstCell.width = groupWidth;
-                firstCell.data.lines = horizontallyCatCellLines(currentGroup.values().map(elt => elt.cell));
 
                 cells.push(firstCell);
+                currentGroup.length = 0;
             }
 
+            let leftEdge = 0;
             for(const cell of theRow.cells) {
                 const incomplete = cellContentExceedsCellWidth(cell);
                 if(incomplete) {
                     // If the cell is incomplete, then we can't
                     // disable its guides.
-                    commitGroup();
+                    if(currentGroup.length > 0) {
+                        commitGroup();
+                    }
+                    cells.push(cell);
+                } else {
+                    currentGroup.push({ cell, leftEdge });
                 }
 
-                cells.push(cell);
+                leftEdge += cell.width;
             }
 
-            commitGroup();
+            if(currentGroup.length > 0) {
+                commitGroup();
+            }
+
+            theRow.cells = cells;
         }
 
         return g;
@@ -67,7 +79,6 @@ export function disableCellGuides(st: AnyState, rows?: grid.RowPath[]): AnyState
     // Ensure that each of the rows is expanded, since we can't hide
     // cell content with disabled guides.
     rows = rows ?? [...grid.allRows(st.grid)];
-    rows.forEach(row => ensureAllCellWidthsOnRow(st.grid, row));
 
     if(st instanceof TextPrims) {
         // This special case exists so that when we disable cell

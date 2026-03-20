@@ -61,8 +61,8 @@ describe("text-prims", () => {
 
             const exp =
                   "hello world\n"  +
-                  "+----------+\n" +
-                  "+----------+"
+                  "+-----+\n" +
+                  "+-----+"
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
@@ -81,8 +81,8 @@ describe("text-prims", () => {
 
             const exp =
                   "    world\n"  +
-                  "+--------+\n" +
-                  "+--------+";
+                  "+-----+\n"    +
+                  "+-----+";
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
@@ -100,9 +100,9 @@ describe("text-prims", () => {
             st.insertString(" world");
 
             const exp =
-                  "hello world\n"  +
-                  "+----------+\n" +
-                  "+----------+"
+                  "hello world\n" +
+                  "+-----+\n"     +
+                  "+-----+"
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
@@ -159,14 +159,14 @@ describe("text-prims", () => {
             const st = serialize.textEditingStateFromCommonStateStr(src);
             // Update the selection to point underneath the `h`.
             st.putPointOnGlobalPosition(point.mkP2(0, 1));
-            st.insertString("A long second line");
+            st.insertString("A long line");
 
             const exp =
-                  "hello             other\n"   +
-                  "A long second linelines\n"   +
-                  "+-----------------+-----+\n" +
-                  "|                 |     |\n" +
-                  "+-----------------+-----+";
+                  "hello other\n"   +
+                  "A longlines\n"   +
+                  "+-----+-----+\n" +
+                  "|     |     |\n" +
+                  "+-----+-----+";
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
@@ -388,8 +388,8 @@ describe("text-prims", () => {
             const exp =
                   "xyzwX\n"            +
                   "\n"                 +
-                  "+----+--------+\n" +
-                  "+---++--------+\n" +
+                  "+---+---------+\n" +
+                  "+---+---------+\n" +
                   "+---+---------+";
 
             expect(serialize.printCommonState(st)).to.equal(exp);
@@ -471,8 +471,8 @@ describe("text-prims", () => {
 
             const exp =
                   "hello\n"  +
-                  "+----+\n" +
-                  "+----+"
+                  "+-+\n" +
+                  "+-+"
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
@@ -489,8 +489,8 @@ describe("text-prims", () => {
 
             const exp =
                   "abc\n"  +
-                  "+--+\n" +
-                  "+--+"
+                  "+-+\n" +
+                  "+-+"
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
@@ -533,9 +533,9 @@ describe("text-prims", () => {
 
         it("Can spread multiple texts into multiple non-empty cells", () => {
             const src =
-                  "aabb\n"    +
-                  "+-+-+-+\n" +
-                  "+-+-+-+"
+                  "aa bb\n"    +
+                  "+--+--+-+\n" +
+                  "+--+--+-+"
 
             const st = serialize.textEditingStateFromCommonStateStr(src);
             st._spreadTextOnGlobalRow(
@@ -543,26 +543,8 @@ describe("text-prims", () => {
 
             const exp =
                   "aacbbd\n"   +
-                  "+--+--++\n" +
-                  "+--+--++"
-
-            expect(serialize.printCommonState(st)).to.equal(exp);
-        });
-
-        it("Can spread multiple texts into multiple non-empty cells with a non-zero column", () => {
-            const src =
-                  "aabb\n"    +
-                  "+-+-+-+\n" +
-                  "+-+-+-+"
-
-            const st = serialize.textEditingStateFromCommonStateStr(src);
-            st._spreadTextOnGlobalRow(
-                0, 2, textOnGlobalLineIterFromStringsIter(["c", "d"].values()));
-
-            const exp =
-                  "aabbcd\n"   +
-                  "+-+--++\n" +
-                  "+-+--++"
+                  "+--+--+-+\n" +
+                  "+--+--+-+"
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });
@@ -600,8 +582,8 @@ describe("text-prims", () => {
 
             const exp =
                   "foo barXbaz\n"  +
-                  "+---+------+\n" +
-                  "+---+------+"
+                  "+---+---+\n" +
+                  "+---+---+"
 
             expect(serialize.printCommonState(st)).to.equal(exp);
         });

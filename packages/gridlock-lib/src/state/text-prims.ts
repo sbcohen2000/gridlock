@@ -249,7 +249,6 @@ export class TextPrims implements State<TextPrims> {
             if(isLast) {
                 const remainingText = _concatenatePositionedText(textIter);
                 theCell.data.lines[localRow] += remainingText;
-                ensureCellWidth(this.grid, cell);
             } else {
                 const nextText = textIter.next();
                 if(nextText.done) {
@@ -257,7 +256,6 @@ export class TextPrims implements State<TextPrims> {
                 }
 
                 theCell.data.lines[localRow] += (nextText.value as TextOnGlobalLineIterItem).text;
-                ensureCellWidth(this.grid, cell);
             }
         }
     }
@@ -549,8 +547,6 @@ export class TextPrims implements State<TextPrims> {
             this.selection.pt.x += s.length;
             this._updateLastGlobalCol();
         }
-
-        ensureCellWidth(this.grid, this.selection.cell);
 
         return new SnapshotInverse(snapshot, "insert string");
     }

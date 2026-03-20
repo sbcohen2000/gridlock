@@ -116,7 +116,7 @@ function expandGrid(st: { grid: grid.Grid<Cell> }): {
             // Find the true width of the cell by checking the maximum
             // width of any of the lines.
             const lineLengths = cell.data.lines.map(line => line.length);
-            const maxWidth = util.maximum(lineLengths.values());
+            const maxTextWidth = util.maximum(lineLengths.values());
 
             outRow.cells.push({
                 type: "Cell",
@@ -128,7 +128,7 @@ function expandGrid(st: { grid: grid.Grid<Cell> }): {
                 }
             });
 
-            textX += maxWidth;
+            textX += Math.min(cell.width, maxTextWidth);
         }
 
         textY += maxHeight;
@@ -218,4 +218,77 @@ export function parseCompactGrid(src: string): grid.Grid<Cell> {
     const gridSpec = src.slice(0, firstNL);
     const srcText  = src.slice(firstNL + 1);
     return compactGrid(srcText, JSON.parse(gridSpec));
+}
+
+/**
+ * Produce a string which encodes the metrics of each cell in the
+ * grid. The string is designed to be as compact as possible so that
+ * we can embed it in test files without too much trouble.
+ *
+ * The format is as follows:
+ *             |<-------------- per-row data ------------->|<--- per-cell data --- ...
+ *
+ *  | rows_end | begin end height | ... | begin end height | begin end width x y | ...
+ *       |         |                    ^                  ^   |    |
+ *       \______________________________/                  |   |    |
+ *                 \______________________________________/    |    |
+ *                                                             /    |
+ *           _________________================================______/
+ *          /                /
+ *         V                V
+ *     ... | line_len | ... | line_len | CHECKSUM |
+ *
+ *     ------ per-line data ---------->|
+ */
+function printCompactGridSpec(g: grid.Grid<CompactGridData>): string {
+    const BYTES_PER_NUM  = 2;
+    const nRows          = g.rows.length;
+    const nCells         = [...grid.allCells(g)].length;
+    const nLines         = grid.allCells(g).reduce((sum, cell) => {
+        const theCell = grid.lookupCell(g, cell);
+        return sum + theCell.data.lineLengths.length;
+    }, 0);
+    const BYTES_PER_ROW_ENTRY  = 3 * BYTES_PER_NUM; // begin, end, height
+    const BYTES_PER_CELL_ENTRY = 5 * BYTES_PER_NUM; // begin, end, width, x, y
+    const BYTES_PER_LINE_ENTRY = 1 * BYTES_PER_NUM; // length
+
+    const rowDataOffset  = BYTES_PER_NUM;
+    const cellDataOffset = rowDataOffset + BYTES_PER_ROW_ENTRY * nRows;
+    const lineDataOffset = cellDataOffset + BYTES_PER_CELL_ENTRY * nCells;
+    const data = new ArrayBuffer(
+        lineDataOffset + BYTES_PER_LINE_ENTRY * nLines
+    );
+    const dv = new DataView(data);
+
+    let rowDataPtr  = rowDataOffset;
+    let cellDataPtr = cellDataOffset;
+    let lineDataPtr = lineDataOffset;
+    for(const row of g.rows) {
+        dv.setUint16(rowDataPtr, cellDataPtr); // begin
+        rowDataPtr += BYTES_PER_NUM;
+        dv.setUint16(rowDataPtr, cellDataPtr + BYTES_PER_CELL_ENTRY * row.cells.length); // end
+        rowDataPtr += BYTES_PER_NUM;
+        dv.setUint16(rowDataPtr, row.height); // height
+        rowDataPtr += BYTES_PER_NUM;
+
+        for(const cell of row.cells) {
+            dv.setUint16(cellDataPtr, cellDataPtr); // begin
+            cellDataPtr += BYTES_PER_NUM;
+            dv.setUint16(cellDataPtr, cellDataPtr + BYTES_PER_LINE_ENTRY * cell.data.lineLengths.length); // end
+            cellDataPtr += BYTES_PER_NUM;
+            dv.setUint16(cellDataPtr, cell.width); // width
+            cellDataPtr += BYTES_PER_NUM;
+            dv.setUint16(cellDataPtr, cell.data.upperLeft.x); // x
+            cellDataPtr += BYTES_PER_NUM;
+            dv.setUint16(cellDataPtr, cell.data.upperLeft.y); // y
+            cellDataPtr += BYTES_PER_NUM;
+
+            for(const line of cell.data.lineLengths) {
+                dv.setUint16(lineDataPtr, line); // length
+                lineDataPtr += BYTES_PER_NUM;
+            }
+        }
+    }
+
+    return (new Uint8Array(data)).toBase64();
 }
