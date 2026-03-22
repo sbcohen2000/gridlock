@@ -1,3 +1,5 @@
+import * as cmenu from "./context-menu.js";
+import * as point from "../point.js";
 import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
 import { CellPrims } from "../state/index.js";
 
@@ -23,6 +25,58 @@ export class CellEditingView extends AbstractEditorView {
      */
     onPointerDownInCell(ctx: PointerInCellEventContext) {
         if(this.editTextOnDoubleClick(ctx)) {
+            return;
+        }
+
+        const rightClick = ctx.event.buttons === 2;
+
+        if(rightClick) {
+            // Right mouse button was pressed.
+            ctx.event.preventDefault();
+            ctx.event.stopPropagation();
+
+            // If the right click occured in a cell which is already
+            // selected, then only open the context menu.
+
+            // However, if the right-click occured in a non-selected cell,
+            // clear the selection and select the clicked cell.
+            if(!this._ceState.hasCell(ctx.cell)) {
+                this._ceState.addCell(ctx.cell, true);
+            }
+
+            const canInsertRow = this._ceState.canInsertRow();
+            const canInsertCell = this._ceState.canInsertCell();
+            const cellsPluralSuffix = this._ceState.pluralCells ? "s" : "";
+            const rowsPluralSuffix = this._ceState.pluralRows ? "s" : "";
+
+            const descr: cmenu.ContextMenuDescription = {
+                origin: point.mkP2(ctx.event.clientX, ctx.event.clientY),
+                menu: [
+                    cmenu.button(`Delete row${rowsPluralSuffix}`, () => {
+                        this.commitInverse(this._ceState.deleteRows());
+                    }),
+                    cmenu.divider(),
+                    cmenu.button("Clear cell contents", () => {
+                        this.commitInverse(this._ceState.clearCellContents());
+                    }),
+                    cmenu.divider(),
+                    cmenu.button("Insert row above", () => {
+                        this.commitInverse(this._ceState.insertRowAbove());
+                    }, !canInsertRow),
+                    cmenu.button("Insert row below", () => {
+                        this.commitInverse(this._ceState.insertRowBelow());
+                    }, !canInsertRow),
+                    cmenu.divider(),
+                    cmenu.button(`Insert cell${cellsPluralSuffix} to the left`, () => {
+                        this.commitInverse(this._ceState.insertCellLeft());
+                    }, !canInsertCell),
+                    cmenu.button(`Insert cell${cellsPluralSuffix} to the right`, () => {
+                        this.commitInverse(this._ceState.insertCellRight());
+                    }, !canInsertCell)
+                ]
+            };
+
+            this.notify(new cmenu.OpenContextMenu(this, descr));
             return;
         }
 

@@ -9,6 +9,7 @@ import { CommittableRecycler } from "../framework/index.js";
  * @property {"button"} type  The type of item.
  * @property {string}   label The button's label.
  * @property {(e: MouseEvent) => void} [onclick] What should happen when the button is clicked.
+ * @property {boolean}  [disabled] Whether or not the button should be shown as disabled.
  */
 
 /**
@@ -16,10 +17,11 @@ import { CommittableRecycler } from "../framework/index.js";
  *
  * @param {string} label
  * @param {(e: MouseEvent) => void} [onclick]
+ * @param {boolean} [disabled]
  * @returns {ContextMenuButton}
  */
-export function button(label, onclick) {
-    return { type: "button", label, onclick };
+export function button(label, onclick, disabled) {
+    return { type: "button", label, onclick, disabled };
 }
 
 /**
@@ -181,7 +183,8 @@ export class ContextMenuView extends AbstractView {
                     // menu, so that the user can close the menu by
                     // clicking outside of it.
                     screenElem.className = "editor-context-menu-screen";
-                    screenElem.onclick = () => {
+                    screenElem.oncontextmenu = () => false;
+                    screenElem.onpointerdown = () => {
                         this.notify(new DismissContextMenu(this));
                     };
                 })
@@ -212,6 +215,9 @@ export class ContextMenuView extends AbstractView {
                             switch(item.type) {
                             case "button": {
                                 elem.className = "editor-context-menu-button";
+                                if(item.disabled) {
+                                    elem.classList.add("editor-context-menu-button-disabled");
+                                }
                                 elem.onclick = item.onclick;
                                 elem.innerText = item.label;
                                 break;

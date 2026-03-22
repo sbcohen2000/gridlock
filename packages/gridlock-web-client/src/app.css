@@ -317,7 +317,7 @@
     max-width: 90vw;
     max-height: 90vh;
     box-shadow: var(--shadow-elevation-medium);
-    z-index: 5;
+    z-index: 6;
 }
 
 .editor-context-menu-screen {
@@ -326,6 +326,7 @@
     left: 0;
     width: 100%;
     height: 100%;
+    z-index: 5;
 }
 
 .editor-context-menu-button:hover {
@@ -336,6 +337,15 @@
     cursor: pointer;
     padding-left: 2px;
     padding-right: 2px;
+}
+
+.editor-context-menu-button-disabled {
+    filter: opacity(50%) saturate(0%);
+    cursor: default;
+}
+
+.editor-context-menu-button-disabled:hover {
+    background-color: unset;
 }
 
 .editor-context-menu-label {

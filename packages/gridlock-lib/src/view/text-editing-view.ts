@@ -1,4 +1,3 @@
-import * as util from "../util.js";
 import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
 import { KeyViewEvent } from "./abstract-view.js";
 import { TextPrims, CellPrims } from "../state/index.js";
@@ -9,6 +8,7 @@ import type { InitialViewState } from "./abstract-editor-view.js";
 import type { Recycler } from "../framework/index.js";
 import type { ViewEvent } from "./abstract-view.js";
 import type { Inverse, AnyState } from "../state/index.js";
+import { CellEditingView } from "./cell-editing-view.js";
 
 export class TextEditingView extends AbstractEditorView {
     _teState: TextPrims;
@@ -31,8 +31,19 @@ export class TextEditingView extends AbstractEditorView {
      * Handle a pointer-down event inside a cell element.
      */
     onPointerDownInCell(ctx: PointerInCellEventContext) {
-        const gridPt = ctx.flooredGridPt;
+        if(ctx.event.buttons === 2) {
+            // Right mouse button was pressed. Switch this state to a
+            // cell-editing state and open the context menu.
+            const st = CellPrims.editCells(this.state);
+            st.addCell(ctx.cell);
+            this.requestReplaceEditorView(this.createViewForState(st), (newView: CellEditingView) => {
+                const newCtx = new PointerInCellEventContext(ctx.event, newView, ctx.cell);
+                newView.onPointerDownInCell(newCtx);
+            });
+            return;
+        }
 
+        const gridPt = ctx.flooredGridPt;
         if(ctx.event.shiftKey && (ctx.cell.rowNo !== this._teState.selection.cell.rowNo || ctx.cell.colNo !== this._teState.selection.cell.colNo)) {
             // The gridPt is outside of the current cell, so
             // transition to a cell-editing state where the two

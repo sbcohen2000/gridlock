@@ -538,6 +538,8 @@ export abstract class AbstractEditorView extends AbstractView {
      * override this to attach additional behaviour to the root element.
      */
     _viewRoot(root: HTMLElement) {
+        root.oncontextmenu = () => false;
+
         root.className = "editor-root";
 
         new CommittableRecycler(root)

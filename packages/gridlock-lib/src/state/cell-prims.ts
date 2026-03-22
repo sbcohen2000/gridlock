@@ -6,7 +6,7 @@ import { SnapshotInverse, Inverse, IdInverse } from "./inverse.js";
 
 export class CellPrims implements State<CellPrims> {
     grid: grid.Grid<Cell>;
-    selection: grid.CellPath[];e
+    selection: grid.CellPath[];
 
     constructor(g: grid.Grid<Cell>, selection: grid.CellPath[]) {
         this.grid = g;
@@ -30,6 +30,21 @@ export class CellPrims implements State<CellPrims> {
     /** EditCells Primitive Methods                                         **/
 
     /**
+     * Are we seelcting more than one cell?
+     */
+    get pluralCells(): boolean {
+        return this.selection.length !== 1;
+    }
+
+    /**
+     * Are we selecting more than one row?
+     */
+    get pluralRows(): boolean {
+        if(this.selection.length === 0) return true;
+        return this.selection.some(cell => cell.rowNo !== this.selection[0].rowNo);
+    }
+
+    /**
      * Check if the selection includes the given cell path.
      */
     hasCell(cell: grid.CellPath): boolean {
@@ -46,13 +61,15 @@ export class CellPrims implements State<CellPrims> {
     /**
      * Add a cell to the selection.
      */
-    addCell(cell: grid.CellPath) {
-        if(!this.hasCell(cell)) {
+    addCell(cell: grid.CellPath, clear?: boolean) {
+        if(clear) {
+            this.selection = [{ ...cell }];
+        } else if(!this.hasCell(cell)) {
             this.selection.push({ ...cell });
         }
     }
 
-    selectCellUnderPoint(pt: point.P2, clear: boolean): Inverse<CellPrims> {
+    selectCellUnderPoint(pt: point.P2, clear?: boolean): Inverse<CellPrims> {
         const cell = grid.cellUnderPoint(this.grid, pt);
 
         if(!cell) {
@@ -65,7 +82,7 @@ export class CellPrims implements State<CellPrims> {
         } else if(this.hasCell(cell)) {
             this.removeCell(cell);
         } else {
-            this.addCell(cell);
+            this.selection.push({ ...cell });
         }
 
         return new SnapshotInverse(snapshot, "select cell");
@@ -121,6 +138,66 @@ export class CellPrims implements State<CellPrims> {
         this.selection = [newSelectedCell];
 
         return new SnapshotInverse(snapshot, "merge cells");
+    }
+
+    /**
+     * Delete the rows of the selected cells.
+     */
+    deleteRows(): Inverse<CellPrims> {
+        throw new Error("TODO");
+    }
+
+    /**
+     * Clear the contents of the selected cells.
+     */
+    clearCellContents(): Inverse<CellPrims> {
+        throw new Error("TODO");
+    }
+
+    /**
+     * We can insert a row below the currently selected cells if the
+     * entire selection is on a single row.
+     */
+    canInsertRow(): boolean {
+        return !this.pluralRows;
+    }
+
+    /**
+     * Insert a row below the selected cell.
+     */
+    insertRowBelow(): Inverse<CellPrims> {
+        throw new Error("TODO");
+    }
+
+    /**
+     * Insert a row above the selected cell.
+     */
+    insertRowAbove(): Inverse<CellPrims> {
+        throw new Error("TODO");
+    }
+
+    /**
+     * We can insert a cell to the right of the selected cells if the
+     * selected cells are all on different rows.
+     */
+    canInsertCell(): boolean {
+        if(this.selection.length === 0) return false;
+        const rows = new Set(this.selection.map(cell => cell.rowNo));
+        return rows.size === this.selection.length;
+    }
+
+    /**
+     * Insert a new cell to the left of the selected cells.
+     */
+    insertCellLeft(): Inverse<CellPrims> {
+        throw new Error("TODO");
+    }
+
+    /**
+     * Insert a new cell to the right of the selected cells.
+     */
+    insertCellRight(): Inverse<CellPrims> {
+        throw new Error("TODO");
     }
 
     mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): true {
