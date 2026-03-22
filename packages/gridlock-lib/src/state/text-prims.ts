@@ -3,8 +3,7 @@ import * as point from "../point.js";
 import * as rect from "../rect.js";
 import * as util from "../util.js";
 import { Cell, State, AnyState, cloneCellData } from "./state-iface.js";
-import { KeysWithType, Inverse, SnapshotInverse, id, IdInverse } from "./inverse.js";
-import { ensureCellWidth } from "./find-optimal-partition.js";
+import { KeysWithType, Inverse, id, IdInverse, TimedSnapshotInverse } from "./inverse.js";
 
 interface TextOnGlobalLineIterItem {
     /** The global column of the first character. */
@@ -453,7 +452,7 @@ export class TextPrims implements State<TextPrims> {
     removeGlobalLine(): Inverse<TextPrims> {
         const snapshot = this.clone();
         this._removeGlobalLine();
-        return new SnapshotInverse(snapshot, "remove line");
+        return new TimedSnapshotInverse(snapshot, 2000, "remove line");
     }
 
     removeGlobalNewline(): Inverse<TextPrims> {
@@ -466,18 +465,16 @@ export class TextPrims implements State<TextPrims> {
         const globalRow = globalPt.y;
         const textOnLine = [...this._extractGlobalLine(globalRow)];
 
-        if(!this._removeGlobalLine()) return new SnapshotInverse(snapshot, "remove newline");
+        if(!this._removeGlobalLine()) return new TimedSnapshotInverse(snapshot, 2000, "remove newline");
 
         this.putPointAtEndOfGlobalLine();
         const globalCol = this._lastColumnOnGlobalLine(globalRow - 1);
         this._spreadTextOnGlobalRow(globalRow - 1, globalCol, textOnLine.values() as TextOnGlobalLineIter);
 
-        return new SnapshotInverse(snapshot, "remove newline");
+        return new TimedSnapshotInverse(snapshot, 2000, "remove newline");
     }
 
     removeString(n: number): Inverse<TextPrims> {
-        const snapshot = this.clone();
-
         const sel = this.selection;
         const theCell = grid.lookupCell(this.grid, sel.cell);
 
@@ -485,7 +482,8 @@ export class TextPrims implements State<TextPrims> {
         const col = sel.pt.x;
         const line = theCell.data.lines[row];
 
-        if(line === "" || sel.pt.x === 0) return new SnapshotInverse(snapshot, "remove string");
+        if(line === "" || sel.pt.x === 0) return new IdInverse();
+        const snapshot = this.clone();
 
         n = Math.min(n, col);
 
@@ -496,7 +494,7 @@ export class TextPrims implements State<TextPrims> {
         sel.pt.x -= n;
         this._updateLastGlobalCol();
 
-        return new SnapshotInverse(snapshot, "remove string");
+        return new TimedSnapshotInverse(snapshot, 2000, "remove string");
     }
 
     insertGlobalNewline(): Inverse<TextPrims> {
@@ -521,7 +519,7 @@ export class TextPrims implements State<TextPrims> {
 
         this._putPointOnGlobalPosition(point.mkP2(0, newRow), false);
 
-        return new SnapshotInverse(snapshot, "insert global newline");
+        return new TimedSnapshotInverse(snapshot, 2000, "insert global newline");
     }
 
     /**
@@ -558,7 +556,7 @@ export class TextPrims implements State<TextPrims> {
         this.selection.pt.x  = 0;
         this.selection.pt.y += 1;
 
-        return new SnapshotInverse(snapshot, "insert local newline");
+        return new TimedSnapshotInverse(snapshot, 2000, "insert local newline");
     }
 
     /**
@@ -585,7 +583,7 @@ export class TextPrims implements State<TextPrims> {
             this._updateLastGlobalCol();
         }
 
-        return new SnapshotInverse(snapshot, "insert string");
+        return new TimedSnapshotInverse(snapshot, 2000, "insert string");
     }
 
     mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): true {

@@ -32,8 +32,6 @@ export interface Inverse<S> {
 
 /**
  * An inverse which snapshots the edit state.
- *
- * @template {{ grid: import("../grid.js").Grid<Cell>, clone(): any }} S
  */
 export class SnapshotInverse<S extends AnyState> implements Inverse<S> {
     #snapshot: S
@@ -57,14 +55,44 @@ export class SnapshotInverse<S extends AnyState> implements Inverse<S> {
     }
 }
 
+/**
+ * Like a `SnapshotInverse`, but automatically composes with a
+ * `TimedSnapshotInverse` which came before it if the
+ * `TimedSnapshotInverse` has the same `fwdDescription`, and the
+ * inverse was created within a certain time of this inverse.
+ */
+export class TimedSnapshotInverse<S extends AnyState> extends SnapshotInverse<S> {
+    #limit: number;
+    #timeCreated: number;
+
+    /**
+     * @param snapshot The snapshot of the state before the operation.
+     * @param limit The time in milliseconds that must elapse before
+     *     this snapshot _wont_ compose with itself.
+     * @param fwdDescription A description of the forward operation.
+     */
+    constructor(snapshot: S, limit: number, fwdDescription: string) {
+        super(snapshot, fwdDescription);
+        this.#limit = limit;
+        this.#timeCreated = new Date().getTime();
+    }
+
+    compose(i: Inverse<any>): Inverse<S> | null {
+        if(i instanceof TimedSnapshotInverse
+            && i.fwdDescription === this.fwdDescription
+            && Math.max(0, this.#timeCreated - i.#timeCreated) < this.#limit) {
+            return i;
+        }
+
+        return null;
+    }
+}
 
 /**
  * Wrap a primitive operation so that it snapshots the state before
  * the operation and returns an inverse that restores from the
  * snapshot.
  *
- * @template S
- * @template A
  * @param fn The primitive operation to wrap.
  * @param [fwdDescription] A description of the forward
  *     operation.

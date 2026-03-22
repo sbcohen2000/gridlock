@@ -1,6 +1,6 @@
 import * as grid from "../grid.js";
 import { Cell, cloneCellData, State } from "./state-iface.js";
-import { Inverse, SnapshotInverse } from "./inverse.js";
+import { Inverse, TimedSnapshotInverse } from "./inverse.js";
 import { findOptimalPartition, applyPartition } from "./find-optimal-partition.js";
 
 export class MoveCellBoundaryPrims implements State<MoveCellBoundaryPrims> {
@@ -29,7 +29,7 @@ export class MoveCellBoundaryPrims implements State<MoveCellBoundaryPrims> {
         const part = findOptimalPartition(this.grid, { rowNo: this.rowNo, colNo: this.colNo }, n);
         applyPartition(this.grid, part);
 
-        return new SnapshotInverse(snapshot, `Move cell boundary by ${n}`);
+        return new TimedSnapshotInverse(snapshot, 2000, "Move cell boundary");
     }
 
     mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): false {

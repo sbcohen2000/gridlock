@@ -1,6 +1,6 @@
 import * as grid from "../grid.js";
 import { Cell, cloneCellData, State } from "./state-iface.js";
-import { Inverse, SnapshotInverse } from "./inverse.js";
+import { Inverse, TimedSnapshotInverse } from "./inverse.js";
 
 function trimEmptyLines(n: number, lines: string[]): void {
     if(lines.length <= n) return;
@@ -56,7 +56,7 @@ export class MoveRowBoundaryPrims implements State<MoveRowBoundaryPrims> {
             syncCellLinesToSize(this.grid, { rowNo: this.rowNo, colNo });
         }
 
-        return new SnapshotInverse(snapshot);
+        return new TimedSnapshotInverse(snapshot, 2000, "Move row boundary");
     }
 
     mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): false {

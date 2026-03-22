@@ -16,7 +16,7 @@ import {
 } from "../state/index.js";
 import { cellContentExceedsCellWidth, maximumCellHeight, rowContentExceedsRowHeight } from "../state/state-iface.js";
 import { padLeftToLength } from "../util.js";
-import { SnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
+import { SnapshotInverse, TimedSnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 
 import type { Inverse, AnyState } from "../state/index.js";
 import type { DragState } from "./edge-editing-view.js";
@@ -731,17 +731,16 @@ export abstract class AbstractEditorView extends AbstractView {
     abstract applyInverse(inverse: Inverse<AnyState>): AnyState;
 
     undo() {
+        if(this.#undoIndex === 0 || this.#history.length === 0) {
+            return;
+        }
+
         if(this.#undoIndex === this.#history.length - 1) {
             // If we're undoing from the last action, make a snapshot
             // representing the current editor state. Otherwise, we
             // won't be able to redo to the current state.
-            //
-            // TODO: Don't push a `top` if we already have one.
-            this.#history.push(new SnapshotInverse(this.state.clone(), "top"));
-        }
-
-        if(this.#undoIndex === 0 || this.#history.length === 0) {
-            return;
+            this.commitInverse(new TimedSnapshotInverse(this.state.clone(), Infinity, "top"));
+            --this.#undoIndex; // Don't set the undo index to "top".
         }
 
         const top = this.#history[this.#undoIndex];

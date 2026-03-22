@@ -1,7 +1,7 @@
 import * as grid from "../grid.js";
 import * as util from "../util.js";
 import { Cell, cloneCellData, rowContentExceedsRowHeight, State } from "./state-iface.js";
-import { Inverse, SnapshotInverse } from "./inverse.js";
+import { Inverse, TimedSnapshotInverse } from "./inverse.js";
 
 export class SlideRowBoundaryPrims implements State<SlideRowBoundaryPrims> {
     grid: grid.Grid<Cell>;
@@ -47,7 +47,7 @@ export class SlideRowBoundaryPrims implements State<SlideRowBoundaryPrims> {
         topRow.height += n;
         bottomRow.height -= n;
 
-        return new SnapshotInverse(snapshot);
+        return new TimedSnapshotInverse(snapshot, 2000, "Slide row boundary");
     }
 
     mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): false {
