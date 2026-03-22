@@ -24,6 +24,23 @@ export function maximumCellHeight(row: grid.Row<Cell>): number {
     return maximum(row.cells.map(cell => cell.data.lines.length).values());
 }
 
+/**
+ * Split a cell's data at a local column, trimming trailing whitespace
+ * and partitioning disabled guides.
+ */
+export function splitCellData(col: number): (cellData: Cell) => [Cell, Cell] {
+    return (cellData: Cell) => [
+        {
+            lines: cellData.lines.map(line => line.slice(0, col).trimEnd()),
+            disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x < col))
+        },
+        {
+            lines: cellData.lines.map(line => line.slice(col).trimEnd()),
+            disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x > col))
+        },
+    ];
+}
+
 export function cellContentExceedsCellWidth(cell: grid.Cell<Cell>): boolean {
     return maximumLineLength(cell.data) > cell.width;
 }

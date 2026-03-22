@@ -1,8 +1,15 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
-import { Cell, cloneCellData, State, horizontallyCatCellLines, rowLines } from "./state-iface.js";
+import * as util from "../util.js";
+import { Cell, cloneCellData, splitCellData, State, horizontallyCatCellLines, rowLines } from "./state-iface.js";
 import { SnapshotInverse, Inverse, IdInverse } from "./inverse.js";
+import { applyPartition, findOptimalPartition } from "./find-optimal-partition.js";
+
+/**
+ * The initial width of newly created cells.
+ */
+const INITIAL_CELL_WIDTH = 3;
 
 export class CellPrims implements State<CellPrims> {
     grid: grid.Grid<Cell>;
@@ -187,17 +194,78 @@ export class CellPrims implements State<CellPrims> {
     }
 
     /**
+     * Insert a cell to the left of `target`.
+     *
+     * @param target The cell to insert to the left of.
+     * @param n The initial width of the cell.
+     */
+    private insertOneCellLeft(target: grid.CellPath) {
+        // 1. Insert an `INITIAL_CELL_WIDTH`-space prefix before each
+        //     line of the `target` cell.
+        const theCell = grid.lookupCell(this.grid, target);
+        const prefix = util.whitespace(INITIAL_CELL_WIDTH);
+        theCell.data.lines = theCell.data.lines.map(line => prefix + line);
+
+        // 2. Shift the disabled guides, if any, by
+        //     `INITIAL_CELL_WIDTH` spaces.
+        theCell.data.disabledGuides = new Set(
+            theCell.data.disabledGuides.values().map(x => x + INITIAL_CELL_WIDTH)
+        );
+
+        // 3. Split the `target` cell at local column
+        //     `INITIAL_CELL_WIDTH`.
+        grid.splitCell(this.grid, target, INITIAL_CELL_WIDTH, splitCellData(INITIAL_CELL_WIDTH));
+    }
+
+    /**
      * Insert a new cell to the left of the selected cells.
      */
     insertCellLeft(): Inverse<CellPrims> {
-        throw new Error("TODO");
+        if(!this.canInsertCell()) {
+            return new IdInverse();
+        }
+
+        const part = findOptimalPartition(this.grid, this.selection, INITIAL_CELL_WIDTH);
+        // TODO: We should probably expand the boundary of the grid
+        // rather than let this case happen.
+        if(part.length === 0) return new IdInverse();
+
+        const snapshot = this.clone();
+
+        applyPartition(this.grid, part);
+        this.selection.forEach(cell => this.insertOneCellLeft(cell));
+        return new SnapshotInverse(snapshot, "insert cells to the left");
+    }
+
+    private insertOneCellRight(target: grid.CellPath) {
+        // 1. Expand the width of `target` by INITIAL_CELL_WIDTH
+        //    (already done by the caller via applyPartition)
+
+        // 2. Split the `target` cell at local column
+        //     `target.width - INITIAL_CELL_WIDTH`.
+        const theCell = grid.lookupCell(this.grid, target);
+        const splitCol = theCell.width - INITIAL_CELL_WIDTH;
+        grid.splitCell(this.grid, target, splitCol, splitCellData(splitCol));
     }
 
     /**
      * Insert a new cell to the right of the selected cells.
      */
     insertCellRight(): Inverse<CellPrims> {
-        throw new Error("TODO");
+        if(!this.canInsertCell()) {
+            return new IdInverse();
+        }
+
+        const part = findOptimalPartition(this.grid, this.selection, INITIAL_CELL_WIDTH);
+        // TODO: We should probably expand the boundary of the grid
+        // rather than let this case happen.
+        if(part.length === 0) return new IdInverse();
+
+        const snapshot = this.clone();
+
+        applyPartition(this.grid, part);
+        this.selection.forEach(cell => this.insertOneCellRight(cell));
+        return new SnapshotInverse(snapshot, "insert cells to the right");
     }
 
     mutateGrid(f: (grid: grid.Grid<Cell>) => grid.Grid<Cell>): true {

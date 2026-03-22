@@ -26,7 +26,7 @@ export class MoveCellBoundaryPrims implements State<MoveCellBoundaryPrims> {
     moveVerticalEdge(n: number): Inverse<MoveCellBoundaryPrims> {
         const snapshot = this.clone();
 
-        const part = findOptimalPartition(this.grid, { rowNo: this.rowNo, colNo: this.colNo }, n);
+        const part = findOptimalPartition(this.grid, [{ rowNo: this.rowNo, colNo: this.colNo }], n);
         applyPartition(this.grid, part);
 
         return new TimedSnapshotInverse(snapshot, 2000, "Move cell boundary");
