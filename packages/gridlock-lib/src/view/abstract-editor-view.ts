@@ -16,17 +16,20 @@ import {
 } from "../state/index.js";
 import { cellContentExceedsCellWidth, maximumCellHeight, rowContentExceedsRowHeight } from "../state/state-iface.js";
 import { padLeftToLength } from "../util.js";
-import { withSnapshotInverse } from "../state/inverse.js";
+import { SnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 
 import type { Inverse, AnyState } from "../state/index.js";
 import type { DragState } from "./edge-editing-view.js";
 import type { Recycler } from "../framework/index.js";
+
+const MAX_HISTORY: number = 100;
 
 export type EdgeDraggingMode = "Move" | "Slide";
 
 export interface InitialViewState {
     parent: AbstractView | null;
     history: Inverse<AnyState>[];
+    undoIndex: number;
     edgeDraggingMode: EdgeDraggingMode;
     cellGuidesDisabled: false;
 }
@@ -39,7 +42,8 @@ export function mkInitialEditorViewState(): InitialViewState {
         parent: null,
         history: [],
         edgeDraggingMode: "Move",
-        cellGuidesDisabled: false
+        cellGuidesDisabled: false,
+        undoIndex: -1,
     };
 }
 
@@ -61,6 +65,13 @@ export abstract class AbstractEditorView extends AbstractView {
     _root!: HTMLElement;
 
     #history: Inverse<AnyState>[] = [];
+
+    /**
+     * The index of the item in `#history` which will be undone if
+     * `undo` is called.
+     */
+    #undoIndex: number = -1;
+
     #edgeDraggingMode: EdgeDraggingMode = "Move";
     #lastClick: { cell: grid.CellPath } | null = null;
     #cellGuidesDisabled: boolean = false;
@@ -69,6 +80,7 @@ export abstract class AbstractEditorView extends AbstractView {
     constructor(prev: AbstractEditorView | InitialViewState, state: AnyState) {
         super(prev.parent);
         this.#history = prev.history;
+        this.#undoIndex = prev.undoIndex;
         this.#edgeDraggingMode = prev.edgeDraggingMode;
         this.#state = state;
         this.#cellGuidesDisabled = prev.cellGuidesDisabled;
@@ -80,6 +92,8 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 
     get history(): Inverse<AnyState>[] { return this.#history; }
+
+    get undoIndex(): number { return this.#undoIndex; }
 
     /**
      * Get the current (generic) editor state.
@@ -561,7 +575,7 @@ export abstract class AbstractEditorView extends AbstractView {
                             this.#viewRow(row, r))
                     .commit();
             })
-            .view((r: Recycler) => HistoryView(r, this.#history))
+            .view((r: Recycler) => HistoryView(r, this.#history, this.#undoIndex))
             .commit();
     }
 
@@ -678,6 +692,9 @@ export abstract class AbstractEditorView extends AbstractView {
     /** Undo History                                                        **/
 
     commitInverse(inverse: Inverse<AnyState>) {
+        // Clear everything after the `undoIndex`.
+        this.#history = this.#history.slice(0, this.undoIndex + 1);
+
         // Try to compact the history by composing inverses.
         while(this.#history.length > 0) {
             const top = this.#history.at(-1)!;
@@ -691,22 +708,65 @@ export abstract class AbstractEditorView extends AbstractView {
             }
 
             this.#history.pop();
+            --this.#undoIndex;
             inverse = newTop;
         }
 
         this.#history.push(inverse);
+        ++this.#undoIndex;
+
+        while(this.#history.length > MAX_HISTORY) {
+            this.#history.shift();
+            --this.#undoIndex;
+        }
+
+        util.assert(
+            0 <= this.#undoIndex && this.#undoIndex < this.#history.length,
+            `undoIndex is out of range (it is ${this.#undoIndex}, but history has length ${this.#history.length}).`
+        );
+
         this.requestRedraw();
     }
 
     abstract applyInverse(inverse: Inverse<AnyState>): AnyState;
 
     undo() {
-        if(this.#history.length === 0) {
+        if(this.#undoIndex === this.#history.length - 1) {
+            // If we're undoing from the last action, make a snapshot
+            // representing the current editor state. Otherwise, we
+            // won't be able to redo to the current state.
+            //
+            // TODO: Don't push a `top` if we already have one.
+            this.#history.push(new SnapshotInverse(this.state.clone(), "top"));
+        }
+
+        if(this.#undoIndex === 0 || this.#history.length === 0) {
             return;
         }
 
-        const top = this.#history.pop()!;
+        const top = this.#history[this.#undoIndex];
+        --this.#undoIndex;
+
         const restoredState = this.applyInverse(top);
+
+        // Replace the view with one which can view the restored state.
+        this.requestReplaceEditorView(this.createViewForState(restoredState));
+    }
+
+    redo() {
+        // Look ahead to the next snapshot inverse. (We can't undo a
+        // non-snapshot inverse for now).
+
+        let nextSnapshotIdx = this.#history.slice(this.#undoIndex + 1).findIndex(inverse =>
+            inverse instanceof SnapshotInverse
+        );
+
+        // If there's no next snapshot, then we can't redo.
+        if(nextSnapshotIdx < 0) return;
+        nextSnapshotIdx += this.#undoIndex + 1;
+
+        this.#undoIndex = nextSnapshotIdx;
+        const restoredState = this.applyInverse(this.#history[nextSnapshotIdx]);
 
         // Replace the view with one which can view the restored state.
         this.requestReplaceEditorView(this.createViewForState(restoredState));

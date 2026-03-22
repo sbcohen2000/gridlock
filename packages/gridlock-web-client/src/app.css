@@ -362,3 +362,27 @@
     border: 1px solid black;
     overflow: auto;
 }
+
+.editor-history-item {
+    position: relative;
+    padding-left: 8px;
+}
+
+.editor-history-undo-item {
+    background-color: var(--selection-color);
+}
+
+.editor-history-snapshot-item::before {
+    content: "";
+    width: 4px;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 2px;
+    background-image: radial-gradient(
+        circle at 50% 60%,
+        gray          20%,
+        transparent   20%,
+        transparent  100%
+    );
+}

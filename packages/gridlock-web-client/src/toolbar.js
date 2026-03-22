@@ -9,12 +9,14 @@ import info_icon_url                from "../www/assets/info-icon.png";
 import load_icon_url                from "../www/assets/load-icon.png";
 import merge_cells_icon_url         from "../www/assets/merge-cells-icon.png";
 import move_guide_icon_url          from "../www/assets/move-guide-icon.png";
+import redo_icon_url                from "../www/assets/redo-icon.png";
 import save_icon_url                from "../www/assets/save-icon.png";
 import select_cells_icon_url        from "../www/assets/select-cells-icon.png";
 import slide_guide_icon_url         from "../www/assets/slide-guide-icon.png"
 import split_cell_icon_url          from "../www/assets/split-cell-icon.png";
 import split_row_icon_url           from "../www/assets/split-row-icon.png";
 import trim_edge_icon_url           from "../www/assets/trim-edge-icon.png";
+import undo_icon_url                from "../www/assets/undo-icon.png";
 
 /**
  * Build the standard set of toolbar items for an editor view.
@@ -24,6 +26,25 @@ import trim_edge_icon_url           from "../www/assets/trim-edge-icon.png";
  */
 export function describeToolbar(editorView) {
     return [{
+        type: "button",
+        key: "undo-button",
+        iconSrc: undo_icon_url,
+        label: "undo",
+        onclick: () => {
+            editorView.undo();
+        }
+    }, {
+        type: "button",
+        key: "redo-button",
+        iconSrc: redo_icon_url,
+        label: "redo",
+        onclick: () => {
+            editorView.redo();
+        }
+    }, {
+        type: "divider",
+        key: "divider-1",
+    }, {
         type: "button",
         key: "edit-text-button",
         iconSrc: edit_text_icon_url,
@@ -94,7 +115,7 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "divider",
-        key: "divider-1",
+        key: "divider-2",
     }, {
         type: "button",
         key: "move-guide-button",
@@ -117,7 +138,7 @@ export function describeToolbar(editorView) {
         }
     }, {
         type: "divider",
-        key: "divider-2",
+        key: "divider-3",
     }, {
         type: "button",
         key: "disable-cell-guides-button",
