@@ -2,7 +2,7 @@ import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
 import { Cell, cloneCellData, State, horizontallyCatCellLines, rowLines } from "./state-iface.js";
-import { SnapshotInverse, Inverse } from "./inverse.js";
+import { SnapshotInverse, Inverse, IdInverse } from "./inverse.js";
 
 export class CellPrims implements State<CellPrims> {
     grid: grid.Grid<Cell>;
@@ -53,12 +53,12 @@ export class CellPrims implements State<CellPrims> {
     }
 
     selectCellUnderPoint(pt: point.P2, clear: boolean): Inverse<CellPrims> {
-        const snapshot = this.clone();
-
         const cell = grid.cellUnderPoint(this.grid, pt);
+
         if(!cell) {
-            return new SnapshotInverse(snapshot);
+            return new IdInverse();
         }
+        const snapshot = this.clone();
 
         if(clear) {
             this.selection = [{ ...cell }];
@@ -68,7 +68,7 @@ export class CellPrims implements State<CellPrims> {
             this.addCell(cell);
         }
 
-        return new SnapshotInverse(snapshot);
+        return new SnapshotInverse(snapshot, "select cell");
     }
 
     canMergeSelectedCells(): boolean {
