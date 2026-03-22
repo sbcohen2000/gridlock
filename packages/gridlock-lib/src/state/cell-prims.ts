@@ -170,17 +170,56 @@ export class CellPrims implements State<CellPrims> {
     }
 
     /**
+     * Create a new empty row with the same cell layout as the
+     * selected row.
+     */
+    private emptyRowLike(rowNo: number): grid.Row<Cell> {
+        const row = grid.lookupRow(this.grid, { rowNo });
+        return {
+            type: "Row",
+            height: 1,
+            cells: row.cells.map(cell => ({
+                type: "Cell" as const,
+                width: cell.width,
+                data: { lines: [""], disabledGuides: new Set<number>() },
+            })),
+        };
+    }
+
+    /**
      * Insert a row below the selected cell.
      */
     insertRowBelow(): Inverse<CellPrims> {
-        throw new Error("TODO");
+        if(!this.canInsertRow()) {
+            return new IdInverse();
+        }
+
+        const snapshot = this.clone();
+        const rowNo = this.selection[0].rowNo;
+        this.grid.rows.splice(rowNo + 1, 0, this.emptyRowLike(rowNo));
+
+        return new SnapshotInverse(snapshot, "insert row below");
     }
 
     /**
      * Insert a row above the selected cell.
      */
     insertRowAbove(): Inverse<CellPrims> {
-        throw new Error("TODO");
+        if(!this.canInsertRow()) {
+            return new IdInverse();
+        }
+
+        const snapshot = this.clone();
+        const rowNo = this.selection[0].rowNo;
+        this.grid.rows.splice(rowNo, 0, this.emptyRowLike(rowNo));
+
+        // Adjust the selection to point at the original row, which
+        // is now one row lower.
+        for(const cell of this.selection) {
+            cell.rowNo += 1;
+        }
+
+        return new SnapshotInverse(snapshot, "insert row above");
     }
 
     /**

@@ -41,6 +41,17 @@ export function splitCellData(col: number): (cellData: Cell) => [Cell, Cell] {
     ];
 }
 
+/**
+ * Split a cell's data at a local row, copying disabled guides to
+ * both halves.
+ */
+export function splitRowData(row: number): (cellData: Cell) => [Cell, Cell] {
+    return (cellData: Cell) => [
+        { lines: cellData.lines.slice(0, row), disabledGuides: new Set(cellData.disabledGuides) },
+        { lines: cellData.lines.slice(row), disabledGuides: new Set(cellData.disabledGuides) },
+    ];
+}
+
 export function cellContentExceedsCellWidth(cell: grid.Cell<Cell>): boolean {
     return maximumLineLength(cell.data) > cell.width;
 }
