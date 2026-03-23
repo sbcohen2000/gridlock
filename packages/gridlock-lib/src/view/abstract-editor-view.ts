@@ -18,8 +18,8 @@ import { cellContentExceedsCellWidth, maximumCellHeight, rowContentExceedsRowHei
 import { padLeftToLength } from "../util.js";
 import { SnapshotInverse, TimedSnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 
+import type { DragState } from "./abstract-editor-view-with-dragging.js";
 import type { Inverse, AnyState } from "../state/index.js";
-import type { DragState } from "./edge-editing-view.js";
 import type { Recycler } from "../framework/index.js";
 
 const MAX_HISTORY: number = 100;
@@ -251,7 +251,6 @@ export abstract class AbstractEditorView extends AbstractView {
             dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
             dragOriginGrid: ctx.roundedGridPt,
             gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
-            lastArg: 0
         };
 
         this.requestReplaceEditorView(this.createViewForState(st, dragState));
@@ -281,7 +280,6 @@ export abstract class AbstractEditorView extends AbstractView {
             dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
             dragOriginGrid: ctx.roundedGridPt,
             gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
-            lastArg: 0
         };
 
         this.requestReplaceEditorView(this.createViewForState(st, dragState));

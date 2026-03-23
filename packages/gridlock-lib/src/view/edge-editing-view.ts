@@ -1,39 +1,29 @@
 import * as grid from "../grid.js";
-import * as point from "../point.js";
 import { AbstractEditorView } from "./abstract-editor-view.js";
 import {
     MoveCellBoundaryPrims,
     MoveRowBoundaryPrims,
     SlideCellBoundaryPrims,
-    SlideRowBoundaryPrims,
-    TextPrims
+    SlideRowBoundaryPrims
 } from "../state/index.js";
-import { withSnapshotInverse } from "../state/inverse.js";
-
 import type { Inverse, AnyState } from "../state/index.js";
-
-export interface DragState {
-    dragOriginPx: point.P2;
-    dragOriginGrid: point.P2;
-    gridScale: point.V2;
-    lastArg: number;
-}
+import { DragState, AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
 
 /**
  * Abstract base class for edge dragging views. Subclasses provide
  * the direction-specific edge primitives.
  */
-export class AbstractEdgeDraggingView extends AbstractEditorView {
+export abstract class AbstractEdgeDraggingView extends AbstractEditorViewWithDragging {
     _eeState: AnyState;
-    #dragState: DragState | null;
+    private _lastDelta: number = 0;
 
     constructor(prev: AbstractEditorView, eeState: AnyState, dragState?: DragState) {
-        super(prev, eeState);
-        if(new.target === AbstractEdgeDraggingView) {
-            throw new Error("Cannot instantiate AbstractEdgeDraggingView directly");
-        }
+        super(prev, eeState, dragState);
         this._eeState = eeState;
-        this.#dragState = dragState ?? null;
+
+        if(prev instanceof AbstractEdgeDraggingView) {
+            this._lastDelta = prev._lastDelta;
+        }
     }
 
     applyInverse(inverse: Inverse<AnyState>): AnyState {
@@ -58,29 +48,13 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
         throw new Error("Method not implemented");
     }
 
-    _viewRoot(root: HTMLElement) {
-        super._viewRoot(root);
+    onDrag(e: PointerEvent, ds: DragState) {
+        const d = this.computeDelta(e, ds);
 
-        root.onpointermove = (e) => {
-            if(!this.#dragState) return;
-
-            const d = this.computeDelta(e, this.#dragState);
-
-            if(this.#dragState.lastArg !== d && d !== 0) {
-                this.applyEdgePrimitive(d);
-            }
-            this.#dragState.lastArg = d;
-        };
-
-        root.onpointerup = (e) => {
-            root.releasePointerCapture(e.pointerId);
-            if(this.#dragState) {
-                this.#dragState = null;
-                const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
-                this.commitInverse(inv);
-                this.requestReplaceEditorView(this.createViewForState(st));
-            }
-        };
+        if(d !== this._lastDelta && d !== 0) {
+            this.applyEdgePrimitive(d);
+        }
+        this._lastDelta = d;
     }
 }
 
