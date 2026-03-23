@@ -215,6 +215,12 @@
     /* animation: blink 1s ease-in-out infinite; */
 }
 
+.editor-cursor.editor-cursor-unfocused {
+    backdrop-filter: none;
+    outline: 1px solid black;
+    outline-offset: -1px;
+}
+
 .editor-toolbar {
     display: flex;
     flex-direction: row;

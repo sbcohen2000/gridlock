@@ -242,6 +242,21 @@ function main() {
         }
 
         /**
+         * Set the currently focused view, dispatching the appropriate
+         * events.
+         *
+         * @param {view.AbstractView} v
+         */
+        set focusedView(v) {
+            if(this.#focusedView !== v) {
+                let oldFocusedView = this.#focusedView;
+                this.#focusedView = v;
+                oldFocusedView.notify(new view.LostFocusViewEvent(this), true);
+                this.#focusedView.notify(new view.ReceivedFocusViewEvent(this), true);
+            }
+        }
+
+        /**
          * @param {view.ViewEvent} e
          * @returns {boolean}
          */
@@ -257,7 +272,7 @@ function main() {
                 return true;
             } else if (e instanceof view.RequestFocusViewEvent) {
                 if(this.#focusedView !== e.initiator) {
-                    this.#focusedView = e.initiator;
+                    this.focusedView = e.initiator;
                     this.requestRedraw();
                 }
                 return true;
