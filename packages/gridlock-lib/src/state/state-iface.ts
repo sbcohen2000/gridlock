@@ -108,8 +108,8 @@ export function horizontallyCatCellLines(cells: Iterable<grid.Cell<Cell>>): stri
 }
 
 /**
- * Get lines of text from a row by horizontally concatenating its cells,
- * padded to the row's height.
+ * Get lines of text from a row by horizontally concatenating its
+ * cells, padded to the row's height.
  */
 export function rowLines(row: grid.Row<Cell>): string[] {
     const lines = horizontallyCatCellLines(row.cells);

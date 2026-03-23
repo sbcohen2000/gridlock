@@ -248,7 +248,6 @@ function main() {
         handleEvent(e) {
             if (e instanceof view.ViewDeletedViewEvent) {
                 if(this.#focusedView === e.view) {
-                    console.log("The focused view was deleted.");
                     this.#focusedView = this;
                     this.requestRedraw();
                 }
@@ -258,7 +257,6 @@ function main() {
                 return true;
             } else if (e instanceof view.RequestFocusViewEvent) {
                 if(this.#focusedView !== e.initiator) {
-                    console.log("Focus updated");
                     this.#focusedView = e.initiator;
                     this.requestRedraw();
                 }

@@ -32,11 +32,11 @@ export class SlideCellBoundaryPrims implements State<SlideCellBoundaryPrims> {
 
         n = util.clamp(-(leftCell.width - 1), n, rightCell.width - 1);
 
-        const rowHeight = grid.lookupRow(this.grid, { rowNo: this.rowNo }).height;
+        const maxLines = Math.max(leftCell.data.lines.length, rightCell.data.lines.length);
 
         // For each line, join the left and right cell text, then
         // re-split at the new boundary.
-        for (let i = 0; i < rowHeight; ++i) {
+        for (let i = 0; i < maxLines; ++i) {
             const leftLine  = leftCell.data.lines[i]  ?? "";
             const rightLine = rightCell.data.lines[i] ?? "";
             const combined  = leftLine.padEnd(leftCell.width) + rightLine;

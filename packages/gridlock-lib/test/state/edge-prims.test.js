@@ -170,7 +170,7 @@ describe("edge-prims", () => {
                   "#                                                  \n"  +
                   "#                Figure 6                          \n"  +
                   "                                                   \n"  +
-                  " Exception Masks---+           +---Exception Flags \n";
+                  " Exception Masks---+           +---Exception Flags ";
 
             const st = SlideCellBoundaryPrims.slideCellBoundary({ grid: serialize.parseCompactGrid(src) }, 0, 1);
             st.slideVerticalEdge(-12);
@@ -183,14 +183,14 @@ describe("edge-prims", () => {
                   "#                                                  \n"  +
                   "#                Figure 6                          \n"  +
                   "                                                   \n"  +
-                  " Exception Masks---+           +---Exception Flags \n";
+                  " Exception Masks---+           +---Exception Flags ";
 
             expect(serialize.printCompactGrid(st)).to.equal(exp);
         });
     });
 
     describe("slideHorizontalEdge", () => {
-        it("Can slide a horizontal edge with a different number of cells above and below", () => {
+        it("Can slide a horizontal edge with a different number of cells above and below (1)", () => {
             const src =
                   "aaabbb\n"   +
                   "aaabbb\n"   +
@@ -200,7 +200,7 @@ describe("edge-prims", () => {
                   "|  |   |\n" +
                   "+--+---+\n" +
                   "|      |\n" +
-                  "+------+\n";
+                  "+------+";
             const st = serialize.textEditingStateFromCommonStateStr(src);
 
             const edgeState = SlideRowBoundaryPrims.slideRowBoundary(st, 0);
@@ -215,9 +215,66 @@ describe("edge-prims", () => {
                   "+--+---+\n" +
                   "|      |\n" +
                   "|      |\n" +
-                  "+------+\n";
+                  "+------+";
 
             expect(serialize.printCommonState(edgeState)).to.equal(exp);
+        });
+
+        it("Can slide a horizontal edge with a different number of cells above and below (2)", () => {
+            const src =
+                  "aaabbb\n"   +
+                  "aaabbb\n"   +
+                  "ccccccc\n"  +
+                  "ccccccc\n"  +
+                  "+------+\n" +
+                  "|      |\n" +
+                  "+--+---+\n" +
+                  "|  |   |\n" +
+                  "+--+---+";
+            const st = serialize.textEditingStateFromCommonStateStr(src);
+
+            const edgeState = SlideRowBoundaryPrims.slideRowBoundary(st, 0);
+            edgeState.slideHorizontalEdge(-1);
+
+            const exp =
+                  "aaabbb\n"   +
+                  "aaabbb\n"   +
+                  "ccccccc\n"  +
+                  "ccccccc\n"  +
+                  "+------+\n" +
+                  "+--+---+\n" +
+                  "|  |   |\n" +
+                  "|  |   |\n" +
+                  "+--+---+";
+
+            expect(serialize.printCommonState(edgeState)).to.equal(exp);
+        });
+
+        it("Can slide a horizontal edge where the below cell is incomplete", () => {
+            const src =
+                  "AA4ADgAYAAEAGAAiAAMAIgAkAA8AAAAAACQAMAAPAAAAAQABAAEAAQABAAEAAQAB\n"+
+                  "a              \n" +
+                  "b              \n" +
+                  "c              \n" +
+                  "d              \n" +
+                  "e              \n" +
+                  "f              \n" +
+                  "g              ";
+
+            const st = SlideRowBoundaryPrims.slideRowBoundary({ grid: serialize.parseCompactGrid(src) }, 0);
+            st.slideHorizontalEdge(1);
+
+            const exp =
+                  "AA4ADgAYAAIAGAAiAAIAIgAmAA8AAAAAACYAMAAPAAAAAgABAAEAAQABAAEAAQAB\n" +
+                  "a              \n" +
+                  "b              \n" +
+                  "c              \n" +
+                  "d              \n" +
+                  "e              \n" +
+                  "f              \n" +
+                  "g              ";
+
+            expect(serialize.printCompactGrid(st)).to.equal(exp);
         });
     });
 });

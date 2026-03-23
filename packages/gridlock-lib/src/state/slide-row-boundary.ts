@@ -28,20 +28,56 @@ export class SlideRowBoundaryPrims implements State<SlideRowBoundaryPrims> {
         const bottomRow = grid.lookupRow(this.grid, { rowNo: this.rowNo + 1 });
         util.assert(!rowContentExceedsRowHeight(topRow));
 
+        // Clamp `n` to lie between the top line of `topRow`, and the
+        // bottom (visible) line of `bottomRow`.
         n = util.clamp(-(topRow.height - 1), n, bottomRow.height - 1);
 
-        // For each column, stack the top and bottom cell lines,
-        // then re-split at the new row boundary.
-        for (let colNo = 0; colNo < topRow.cells.length; ++colNo) {
-            const topCell = topRow.cells[colNo].data;
-            const bottomCell = bottomRow.cells[colNo].data;
-            const combined = [
-                ...topCell.lines,
-                ...Array.from({ length: topRow.height - topCell.lines.length }, () => ""),
-                ...bottomCell.lines,
-            ];
-            topCell.lines = combined.slice(0, topRow.height + n);
-            bottomCell.lines = combined.slice(topRow.height + n);
+        // Build full-width text lines for each row, then redistribute
+        // across the new boundary. The bottom row may have cells with
+        // more lines than the row height, so we use the maximum line
+        // count rather than the row height.
+        const bottomMaxLines = bottomRow.cells.reduce(
+            (max, cell) => Math.max(max, cell.data.lines.length), bottomRow.height);
+        const totalHeight = topRow.height + bottomMaxLines;
+        const fullLines: string[] = [];
+
+        // Render each line as a full-width string from its source row.
+        for (let i = 0; i < totalHeight; ++i) {
+            let line = "";
+            if (i < topRow.height) {
+                for (const cell of topRow.cells) {
+                    line += (cell.data.lines[i] ?? "").padEnd(cell.width);
+                }
+            } else {
+                const j = i - topRow.height;
+                for (const cell of bottomRow.cells) {
+                    line += (cell.data.lines[j] ?? "").padEnd(cell.width);
+                }
+            }
+            fullLines.push(line);
+        }
+
+        const newTopHeight = topRow.height + n;
+
+        // Re-split lines into cells according to the original
+        // structure of the top and bottom row's cells.
+        for (const cell of topRow.cells) cell.data.lines = [];
+        for (const cell of bottomRow.cells) cell.data.lines = [];
+
+        for (let i = 0; i < newTopHeight; ++i) {
+            let offset = 0;
+            for (const cell of topRow.cells) {
+                cell.data.lines.push(fullLines[i].slice(offset, offset + cell.width).trimEnd());
+                offset += cell.width;
+            }
+        }
+
+        for (let i = newTopHeight; i < totalHeight; ++i) {
+            let offset = 0;
+            for (const cell of bottomRow.cells) {
+                cell.data.lines.push(fullLines[i].slice(offset, offset + cell.width).trimEnd());
+                offset += cell.width;
+            }
         }
 
         topRow.height += n;
