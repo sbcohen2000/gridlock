@@ -7,7 +7,8 @@ import {
     SlideRowBoundaryPrims
 } from "../state/index.js";
 import type { Inverse, AnyState } from "../state/index.js";
-import { DragState, AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
+import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
+import { DragState } from "./drag-state.js";
 
 /**
  * Abstract base class for edge dragging views. Subclasses provide
@@ -59,15 +60,13 @@ export abstract class AbstractEdgeDraggingView extends AbstractEditorViewWithDra
 }
 
 function cellBoundaryDelta(state: MoveCellBoundaryPrims | SlideCellBoundaryPrims, e: PointerEvent, ds: DragState): number {
-    const dxPx = e.clientX - ds.dragOriginPx.x;
-    const dxGrid = ds.dragOriginGrid.x + Math.round(dxPx / ds.gridScale.dx);
+    const dxGrid = ds.dxGrid(e);
     const currentEdgeX = grid.rectOfCell(state.grid, { rowNo: state.rowNo, colNo: state.colNo }).right;
     return dxGrid - currentEdgeX;
 }
 
 function rowBoundaryDelta(state: MoveRowBoundaryPrims | SlideRowBoundaryPrims, e: PointerEvent, ds: DragState): number {
-    const dyPx = e.clientY - ds.dragOriginPx.y;
-    const dyGrid = ds.dragOriginGrid.y + Math.round(dyPx / ds.gridScale.dy);
+    const dyGrid = ds.dyGrid(e);
     const currentEdgeY = grid.rectOfRow(state.grid, { rowNo: state.rowNo }).bottom;
     return dyGrid - currentEdgeY;
 }

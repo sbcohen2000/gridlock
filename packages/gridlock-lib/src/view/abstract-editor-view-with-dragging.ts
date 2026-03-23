@@ -1,14 +1,8 @@
-import * as point from "../point.js";
 import { AbstractEditorView } from "./abstract-editor-view.js";
 import { AnyState } from "../state/state-iface.js";
+import { DragState } from "./drag-state.js";
 import { TextPrims } from "../state/index.js";
 import { withSnapshotInverse } from "../state/inverse.js";
-
-export interface DragState {
-    readonly dragOriginPx: point.P2;
-    readonly dragOriginGrid: point.P2;
-    readonly gridScale: point.V2;
-}
 
 export abstract class AbstractEditorViewWithDragging extends AbstractEditorView {
     #dragState: DragState | null;

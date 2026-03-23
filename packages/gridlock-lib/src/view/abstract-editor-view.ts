@@ -14,11 +14,11 @@ import {
     disableCellGuides,
     enableCellGuides
 } from "../state/index.js";
+import { DragState } from "./drag-state.js";
+import { SnapshotInverse, TimedSnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 import { cellContentExceedsCellWidth, maximumCellHeight, rowContentExceedsRowHeight } from "../state/state-iface.js";
 import { padLeftToLength } from "../util.js";
-import { SnapshotInverse, TimedSnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 
-import type { DragState } from "./abstract-editor-view-with-dragging.js";
 import type { Inverse, AnyState } from "../state/index.js";
 import type { Recycler } from "../framework/index.js";
 
@@ -247,11 +247,11 @@ export abstract class AbstractEditorView extends AbstractView {
         // element if necessary.
         this._root.setPointerCapture(ctx.event.pointerId);
 
-        const dragState: DragState = {
+        const dragState: DragState = new DragState({
             dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
             dragOriginGrid: ctx.roundedGridPt,
             gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
-        };
+        });
 
         this.requestReplaceEditorView(this.createViewForState(st, dragState));
         return true;
@@ -276,11 +276,11 @@ export abstract class AbstractEditorView extends AbstractView {
         // element if necessary.
         this._root.setPointerCapture(ctx.event.pointerId);
 
-        const dragState: DragState = {
+        const dragState: DragState = new DragState({
             dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
             dragOriginGrid: ctx.roundedGridPt,
             gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
-        };
+        });
 
         this.requestReplaceEditorView(this.createViewForState(st, dragState));
         return true;
