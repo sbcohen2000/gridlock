@@ -32,6 +32,9 @@
     display: inline-flex;
     flex-direction: row;
     box-shadow: var(--shadow-elevation-medium);
+
+    padding-right: 2px;
+    padding-bottom: 2px;
     border-right: 1px solid #eee;
     border-top: 1px solid #eee;
 
