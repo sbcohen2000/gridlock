@@ -193,10 +193,13 @@ function main() {
             state.TextPrims.editText({ grid: g })
         );
     } catch(e) {
-        console.error(e);
+        console.error("Could not recover saved state: ", e);
         initialView = new view.TextEditingView(
             initialViewState,
-            state.TextPrims.mkEmpty()
+            state.TextPrims.mkEmpty({
+                width: 30,
+                height: 4
+            })
         );
     }
 
