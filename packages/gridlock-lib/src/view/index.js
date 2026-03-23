@@ -7,12 +7,13 @@ export {
 } from "./abstract-editor-view.js";
 export {
     AbstractView,
-    ViewEvent,
+    KeyViewEvent,
+    LostFocusViewEvent,
+    ReceivedFocusViewEvent,
     RedrawViewEvent,
     RequestFocusViewEvent,
-    KeyViewEvent,
     ViewDeletedViewEvent,
-    ReceivedFocusViewEvent
+    ViewEvent,
 } from "./abstract-view.js";
 export { CellEditingView } from "./cell-editing-view.js";
 export {

@@ -96,11 +96,26 @@ export class ReceivedFocusViewEvent extends ViewEvent {
     constructor(initiator) { super(initiator, false); }
 }
 
+export class LostFocusViewEvent extends ViewEvent {
+    /** @param {AbstractView} initiator */
+    constructor(initiator) { super(initiator, false); }
+}
+
 export class AbstractView {
     /** @type {AbstractView | null}
      *
      * The parent view, or `null`, if this view is topmost. */
     parent;
+
+    /**
+     * @param {boolean}
+     */
+    #hasFocus;
+
+    /** @returns {boolean} */
+    get hasFocus() {
+        return this.#hasFocus;
+    }
 
     /**
      * Construct a new `View`, providing the `View's` parent.
@@ -109,6 +124,7 @@ export class AbstractView {
      */
     constructor(parent) {
         this.parent = parent;
+        this.#hasFocus = false;
     }
 
     /**
@@ -146,8 +162,7 @@ export class AbstractView {
      *     should continue to bubble up the view tree.
      */
     handleEvent(e) {
-        void e;
-        return false;
+        return this.handleLostFocusViewEvent(e) || this.handleReceivedFocusViewEvent(e);
     }
 
     /**
@@ -172,5 +187,37 @@ export class AbstractView {
      */
     notifyViewDeleted(view) {
         this.notify(new ViewDeletedViewEvent(this, view));
+    }
+
+    /**
+     * Handle a recieved focus event, updating this view's own
+     * `isFocused` property.
+     *
+     * @param {ViewEvent} e
+     * @returns {boolean} `true` if the event was a
+     *   `ReceivedFocusViewEvent`, and `false` otherwise.
+     */
+    handleReceivedFocusViewEvent(e) {
+        if(e instanceof ReceivedFocusViewEvent) {
+            this.#hasFocus = true;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Handle a lost focus event, updating this view's own `isFocused`
+     * property.
+     *
+     * @param {ViewEvent} e
+     * @returns {boolean} `true` if the event was a `LostFocusEvent`,
+     *     and `false` otherwise.
+     */
+    handleLostFocusViewEvent(e) {
+        if(e instanceof LostFocusViewEvent) {
+            this.#hasFocus = false;
+            return true;
+        }
+        return false;
     }
 }

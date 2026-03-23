@@ -706,7 +706,10 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 
     handleEvent(e: ViewEvent): boolean {
-        return this.handleUndoKey(e) || this.handleCopyKey(e) || this.handlePasteKey(e);
+        return this.handleUndoKey(e)
+            || this.handleCopyKey(e)
+            || this.handlePasteKey(e)
+            || super.handleEvent(e);
     }
 
     /*************************************************************************/

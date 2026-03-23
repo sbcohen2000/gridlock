@@ -80,11 +80,14 @@ export class TextEditingView extends AbstractEditorView {
         super.viewCellSelection(cell, recycler);
 
         if(this.cellIsSelected(cell)) {
-            recycler.elem({ tag: "div", key: "cursor" }, (cursorElem) => {
+            recycler.elem({ tag: "div", key: "cursor", clearAttributes: true }, (cursorElem) => {
                 cursorElem.className = "editor-cursor";
                 cursorElem.style.position = "absolute";
                 cursorElem.style.left = `${this._teState.selection.pt.x}ch`;
                 cursorElem.style.top  = `${this._teState.selection.pt.y}em`;
+                if(!this.hasFocus) {
+                    cursorElem.classList.add("editor-cursor-unfocused");
+                }
             });
             recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
                 haloElem.className = "editor-cell-halo";
@@ -132,16 +135,13 @@ export class TextEditingView extends AbstractEditorView {
     }
 
     handleEvent(e: ViewEvent): boolean {
-        if(this.handleUndoKey(e) || this.handleCopyKey(e) || this.handlePasteKey(e)) {
-            return true;
-        }
-
         if (e instanceof KeyViewEvent) {
             e.e.preventDefault();
             e.e.stopPropagation();
             return this.#handleKeyEvent(e.e);
+        } else {
+            return super.handleEvent(e);
         }
-        return false;
     }
 
     /*************************************************************************/
