@@ -50,4 +50,37 @@ describe("cell-prims", () => {
             expect(st.selection.length).to.equal(1);
         });
     });
+
+    describe("mergeSelectedCells", () => {
+        it("Can merge rows with occluded content", () => {
+            const src =
+                  "ABoAGgAkAAEAJAAuAAEALgA4AAEAOABCAAEAQgBEAAYAAAAAAEQASAAGAAAAAQBIAEwABgAAAAMATABQAAYAAAAFAAEAAQABAAEAAQABAAE=\n" +
+                  "a     \n" +
+                  "b     \n" +
+                  "c     \n" +
+                  "d     \n" +
+                  "e     \n" +
+                  "f     \n" +
+                  "g     "
+
+            const st = CellPrims.editCells({ grid: serialize.parseCompactGrid(src) });
+            st.selectCellUnderPoint(point.mkP2(0, 0), false);
+            st.selectCellUnderPoint(point.mkP2(0, 1), false);
+            st.selectCellUnderPoint(point.mkP2(0, 2), false);
+            st.selectCellUnderPoint(point.mkP2(0, 3), false);
+            st.mergeSelectedCells();
+
+            const exp =
+                  "AAgACAASAAQAEgAgAAYAAAAAAAEAAQABAAEAAQABAAE=\n" +
+                  "a     \n" +
+                  "b     \n" +
+                  "c     \n" +
+                  "d     \n" +
+                  "e     \n" +
+                  "f     \n" +
+                  "g     "
+
+            expect(serialize.printCompactGrid(st)).to.equal(exp);
+        });
+    })
 });
