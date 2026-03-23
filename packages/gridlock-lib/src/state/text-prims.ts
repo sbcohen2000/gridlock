@@ -118,9 +118,9 @@ export class TextPrims implements State<TextPrims> {
     /**
      * Construct a new `TextPrims` state with an empty grid.
      */
-    static mkEmpty(): TextPrims {
+    static mkEmpty(size: { width: number, height: number } = { width: 1, height: 1 }): TextPrims {
         const data: Cell = { lines: [""], disabledGuides: new Set() };
-        const g = grid.mk(1, 1, data);
+        const g = grid.mk(size.width, size.height, data);
         return TextPrims.editText({ grid: g });
     }
 
