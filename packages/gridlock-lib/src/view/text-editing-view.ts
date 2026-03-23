@@ -103,20 +103,18 @@ export class TextEditingView extends AbstractEditorView {
         if(e.key.length === 1) {
             if(e.ctrlKey) {
                 switch(e.key) {
-                case "a": this.commitInverse(this._teState.putPointAtStartOfGlobalLine()); break;
-                case "e": this.commitInverse(this._teState.putPointAtEndOfGlobalLine()); break;
-                case "n": this.commitInverse(this._teState.putPointOnNextGlobalLine()); break;
-                case "p": this.commitInverse(this._teState.putPointOnPrevGlobalLine()); break;
-                case "b": this.commitInverse(this._teState.putPointOnPrevGlobalCol()); break;
-                case "f": this.commitInverse(this._teState.putPointOnNextGlobalCol()); break;
+                    case "a": this.commitInverse(this._teState.putPointAtStartOfGlobalLine()); break;
+                    case "e": this.commitInverse(this._teState.putPointAtEndOfGlobalLine()); break;
+                    case "n": this.commitInverse(this._teState.putPointOnNextGlobalLine()); break;
+                    case "p": this.commitInverse(this._teState.putPointOnPrevGlobalLine()); break;
+                    case "b": this.commitInverse(this._teState.putPointOnPrevGlobalCol()); break;
+                    case "f": this.commitInverse(this._teState.putPointOnNextGlobalCol()); break;
+                    default: return false;
                 }
             } else {
                 this.commitInverse(this._teState.insertString(e.key));
             }
         } else {
-            // Only if there's no command state do we allow the
-            // processing of non-letter characters.
-
             switch(e.key) {
             case "Backspace": {
                 if(this._teState.pointAtBeginningOfGlobalLine()) {
@@ -128,7 +126,7 @@ export class TextEditingView extends AbstractEditorView {
             case "Enter": {
                 this.commitInverse(this._teState.insertGlobalNewline());
             } break;
-            default: break;
+                default: return false;
             }
         }
         return true;
@@ -138,10 +136,12 @@ export class TextEditingView extends AbstractEditorView {
         if (e instanceof KeyViewEvent) {
             e.e.preventDefault();
             e.e.stopPropagation();
-            return this.#handleKeyEvent(e.e);
-        } else {
-            return super.handleEvent(e);
+            if(this.#handleKeyEvent(e.e)) {
+                return;
+            }
         }
+
+        return super.handleEvent(e);
     }
 
     /*************************************************************************/

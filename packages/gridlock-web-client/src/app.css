@@ -64,7 +64,7 @@
     text-align: right;
     color: gray;
     height: 1em;
-    white-space: preserve;
+    white-space: preserve nowrap;
 }
 
 /*****************************************************************************/
