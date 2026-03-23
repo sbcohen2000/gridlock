@@ -21,11 +21,7 @@
     /* Guide lines */
     --guide-thick: 1px;
     --guide-hitbox-thick: 4px;
-    --guide-blind-thick: 1.5px;
-
     --guide-color: #ccc;
-    --guide-blind-color-a: rgba(255, 0, 0, 0.1);
-    --guide-blind-color-b: rgba(255, 0, 0, 1.0);
 }
 
 /*****************************************************************************/
@@ -81,7 +77,7 @@
 
 .editor-row-guide-hitbox,
 .editor-cell-guide-hitbox {
-    z-index: 3;
+    z-index: 9;
 }
 
 .editor-cell-guide-hitbox,
@@ -141,7 +137,7 @@
     position: relative;
 }
 
-.editor-cell-display-clipped {
+.editor-cell.editor-cell-display-clipped {
     z-index: 1;
 }
 
@@ -149,11 +145,15 @@
     overflow-x: clip;
 }
 
+.editor-row.editor-row-incomplete .editor-cell-clip-box {
+    /** When the row is incomplete, clip y-overflow, since this will prevent
+     * the font's decenders from peeking out of the row's bounding box. */
+    overflow-y: clip;
+}
+
 .editor-line {
     position: relative;
     height: 1em;
-    outline: 1px solid rgba(0, 0, 0, 0.03);
-    outline-offset: -0.5px;
     white-space: preserve nowrap;
 }
 
@@ -233,33 +233,24 @@
 
 .editor-cell-blind {
     position: absolute;
-    width: 4px;
-    top: 0;
-    bottom: 0;
+    width: 6px;
+    top: calc(var(--guide-thick) / 2);
+    bottom: calc(var(--guide-thick) / 2);
     right: 0;
 
-    background: repeating-linear-gradient(
-        40deg,
-        var(--guide-blind-color-a),
-        var(--guide-blind-color-a) 4px,
-        var(--guide-blind-color-b) 4px,
-        var(--guide-blind-color-b) calc(4px + var(--guide-blind-thick)));
+    background-image: url("../www/assets/cell-blind.png");
+    background-size: 6px;
 }
 
 .editor-row-blind {
     position: absolute;
-    height: 4px;
-    left: 0;
-    right: 0;
+    height: 6px;
+    left: calc(var(--guide-thick) / 2);
+    right: calc(var(--guide-thick) / 2);
     bottom: 0;
 
-    z-index: 2;
-    background: repeating-linear-gradient(
-        60deg,
-        var(--guide-blind-color-a),
-        var(--guide-blind-color-a) 4px,
-        var(--guide-blind-color-b) 4px,
-        var(--guide-blind-color-b) calc(4px + var(--guide-blind-thick)));
+    background-image: url("../www/assets/row-blind.png");
+    background-size: auto 6px;
 }
 
 /*****************************************************************************/
@@ -299,7 +290,7 @@
     left: 0;
     top: 0;
     position: absolute;
-    z-index: 2;
+    z-index: 3;
     outline: var(--selection-halo-thick) solid var(--selection-color);
     outline-offset: calc(-1 * var(--selection-halo-thick) / 2);
 }
@@ -317,7 +308,7 @@
     max-width: 90vw;
     max-height: 90vh;
     box-shadow: var(--shadow-elevation-medium);
-    z-index: 6;
+    z-index: 11;
 }
 
 .editor-context-menu-screen {
@@ -326,7 +317,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 5;
+    z-index: 10;
 }
 
 .editor-context-menu-button:hover {

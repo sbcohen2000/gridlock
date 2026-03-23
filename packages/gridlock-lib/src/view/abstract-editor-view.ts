@@ -377,6 +377,15 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 
     /**
+     * Implemented by subclasses to inform this view if it should
+     * consider the given cell selected.
+     */
+    cellIsSelected(cell: grid.CellPath): boolean {
+        void cell;
+        return false;
+    }
+
+    /**
      * View the disabled guide for at local-column `guideX`. The
      * function is passed the `disabledCell` path, which is the path
      * of the cell, had it not been disabled. (I.e. be careful,
@@ -415,6 +424,7 @@ export abstract class AbstractEditorView extends AbstractView {
         r.elem({ tag: "div", key: `cell-${cell.rowNo}-${cell.colNo}` }, (cellElem) => {
             const isLastOnRow = grid.lookupRow(this.state.grid, cell).cells.length - 1 === cell.colNo;
             const theCell = grid.lookupCell(this.state.grid, cell);
+            const incomplete = cellContentExceedsCellWidth(theCell);
             cellElem.className = "editor-cell";
 
             const displayClippedText = this.displayClippedText(cell);
@@ -471,7 +481,10 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "cell-guide" }, (cellGuideElem) => {
                     cellGuideElem.className = "editor-cell-guide";
-                    if(isLastOnRow) {
+                    // If the cell is the last on its row, or it's right
+                    // edge is already delimited by a blind, there's no
+                    // need to show a guide element.
+                    if(isLastOnRow || incomplete) {
                         cellGuideElem.style.display = "none";
                     } else {
                         cellGuideElem.style.display = "block";
@@ -479,8 +492,8 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "cell-blind" }, (cellBlindElem) => {
                     cellBlindElem.className = "editor-cell-blind";
-                    const incomplete = cellContentExceedsCellWidth(theCell);
-                    cellBlindElem.style.display = incomplete ? "block" : "none";
+                    const selected = this.cellIsSelected(cell);
+                    cellBlindElem.style.display = incomplete && !selected ? "block" : "none";
                 })
                 .commit();
         });
@@ -505,6 +518,11 @@ export abstract class AbstractEditorView extends AbstractView {
             rowElem.className = "editor-row";
             rowElem.style.height = `${theRow.height}em`;
 
+            const incomplete = rowContentExceedsRowHeight(theRow);
+            if(incomplete) {
+                rowElem.classList.add("editor-row-incomplete");
+            }
+
             new CommittableRecycler(rowElem)
                 .views(grid.allCellsOnRow(this.state.grid, row), (cell: grid.CellPath, r: Recycler) =>
                     this.#viewCell(cell, theRow.height, r))
@@ -517,8 +535,10 @@ export abstract class AbstractEditorView extends AbstractView {
                     }
                 })
                 .elem({ tag: "div", key: "row-guide" }, (rowGuideElem) => {
-                    rowGuideElem.className = "editor-row-guide";
-                   if(isLastInGrid) {
+                   rowGuideElem.className = "editor-row-guide";
+                   // If this row is the last in the grid, or it's already delimited at its
+                   // end by a blind, we don't need to draw its guide.
+                   if(isLastInGrid || incomplete) {
                        rowGuideElem.style.display = "none";
                    } else {
                        rowGuideElem.style.display = "block";
@@ -526,7 +546,6 @@ export abstract class AbstractEditorView extends AbstractView {
                 })
                 .elem({ tag: "div", key: "row-blind" }, (rowBlindElem) => {
                     rowBlindElem.className = "editor-row-blind";
-                    const incomplete = rowContentExceedsRowHeight(theRow);
                     rowBlindElem.style.display = incomplete ? "block" : "none";
                 })
                 .commit();
