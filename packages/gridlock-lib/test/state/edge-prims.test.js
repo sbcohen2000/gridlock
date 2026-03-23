@@ -4,6 +4,8 @@ import {
     MoveCellBoundaryPrims,
     MoveRowBoundaryPrims,
     SlideCellBoundaryPrims,
+    SlideRowBoundaryPrims,
+    TextPrims,
 } from "../../src/state/index.js";
 import { expect } from "chai";
 
@@ -159,9 +161,63 @@ describe("edge-prims", () => {
             expect(serialize.printCommonState(edgeState)).to.equal(exp);
         });
 
-        it("Can shift text between cells in a grid with clipped cells", () => {
-            // TODO: Write this test and a few others.
-            // expect(false).to.be.true;
+        it("Can shift text between two cells where the cells are (vertically) incomplete", () => {
+            const src =
+                  "ABQAFAAyAAIAMgA8AAEAPABGAAEARgBQABEAAAAAAFAAWgAQABEAAABaAGQAEgAhAAAAZABmADMAAAAFAGYAaAAzAAAABgAIABEAAQABAAEABQAQAA8AAAAIAAAAEAANAAAAAAAAADI=\n"+
+                  "# Title:         MXCSR                             \n"  +
+                  "# Example from: \"Taking ASCII Drawings Seriously:  \n" +
+                  "#                How Programmers Diagram Code\"     \n" +
+                  "#                                                  \n"  +
+                  "#                Figure 6                          \n"  +
+                  "                                                   \n"  +
+                  " Exception Masks---+           +---Exception Flags \n";
+
+            const st = SlideCellBoundaryPrims.slideCellBoundary({ grid: serialize.parseCompactGrid(src) }, 0, 1);
+            st.slideVerticalEdge(-12);
+
+            const exp =
+                  "ABQAFAAyAAIAMgA8AAEAPABGAAEARgBQABEAAAAAAFAAWgAEABEAAABaAGQAHgAVAAAAZABmADMAAAAFAGYAaAAzAAAABgAIABEAAQABAAEABAAEAAMAAAAEAAEAHAAZAAAABAAAADI=\n"+
+                  "# Title:         MXCSR                             \n"  +
+                  "# Example from: \"Taking ASCII Drawings Seriously:  \n" +
+                  "#                How Programmers Diagram Code\"     \n" +
+                  "#                                                  \n"  +
+                  "#                Figure 6                          \n"  +
+                  "                                                   \n"  +
+                  " Exception Masks---+           +---Exception Flags \n";
+
+            expect(serialize.printCompactGrid(st)).to.equal(exp);
+        });
+    });
+
+    describe("slideHorizontalEdge", () => {
+        it("Can slide a horizontal edge with a different number of cells above and below", () => {
+            const src =
+                  "aaabbb\n"   +
+                  "aaabbb\n"   +
+                  "ccccccc\n"  +
+                  "ccccccc\n"  +
+                  "+--+---+\n" +
+                  "|  |   |\n" +
+                  "+--+---+\n" +
+                  "|      |\n" +
+                  "+------+\n";
+            const st = serialize.textEditingStateFromCommonStateStr(src);
+
+            const edgeState = SlideRowBoundaryPrims.slideRowBoundary(st, 0);
+            edgeState.slideHorizontalEdge(-1);
+
+            const exp =
+                  "aaabbb\n"   +
+                  "aaabbb\n"   +
+                  "ccccccc\n"  +
+                  "ccccccc\n"  +
+                  "+--+---+\n" +
+                  "+--+---+\n" +
+                  "|      |\n" +
+                  "|      |\n" +
+                  "+------+\n";
+
+            expect(serialize.printCommonState(edgeState)).to.equal(exp);
         });
     });
 });
