@@ -108,7 +108,7 @@ export class AbstractView {
     parent;
 
     /**
-     * @param {boolean}
+     * @type {boolean}
      */
     #hasFocus;
 
