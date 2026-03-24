@@ -9,6 +9,8 @@ import {
 import type { Inverse, AnyState } from "../state/index.js";
 import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
 import { DragState } from "./drag-state.js";
+import { TextPrims } from "../state/index.js";
+import { withSnapshotInverse } from "../state/inverse.js";
 
 /**
  * Abstract base class for edge dragging views. Subclasses provide
@@ -56,6 +58,16 @@ export abstract class AbstractEdgeDraggingView extends AbstractEditorViewWithDra
             this.applyEdgePrimitive(d);
         }
         this._lastDelta = d;
+    }
+
+    onDragEnd(e: PointerEvent, ds: DragState) {
+        void e;
+        void ds;
+
+        // Once the drag ends, switch to text-editing view.
+        const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
+        this.commitInverse(inv);
+        this.requestReplaceEditorView(this.createViewForState(st));
     }
 }
 

@@ -1,18 +1,25 @@
 import * as cmenu from "./context-menu.js";
 import * as point from "../point.js";
+import * as rect from "../rect.js";
 import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
+import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
 import { CellPrims } from "../state/index.js";
+import { DragState } from "./drag-state.js";
 
 import type * as grid from "../grid.js";
 import type { Recycler } from "../framework/index.js";
 import type { Inverse, AnyState } from "../state/index.js";
 
-export class CellEditingView extends AbstractEditorView {
+export class CellEditingView extends AbstractEditorViewWithDragging {
     _ceState: CellPrims;
 
     constructor(prev: AbstractEditorView, state: CellPrims) {
         super(prev, state);
         this._ceState = state;
+
+        if(prev instanceof CellEditingView) {
+            this._dragRect = prev._dragRect;
+        }
     }
 
     applyInverse(inverse: Inverse<AnyState>): AnyState {
@@ -86,6 +93,22 @@ export class CellEditingView extends AbstractEditorView {
                 !ctx.event.shiftKey
             )
         );
+    }
+
+    /**
+     * Record a rectangle in grid coordinates of the current drag. It
+       is `null` if there is no present drag.
+     */
+    private _dragRect: rect.Rect | null = null;
+
+    onDrag(e: PointerEvent, ds: DragState) {
+        void e;
+        void ds;
+    }
+
+    onDragEnd(e: PointerEvent, ds: DragState) {
+        void e;
+        void ds;
     }
 
     /**

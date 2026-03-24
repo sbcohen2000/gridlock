@@ -1,8 +1,6 @@
 import { AbstractEditorView } from "./abstract-editor-view.js";
 import { AnyState } from "../state/state-iface.js";
 import { DragState } from "./drag-state.js";
-import { TextPrims } from "../state/index.js";
-import { withSnapshotInverse } from "../state/inverse.js";
 
 export abstract class AbstractEditorViewWithDragging extends AbstractEditorView {
     #dragState: DragState | null;
@@ -10,13 +8,29 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
     constructor(prev: AbstractEditorView, editorState: AnyState, dragState?: DragState) {
         super(prev, editorState);
         this.#dragState = dragState ?? null;
+
+        if(this.#dragState && !this._root.hasPointerCapture(this.#dragState.pointerId)) {
+            this._root.setPointerCapture(this.#dragState.pointerId);
+        }
     }
 
     /**
      * Subclasses implement this to handle pointer move events within
      * the editor root.
      */
-    abstract onDrag(e: PointerEvent, ds: DragState): void;
+    onDrag(e: PointerEvent, ds: DragState): void {
+        void e;
+        void ds;
+    }
+
+    /**
+     * Subclasses implement this to handle the pointer up event that
+     * causes the end of the drag.
+     */
+    onDragEnd(e: PointerEvent, ds: DragState): void {
+        void e;
+        void ds;
+    }
 
     _viewRoot(root: HTMLElement) {
         super._viewRoot(root);
@@ -29,11 +43,9 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
         root.onpointerup = (e) => {
             root.releasePointerCapture(e.pointerId);
             if(this.#dragState) {
-                this.#dragState = null;
-                const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
-                this.commitInverse(inv);
-                this.requestReplaceEditorView(this.createViewForState(st));
+                this.onDragEnd(e, this.#dragState);
             }
+            this.#dragState = null;
         };
     }
 }

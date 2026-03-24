@@ -7,6 +7,10 @@ export interface DragStateInitializer {
     dragOriginGrid: point.P2;
     /** The number of pixels in each grid cell. */
     gridScale: point.V2;
+    /** The pointer id. It will only ever be captured on the root
+     * element of the editor (called `this._root` in subclasses of
+     * `AbstractEditorView`. */
+    pointerId: number;
 }
 
 export class DragState {
@@ -14,6 +18,20 @@ export class DragState {
 
     constructor(init: DragStateInitializer) {
         this.#st = { ...init };
+    }
+
+    /**
+     * Get the captured pointerId.
+     */
+    get pointerId(): number {
+        return this.#st.pointerId;
+    }
+
+    /**
+     * Find the location of the drag origin in grid coordiantes.
+     */
+    get dragOriginGrid(): point.P2 {
+        return this.#st.dragOriginGrid;
     }
 
     /**

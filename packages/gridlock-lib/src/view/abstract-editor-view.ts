@@ -242,15 +242,12 @@ export abstract class AbstractEditorView extends AbstractView {
               : withSnapshotInverse(SlideRowBoundaryPrims.slideRowBoundary)(this.state, row.rowNo);
 
         this.commitInverse(inv);
-        // Capture the pointer of the root element so that the
-        // user can drag outside of the current bounds of the
-        // element if necessary.
-        this._root.setPointerCapture(ctx.event.pointerId);
 
         const dragState: DragState = new DragState({
             dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
             dragOriginGrid: ctx.roundedGridPt,
             gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
+            pointerId: ctx.event.pointerId
         });
 
         this.requestReplaceEditorView(this.createViewForState(st, dragState));
@@ -271,15 +268,12 @@ export abstract class AbstractEditorView extends AbstractView {
               : withSnapshotInverse(SlideCellBoundaryPrims.slideCellBoundary)(this.state, cell.rowNo, cell.colNo);
 
         this.commitInverse(inv);
-        // Capture the pointer of the root element so that the
-        // user can drag outside of the current bounds of the
-        // element if necessary.
-        this._root.setPointerCapture(ctx.event.pointerId);
 
         const dragState: DragState = new DragState({
             dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
             dragOriginGrid: ctx.roundedGridPt,
             gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
+            pointerId: ctx.event.pointerId
         });
 
         this.requestReplaceEditorView(this.createViewForState(st, dragState));
