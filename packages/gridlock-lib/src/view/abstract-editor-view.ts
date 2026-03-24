@@ -243,14 +243,8 @@ export abstract class AbstractEditorView extends AbstractView {
 
         this.commitInverse(inv);
 
-        const dragState: DragState = new DragState({
-            dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
-            dragOriginGrid: ctx.roundedGridPt,
-            gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
-            pointerId: ctx.event.pointerId
-        });
-
-        this.requestReplaceEditorView(this.createViewForState(st, dragState));
+        const ds = ctx.intoDragState();
+        this.requestReplaceEditorView(this.createViewForState(st, ds));
         return true;
     }
 
@@ -269,14 +263,8 @@ export abstract class AbstractEditorView extends AbstractView {
 
         this.commitInverse(inv);
 
-        const dragState: DragState = new DragState({
-            dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
-            dragOriginGrid: ctx.roundedGridPt,
-            gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
-            pointerId: ctx.event.pointerId
-        });
-
-        this.requestReplaceEditorView(this.createViewForState(st, dragState));
+        const ds = ctx.intoDragState();
+        this.requestReplaceEditorView(this.createViewForState(st, ds));
         return true;
     }
 
@@ -545,6 +533,14 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 
     /**
+     * Give subclasses a chance to draw an overlay over the entire
+     * grid.
+     */
+    viewGridRootOverlay(r: Recycler) {
+        void r;
+    }
+
+    /**
      * Populate the root element of the editor view. Subclasses may
      * override this to attach additional behaviour to the root element.
      */
@@ -586,6 +582,7 @@ export abstract class AbstractEditorView extends AbstractView {
                         grid.allRows(this.state.grid),
                         (row: grid.RowPath, r: Recycler) =>
                             this.#viewRow(row, r))
+                    .view(r => this.viewGridRootOverlay(r))
                     .commit();
             })
             .view((r: Recycler) => HistoryView(r, this.#history, this.#undoIndex))
@@ -901,6 +898,18 @@ export class PointerEventContext {
 
     get gridH(): number {
         return rect.height(this.gridRect);
+    }
+
+    /**
+     * Construct a new `DragState` from this `PointerEventContext`.
+     */
+    intoDragState(): DragState {
+        return new DragState({
+            dragOriginPx: point.mkP2(this.event.clientX, this.event.clientY),
+            dragOriginGrid: this.flooredGridPt,
+            gridScale: point.mkV2(this.rootRect.width / this.gridW, this.rootRect.height / this.gridH),
+            pointerId: this.event.pointerId
+        });
     }
 }
 

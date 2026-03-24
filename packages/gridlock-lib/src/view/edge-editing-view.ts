@@ -72,15 +72,15 @@ export abstract class AbstractEdgeDraggingView extends AbstractEditorViewWithDra
 }
 
 function cellBoundaryDelta(state: MoveCellBoundaryPrims | SlideCellBoundaryPrims, e: PointerEvent, ds: DragState): number {
-    const dxGrid = ds.dxGrid(e);
+    const gridX = ds.gridX(e);
     const currentEdgeX = grid.rectOfCell(state.grid, { rowNo: state.rowNo, colNo: state.colNo }).right;
-    return dxGrid - currentEdgeX;
+    return gridX - currentEdgeX;
 }
 
 function rowBoundaryDelta(state: MoveRowBoundaryPrims | SlideRowBoundaryPrims, e: PointerEvent, ds: DragState): number {
-    const dyGrid = ds.dyGrid(e);
+    const gridY = ds.gridY(e);
     const currentEdgeY = grid.rectOfRow(state.grid, { rowNo: state.rowNo }).bottom;
-    return dyGrid - currentEdgeY;
+    return gridY - currentEdgeY;
 }
 
 export class SlideCellBoundaryView extends AbstractEdgeDraggingView {

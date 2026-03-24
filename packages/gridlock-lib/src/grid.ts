@@ -658,6 +658,14 @@ export function cellUnderPoint<A>(g: Grid<A>, p: point.P2): CellPath | undefined
 }
 
 /**
+ * Find the list of cells in `g` under the given `Rect`.
+ */
+export function cellsUnderRect<A>(g: Grid<A>, r: rect.Rect): CellPath[] {
+    return [...allPositionedCells(g).flatMap(([cell, cellRect]) =>
+        rect.intersects(r, cellRect) ? [cell] : [])];
+}
+
+/**
  * Check if a possibly unsorted sequence of numbers is contiguous.
  *
  * @param xs The numbers to test.
@@ -863,3 +871,4 @@ export function splitRow<A>(
 
     g.rows.splice(row.rowNo, 1, topRow, bottomRow);
 }
+

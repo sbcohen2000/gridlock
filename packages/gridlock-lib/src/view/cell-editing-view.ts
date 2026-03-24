@@ -93,22 +93,53 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
                 !ctx.event.shiftKey
             )
         );
+
+        const ds = ctx.intoDragState();
+        this.startDrag(ds);
     }
 
     /**
      * Record a rectangle in grid coordinates of the current drag. It
-       is `null` if there is no present drag.
+     * is `null` if there is no present drag.
      */
     private _dragRect: rect.Rect | null = null;
 
     onDrag(e: PointerEvent, ds: DragState) {
-        void e;
-        void ds;
+        this._dragRect = rect.fromPoints(
+            ds.dragOriginGrid,
+            point.mkP2(
+                ds.gridX(e, Math.ceil),
+                ds.gridY(e, Math.ceil)
+            )
+        );
+
+        this.commitInverse(
+            this._ceState.selectCellsUnderRect(
+                this._dragRect,
+                !e.shiftKey
+            ),
+        );
+
+        this.requestRedraw();
     }
 
     onDragEnd(e: PointerEvent, ds: DragState) {
         void e;
         void ds;
+        this._dragRect = null;
+        this.requestRedraw();
+    }
+
+    viewGridRootOverlay(r: Recycler) {
+        if(this.dragState && this._dragRect && rect.area(this._dragRect) > 0) {
+            r.elem({ tag: "div", key: "cell-selection-drag-preview" }, (cellSelectionDragPreviewElem) => {
+                cellSelectionDragPreviewElem.className = "editor-cell-selection-drag-preview";
+                cellSelectionDragPreviewElem.style.left   = `${this._dragRect.left}ch`;
+                cellSelectionDragPreviewElem.style.top    = `${this._dragRect.top}em`;
+                cellSelectionDragPreviewElem.style.width  = `${rect.width(this._dragRect)}ch`;
+                cellSelectionDragPreviewElem.style.height = `${rect.height(this._dragRect)}em`;
+            });
+        }
     }
 
     /**

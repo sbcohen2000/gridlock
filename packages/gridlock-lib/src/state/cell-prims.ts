@@ -76,6 +76,23 @@ export class CellPrims implements State<CellPrims> {
         }
     }
 
+    selectCellsUnderRect(r: rect.Rect, clear?: boolean): Inverse<CellPrims> {
+        const cells = grid.cellsUnderRect(this.grid, r);
+
+        if(cells.length === 0) {
+            return new IdInverse();
+        }
+        const snapshot = this.clone();
+
+        if(clear) {
+            this.selection = cells;
+        } else {
+            this.selection.push(...cells);
+        }
+
+        return new SnapshotInverse(snapshot, "select cell");
+    }
+
     selectCellUnderPoint(pt: point.P2, clear?: boolean): Inverse<CellPrims> {
         const cell = grid.cellUnderPoint(this.grid, pt);
 

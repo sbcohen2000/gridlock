@@ -68,6 +68,13 @@
 }
 
 /*****************************************************************************/
+/** Grid Root                                                                */
+
+.grid-root {
+    position: relative;
+}
+
+/*****************************************************************************/
 /** Editor Guides                                                            */
 
 .editor-row-guide-hitbox,
@@ -395,4 +402,13 @@
         transparent   20%,
         transparent  100%
     );
+}
+
+/*****************************************************************************/
+/** Cell Editing View                                                       **/
+
+.editor-cell-selection-drag-preview {
+    position: absolute;
+    pointer-events: none;
+    outline: 2px solid black;
 }

@@ -43,11 +43,15 @@ export class DragState {
     }
 
     /**
-     * Find the difference in grid coordinates between the x-position
-     * of the drag start and the x-position of the cursor.
+     * Find the x-position of the current drag position in grid
+     * coordiantes.
+     *
+     * The second argument is an optional function which determines
+     * how a decimal coordiante will be turned into an integer
+     * one. (The default is rounding).
      */
-    dxGrid(e: PointerEvent) {
-        return this.#st.dragOriginGrid.x + Math.round(this.dxPx(e) / this.#st.gridScale.dx)
+    gridX(e: PointerEvent, intoInt: (a: number) => number = Math.round) {
+        return this.#st.dragOriginGrid.x + intoInt(this.dxPx(e) / this.#st.gridScale.dx)
     }
 
     /**
@@ -59,10 +63,14 @@ export class DragState {
     }
 
     /**
-     * Find the difference in grid coordinates between the y-position
-     * of the drag start and the y-position of the cursor.
+     * Find the y-position of the current drag position in rounded
+     * grid coordinates.
+     *
+     * The second argument is an optional function which determines
+     * how a decimal coordinate will be turned into an integer
+     * one. (The default is rounding).
      */
-    dyGrid(e: PointerEvent) {
-        return this.#st.dragOriginGrid.y + Math.round(this.dyPx(e) / this.#st.gridScale.dy)
+    gridY(e: PointerEvent, intoInt: (a: number) => number = Math.round) {
+        return this.#st.dragOriginGrid.y + intoInt(this.dyPx(e) / this.#st.gridScale.dy)
     }
 }
