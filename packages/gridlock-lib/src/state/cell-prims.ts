@@ -117,7 +117,7 @@ export class CellPrims implements State<CellPrims> {
         return new SnapshotInverse(snapshot, "select cell");
     }
 
-    selectCellUnderPoint(pt: point.P2, invert?: boolean): Inverse<CellPrims> {
+    selectCellUnderPoint(pt: point.P2, clear?: boolean): Inverse<CellPrims> {
         const cell = grid.cellUnderPoint(this.grid, pt);
 
         if(!cell) {
@@ -126,10 +126,13 @@ export class CellPrims implements State<CellPrims> {
 
         const snapshot = this.clone();
 
-        if(invert) {
+        if(clear) {
+            this.clearSelection();
+        }
+
+        if(this.hasCell(cell)) {
             this.removeCell(cell);
         } else {
-            this.clearSelection();
             this.addCell(cell);
         }
 

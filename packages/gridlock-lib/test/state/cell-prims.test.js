@@ -31,7 +31,7 @@ describe("cell-prims", () => {
             expect(st.selection.length).to.equal(1);
         });
 
-        it("Overwrites the previous selection", () => {
+        it("Adds to the current selection when clear is false", () => {
             const src =
                   "hello there\n" +
                   "+-----+-----+\n" +
@@ -39,21 +39,20 @@ describe("cell-prims", () => {
 
             const st = mkCellState(src);
             st.selectCellUnderPoint(point.mkP2(0, 0));
-            st.selectCellUnderPoint(point.mkP2(6, 0));
-            expect(st.selection.length).to.equal(1);
-            expect(st.selection[0].colNo).to.equal(1);
+            st.selectCellUnderPoint(point.mkP2(6, 0), false);
+            expect(st.selection.length).to.equal(2);
         });
 
-        it("Removes from the selection when invert is true", () => {
+        it("Removes from the selection when clear is true", () => {
             const src =
                   "hello there\n" +
                   "+-----+-----+\n" +
                   "+-----+-----+";
 
             const st = mkCellState(src);
-            st.selectCellUnderPoint(point.mkP2(0, 0), false);
-            st.selectCellUnderPoint(point.mkP2(0, 0), true);
-            expect(st.selection.length).to.equal(0);
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+            st.selectCellUnderPoint(point.mkP2(6, 0), true);
+            expect(st.selection.length).to.equal(1);
         });
     });
 
@@ -70,7 +69,10 @@ describe("cell-prims", () => {
                   "g     "
 
             const st = CellPrims.editCells({ grid: serialize.parseCompactGrid(src) });
-            st.selectCellsUnderRect(rect.fromXYWH(0, 0, 1, 4));
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+            st.selectCellUnderPoint(point.mkP2(0, 1));
+            st.selectCellUnderPoint(point.mkP2(0, 2));
+            st.selectCellUnderPoint(point.mkP2(0, 3));
             st.mergeSelectedCells();
 
             const exp =
