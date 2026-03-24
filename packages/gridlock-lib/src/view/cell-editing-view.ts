@@ -113,7 +113,7 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
 
     onDrag(e: PointerEvent, ds: DragState) {
         const origin = ds.dragOriginGrid;
-        const pt     = point.mkP2(ds.gridX(e), ds.gridY(e));
+        const pt     = ds.dGrid();
         // Now, update _dragRect to a rectangle which encloses the
         // positions `origin` and `pt`.
 

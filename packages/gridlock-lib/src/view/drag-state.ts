@@ -1,5 +1,11 @@
 import * as point from "../point.js";
 
+/**
+ * The default threshold in pixels under which we will consider a drag
+ * to be a click.
+ */
+const DEFAULT_DRAG_THRESHOLD = 3;
+
 export interface DragStateInitializer {
     /** The position of the drag in client coordinates. */
     dragOriginPx: point.P2;
@@ -9,15 +15,50 @@ export interface DragStateInitializer {
     gridScale: point.V2;
     /** The pointer id. It will only ever be captured on the root
      * element of the editor (called `this._root` in subclasses of
-     * `AbstractEditorView`. */
+     * `AbstractEditorView`.
+     */
     pointerId: number;
+    /**
+     * A function which will be run if a drag started by `startDrag`
+     * didn't qualify as a drag. It is passed the pointer-up event.
+     */
+    onClick?: (e: PointerEvent) => void;
+    /**
+     * The threshold in pixels under which we will consider a drag to
+     * be a click. It defaults to 3px.
+     */
+    dragThreshold?: number;
 }
 
 export class DragState {
     #st: DragStateInitializer;
 
+    /**
+     * The distance we've dragged, tracked for the purposes of
+     * classifying this drag as a click.
+     */
+    #d: number;
+
+    /** The distance from the drag origin, in pixels. */
+    #dPx: point.P2;
+
     constructor(init: DragStateInitializer) {
         this.#st = { ...init };
+        this.#d = 0;
+        this.#dPx = point.mkOrigin();
+    }
+
+    /**
+     * Update the drag state with a new pointer event.
+     */
+    update(e: PointerEvent) {
+        const d = point.mkP2(
+            e.clientX - this.#st.dragOriginPx.x,
+            e.clientY - this.#st.dragOriginPx.y,
+        );
+
+        this.#d += point.distance(d, this.#dPx);
+        this.#dPx = d;
     }
 
     /**
@@ -35,42 +76,49 @@ export class DragState {
     }
 
     /**
-     * Find the difference in pixels between the x-position of the
-     * drag start and the x-position of the cursor.
+     * Get the `onClick` handler for this `DragState`, or `undefined`
+     * if no `onClick` handler was attached.
      */
-    dxPx(e: PointerEvent) {
-        return e.clientX - this.#st.dragOriginPx.x;
+    get onClick(): ((e: PointerEvent) => void) | undefined {
+        return this.#st.onClick;
     }
 
     /**
-     * Find the x-position of the current drag position in grid
+     * Find the difference in pixels between the position of the drag
+     * start and the position of the cursor.
+     */
+    get dPx() {
+        return this.#dPx;
+    }
+
+    /**
+     * Find the position of the current drag position in grid
      * coordiantes.
      *
      * The second argument is an optional function which determines
      * how a decimal coordiante will be turned into an integer
      * one. (The default is rounding).
      */
-    gridX(e: PointerEvent, intoInt: (a: number) => number = Math.round) {
-        return this.#st.dragOriginGrid.x + intoInt(this.dxPx(e) / this.#st.gridScale.dx)
+    dGrid(intoInt: (a: number) => number = Math.round): point.P2 {
+        return point.offset(this.#st.dragOriginGrid,
+            point.mkV2(
+                intoInt(this.dPx.x / this.#st.gridScale.dx),
+                intoInt(this.dPx.y / this.#st.gridScale.dy)
+            )
+        );
     }
 
     /**
-     * Find the difference in pixels between the y-position of the
-     * drag start and the y-position of the cursor.
+     * Get this drag's drag threshold.
      */
-    dyPx(e: PointerEvent) {
-        return e.clientY - this.#st.dragOriginPx.y;
+    get dragThreshold(): number {
+        return this.#st.dragThreshold ?? DEFAULT_DRAG_THRESHOLD;
     }
 
     /**
-     * Find the y-position of the current drag position in rounded
-     * grid coordinates.
-     *
-     * The second argument is an optional function which determines
-     * how a decimal coordinate will be turned into an integer
-     * one. (The default is rounding).
+     * Should this drag be considered a click?
      */
-    gridY(e: PointerEvent, intoInt: (a: number) => number = Math.round) {
-        return this.#st.dragOriginGrid.y + intoInt(this.dyPx(e) / this.#st.gridScale.dy)
+    get isClick(): boolean {
+        return this.#d < this.dragThreshold;
     }
 }

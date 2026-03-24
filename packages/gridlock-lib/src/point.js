@@ -112,3 +112,16 @@ export function lerp(omin, omax, imin, xx, imax) {
     const t = (xx - imin) / (imax - imin);
     return (1 - t) * omin + t * omax;
 }
+
+/**
+ * Find the distance between two points.
+ *
+ * @param {P2} a
+ * @param {P2} b
+ * @returns {number}
+ */
+export function distance(a, b) {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}

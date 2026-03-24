@@ -65,15 +65,35 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
 
         root.onpointermove = (e) => {
             if(!this.#dragState) return;
-            this.onDrag(e, this.#dragState);
+
+            this.#dragState.update(e);
+
+            if(!this.#dragState.isClick) {
+                // Only start emitting `onDrag` calls when we're
+                // definitely dragging.
+                this.onDrag(e, this.#dragState);
+            }
         };
 
         root.onpointerup = (e) => {
-            root.releasePointerCapture(e.pointerId);
-            if(this.#dragState) {
+            this.concludeDrag(e);
+        };
+    }
+
+    private concludeDrag(e: PointerEvent) {
+        this._root.releasePointerCapture(e.pointerId);
+        if(this.#dragState) {
+            if(this.#dragState.isClick) {
+                // If we didn't drag far enough to qualify as a drag,
+                // dispatch our `onClick` handler if we have one.
+                if(this.#dragState.onClick) {
+                    this.#dragState.onClick(e);
+                }
+            } else {
+                // Otherwise, signal that the drag has ended.
                 this.onDragEnd(e, this.#dragState);
             }
-            this.#dragState = null;
-        };
+        }
+        this.#dragState = null;
     }
 }
