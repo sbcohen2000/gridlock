@@ -85,10 +85,10 @@ export class CellPrims implements State<CellPrims> {
         const snapshot = this.clone();
 
         if(clear) {
-            this.selection = cells;
-        } else {
-            this.selection.push(...cells);
+            this.selection = [];
         }
+
+        cells.forEach(cell => this.addCell(cell));
 
         return new SnapshotInverse(snapshot, "select cell");
     }
@@ -114,6 +114,25 @@ export class CellPrims implements State<CellPrims> {
 
     canMergeSelectedCells(): boolean {
         return grid.canMergeCells(this.grid, [...this.selection.values()]);
+    }
+
+    /**
+     * If the current selection covers a single row, then return a
+     * path to the selected row. Otherwise, return `undefined`.
+     */
+    selectionCoversRow(): grid.RowPath | undefined {
+        const byRow = grid.collectCellsByRow(this.selection);
+        if(byRow.size === 1) {
+            const [rowNo, cells]: [number, grid.CellPath[]] = byRow.entries().next().value;
+
+            // Ensure that the cells cover the entire row.
+            if(!grid.cellsCoverRow(this.grid, cells)) {
+                return undefined;
+            }
+
+            return { rowNo };
+        }
+        return undefined;
     }
 
     mergeSelectedCells(): Inverse<CellPrims> {

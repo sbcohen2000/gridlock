@@ -155,11 +155,32 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
     viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
         super.viewCellSelection(cell, recycler);
 
+        // If the selection covers exactly one row, then the selection
+        // will be drawn in `viewRowSelection` instead.
+        if(this._ceState.selectionCoversRow()) return;
+
         if(this._ceState.selection.values().find(c => c.colNo === cell.colNo && c.rowNo === cell.rowNo)) {
             recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
                 haloElem.className = "editor-cell-halo";
             });
         }
+    }
+
+    /**
+     * Draw the selection of a row, if any, by adding items to the
+     * recycler.
+     */
+    viewRowSelection(row: grid.RowPath, recycler: Recycler) {
+        super.viewRowSelection(row, recycler);
+
+        const selectedRow = this._ceState.selectionCoversRow();
+        if(!selectedRow) return;
+
+        if(selectedRow.rowNo !== row.rowNo) return;
+
+        recycler.elem({ tag: "div", key: "row-halo" }, (haloElem) => {
+            haloElem.className = "editor-row-halo";
+        });
     }
 }
 

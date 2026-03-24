@@ -742,7 +742,7 @@ function mergeRows<A>(g: Grid<A>, rowNos: number[], data: A, label?: string): Ce
     return { rowNo: firstRowNo, colNo: 0 };
 }
 
-function collectCellsByRow(cells: CellPath[]): Map<number, CellPath[]> {
+export function collectCellsByRow(cells: CellPath[]): Map<number, CellPath[]> {
     const byRow: Map<number, CellPath[]> = new Map();
     cells.forEach(cell => {
         const inRow = byRow.get(cell.rowNo);
@@ -753,6 +753,15 @@ function collectCellsByRow(cells: CellPath[]): Map<number, CellPath[]> {
         }
     });
     return byRow;
+}
+
+/**
+ * Test that the given cells cover a single row.
+ */
+export function cellsCoverRow<A>(g: Grid<A>, cells: CellPath[]): boolean {
+    if(cells.length === 0) return false;
+    const theRow = lookupRow(g, cells[0]);
+    return cells.every(cell => cell.rowNo === cells[0].rowNo) && cells.length === theRow.cells.length;
 }
 
 /**
@@ -771,10 +780,8 @@ export function mergeCells<A>(g: Grid<A>, cells: CellPath[], data: A, label?: st
         return mergeCellsOnRow(g, rowNo, row, data, label);
     } else {
         // The cells exist on multiple rows.
-        for(const [rowNo, cells] of byRow.entries()) {
-            const theRow = g.rows[rowNo];
-
-            if(cells.length !== theRow.cells.length) {
+        for(const cells of byRow.values()) {
+            if(!cellsCoverRow(g, [...cells])) {
                 throw new Error("invalid merge");
             }
         }

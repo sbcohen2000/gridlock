@@ -300,6 +300,7 @@
     border-right: 1px solid gray;
 }
 
+.editor-row-halo,
 .editor-cell-halo {
     height: 100%;
     width: 100%;
@@ -309,6 +310,7 @@
     z-index: 3;
     outline: var(--selection-halo-thick) solid var(--selection-color);
     outline-offset: calc(-1 * var(--selection-halo-thick) / 2);
+    pointer-events: none;
 }
 
 .editor-context-menu {
