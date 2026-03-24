@@ -1,4 +1,5 @@
 import * as cmenu from "./context-menu.js";
+import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
 import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
@@ -6,7 +7,6 @@ import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-drag
 import { CellPrims } from "../state/index.js";
 import { DragState } from "./drag-state.js";
 
-import type * as grid from "../grid.js";
 import type { Recycler } from "../framework/index.js";
 import type { Inverse, AnyState } from "../state/index.js";
 
@@ -48,7 +48,8 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
             // However, if the right-click occured in a non-selected cell,
             // clear the selection and select the clicked cell.
             if(!this._ceState.hasCell(ctx.cell)) {
-                this._ceState.addCell(ctx.cell, true);
+                this._ceState.clearSelection();
+                this._ceState.addCell(ctx.cell);
             }
 
             const canInsertRow = this._ceState.canInsertRow();
@@ -96,7 +97,7 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
         this.commitInverse(
             this._ceState.selectCellUnderPoint(
                 ctx.flooredGridPt,
-                !ctx.event.shiftKey
+                ctx.event.shiftKey
             )
         );
 
@@ -111,20 +112,26 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
     private _dragRect: rect.Rect | null = null;
 
     onDrag(e: PointerEvent, ds: DragState) {
-        this._dragRect = rect.fromPoints(
-            ds.dragOriginGrid,
-            point.mkP2(
-                ds.gridX(e, Math.ceil),
-                ds.gridY(e, Math.ceil)
-            )
+        const origin = ds.dragOriginGrid;
+        const pt     = point.mkP2(ds.gridX(e), ds.gridY(e));
+        // Now, update _dragRect to a rectangle which encloses the
+        // positions `origin` and `pt`.
+
+        const newRect = rect.unions(
+            rect.fromPoint(origin, 1, 1),
+            rect.fromPoint(pt, 1, 1)
         );
 
-        this.commitInverse(
-            this._ceState.selectCellsUnderRect(
-                this._dragRect,
-                !e.shiftKey
-            ),
-        );
+        if(!this._dragRect || !rect.eqRect(newRect, this._dragRect)) {
+            this._dragRect = newRect;
+
+            this.commitInverse(
+                this._ceState.selectCellsUnderRect(
+                    this._dragRect,
+                    e.shiftKey
+                ),
+            );
+        }
 
         this.requestRedraw();
     }
@@ -159,7 +166,7 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
         // will be drawn in `viewRowSelection` instead.
         if(this._ceState.selectionCoversRow()) return;
 
-        if(this._ceState.selection.values().find(c => c.colNo === cell.colNo && c.rowNo === cell.rowNo)) {
+        if(this._ceState.selection.values().find(c => grid.eqCellPath(c, cell))) {
             recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
                 haloElem.className = "editor-cell-halo";
             });

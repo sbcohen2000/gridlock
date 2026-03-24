@@ -1,10 +1,11 @@
 import * as fc from "fast-check";
 import * as grid from "../../src/grid.js";
 import * as point from "../../src/point.js";
-import { serialize, CellPrims } from "../../src/state/index.js";
+import * as rect from "../../src/rect.js";
 import { arbCellGrid } from "../arbitrary-cell-grid.js";
-import { expect } from "chai";
 import { checkGridInvariants } from "../../src/state/state-iface.js";
+import { expect } from "chai";
+import { serialize, CellPrims } from "../../src/state/index.js";
 
 /**
  * Create a CellPrims from a cell-grid string.
@@ -26,32 +27,33 @@ describe("cell-prims", () => {
                   "+-----+";
 
             const st = mkCellState(src);
-            st.selectCellUnderPoint(point.mkP2(0, 0), true);
+            st.selectCellUnderPoint(point.mkP2(0, 0));
             expect(st.selection.length).to.equal(1);
         });
 
-        it("Accumulates cells when clear is false", () => {
+        it("Overwrites the previous selection", () => {
             const src =
                   "hello there\n" +
                   "+-----+-----+\n" +
                   "+-----+-----+";
 
             const st = mkCellState(src);
-            st.selectCellUnderPoint(point.mkP2(0, 0), true);
-            st.selectCellUnderPoint(point.mkP2(6, 0), false);
-            expect(st.selection.length).to.equal(2);
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+            st.selectCellUnderPoint(point.mkP2(6, 0));
+            expect(st.selection.length).to.equal(1);
+            expect(st.selection[0].colNo).to.equal(1);
         });
 
-        it("Replaces selection when clear is true", () => {
+        it("Removes from the selection when invert is true", () => {
             const src =
                   "hello there\n" +
                   "+-----+-----+\n" +
                   "+-----+-----+";
 
             const st = mkCellState(src);
+            st.selectCellUnderPoint(point.mkP2(0, 0), false);
             st.selectCellUnderPoint(point.mkP2(0, 0), true);
-            st.selectCellUnderPoint(point.mkP2(6, 0), true);
-            expect(st.selection.length).to.equal(1);
+            expect(st.selection.length).to.equal(0);
         });
     });
 
@@ -68,10 +70,7 @@ describe("cell-prims", () => {
                   "g     "
 
             const st = CellPrims.editCells({ grid: serialize.parseCompactGrid(src) });
-            st.selectCellUnderPoint(point.mkP2(0, 0), false);
-            st.selectCellUnderPoint(point.mkP2(0, 1), false);
-            st.selectCellUnderPoint(point.mkP2(0, 2), false);
-            st.selectCellUnderPoint(point.mkP2(0, 3), false);
+            st.selectCellsUnderRect(rect.fromXYWH(0, 0, 1, 4));
             st.mergeSelectedCells();
 
             const exp =

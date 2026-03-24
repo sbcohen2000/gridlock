@@ -55,7 +55,7 @@ export class CellPrims implements State<CellPrims> {
      * Check if the selection includes the given cell path.
      */
     hasCell(cell: grid.CellPath): boolean {
-        return this.selection.some(s => s.colNo === cell.colNo && s.rowNo === cell.rowNo);
+        return this.selection.some(s => grid.eqCellPath(s, cell));
     }
 
     /**
@@ -66,47 +66,71 @@ export class CellPrims implements State<CellPrims> {
     }
 
     /**
+     * Clear the current selection.
+     */
+    clearSelection() {
+        this.selection = [];
+    }
+
+    /**
      * Add a cell to the selection.
      */
-    addCell(cell: grid.CellPath, clear?: boolean) {
-        if(clear) {
-            this.selection = [{ ...cell }];
-        } else if(!this.hasCell(cell)) {
+    addCell(cell: grid.CellPath) {
+        if(!this.hasCell(cell)) {
             this.selection.push({ ...cell });
         }
     }
 
-    selectCellsUnderRect(r: rect.Rect, clear?: boolean): Inverse<CellPrims> {
+    selectCellsUnderRect(r: rect.Rect, invert?: boolean): Inverse<CellPrims> {
         const cells = grid.cellsUnderRect(this.grid, r);
 
         if(cells.length === 0) {
             return new IdInverse();
         }
-        const snapshot = this.clone();
 
-        if(clear) {
-            this.selection = [];
+        // Find the intersection of the current selection and the
+        // cells under the rectangle.
+        const intersection = cells.filter(cell => this.hasCell(cell));
+
+        if(invert && intersection.length === 0) {
+            // We're removing from the selection, but the cells under
+            // the rectangle aren't any of the selected ones.
+            return new IdInverse();
         }
 
-        cells.forEach(cell => this.addCell(cell));
+        if(!invert && intersection.length === cells.length
+            && intersection.length === this.selection.length) {
+            // We're replacing the selection, but the cells under the
+            // rectangle are the same as those already selected.
+            return new IdInverse();
+        }
+
+        const snapshot = this.clone();
+
+        if(invert) {
+            cells.forEach(cell => this.removeCell(cell));
+        } else {
+            this.clearSelection();
+            cells.forEach(cell => this.addCell(cell));
+        }
 
         return new SnapshotInverse(snapshot, "select cell");
     }
 
-    selectCellUnderPoint(pt: point.P2, clear?: boolean): Inverse<CellPrims> {
+    selectCellUnderPoint(pt: point.P2, invert?: boolean): Inverse<CellPrims> {
         const cell = grid.cellUnderPoint(this.grid, pt);
 
         if(!cell) {
             return new IdInverse();
         }
+
         const snapshot = this.clone();
 
-        if(clear) {
-            this.selection = [{ ...cell }];
-        } else if(this.hasCell(cell)) {
+        if(invert) {
             this.removeCell(cell);
         } else {
-            this.selection.push({ ...cell });
+            this.clearSelection();
+            this.addCell(cell);
         }
 
         return new SnapshotInverse(snapshot, "select cell");
@@ -383,7 +407,7 @@ export class CellPrims implements State<CellPrims> {
 
         this.selection = [];
         for(const loc of cellLocs) {
-            this.selectCellUnderPoint(loc, false);
+            this.selectCellUnderPoint(loc);
         }
 
         return true;

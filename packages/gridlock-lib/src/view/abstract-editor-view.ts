@@ -133,9 +133,7 @@ export abstract class AbstractEditorView extends AbstractView {
      * as a double-click by consulting `#lastClick`.
      */
     #classifyDoubleClick(cell: grid.CellPath): boolean {
-        if(this.#lastClick !== null
-            && this.#lastClick.cell.colNo === cell.colNo
-            && this.#lastClick.cell.rowNo === cell.rowNo) {
+        if(this.#lastClick !== null && grid.eqCellPath(this.#lastClick.cell, cell)) {
             this.#lastClick = null;
             return true;
         } else {

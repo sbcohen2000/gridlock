@@ -35,6 +35,13 @@ export interface CellPath {
 }
 
 /**
+ * Check if two cell paths point to the same location.
+ */
+export function eqCellPath(a: CellPath, b: CellPath): boolean {
+    return a.rowNo === b.rowNo && a.colNo === b.colNo;
+}
+
+/**
  * Construct a new `Grid` with the provided dimensions.
  *
  * @template A

@@ -9,6 +9,20 @@ import * as point from "./point.js";
  */
 
 /**
+ * Test if two rectangles are structurally equal.
+ *
+ * @param {Rect} a
+ * @param {Rect} b
+ * @returns {boolean}
+ */
+export function eqRect(a, b) {
+    return a.left   === b.left
+        && a.right  === b.right
+        && a.top    === b.top
+        && a.bottom === b.bottom;
+}
+
+/**
  * Compute the width of a rectangle.
  *
  * @param {Rect} r
@@ -83,18 +97,19 @@ export function fromXYWH(x, y, w, h) {
 }
 
 /**
- * Create a new rectangle from two points.
+ * Create a new rectangle from a point and its width and heigth.
  *
- * @param {point.P2} a
- * @param {point.P2} b
+ * @param {point.P2} p
+ * @param {number} w
+ * @param {number} h
  * @returns {Rect}
  */
-export function fromPoints(a, b) {
+export function fromPoint(p, w, h) {
     return {
-        left: Math.min(a.x, b.x),
-        right: Math.max(a.x, b.x),
-        top: Math.min(a.y, b.y),
-        bottom: Math.max(a.y, b.y)
+        left: p.x,
+        right: p.x + w,
+        top: p.y,
+        bottom: p.y + h
     }
 }
 

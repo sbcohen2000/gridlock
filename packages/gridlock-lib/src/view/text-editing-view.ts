@@ -1,9 +1,9 @@
+import * as grid from "../grid.js";
 import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
 import { KeyViewEvent } from "./abstract-view.js";
-import { TextPrims, CellPrims } from "../state/index.js";
 import { SnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
+import { TextPrims, CellPrims } from "../state/index.js";
 
-import type * as grid from "../grid.js";
 import type { InitialViewState } from "./abstract-editor-view.js";
 import type { Recycler } from "../framework/index.js";
 import type { ViewEvent } from "./abstract-view.js";
@@ -44,7 +44,7 @@ export class TextEditingView extends AbstractEditorView {
         }
 
         const gridPt = ctx.flooredGridPt;
-        if(ctx.event.shiftKey && (ctx.cell.rowNo !== this._teState.selection.cell.rowNo || ctx.cell.colNo !== this._teState.selection.cell.colNo)) {
+        if(ctx.event.shiftKey && !this.cellIsSelected(ctx.cell)) {
             // The gridPt is outside of the current cell, so
             // transition to a cell-editing state where the two
             // cells are selected.
@@ -68,8 +68,7 @@ export class TextEditingView extends AbstractEditorView {
      * Test if the given `cell` is the selected cell.
      */
     cellIsSelected(cell: grid.CellPath) {
-        return this._teState.selection.cell.rowNo === cell.rowNo
-            && this._teState.selection.cell.colNo === cell.colNo;
+        return grid.eqCellPath(this._teState.selection.cell, cell);
     }
 
     /**
