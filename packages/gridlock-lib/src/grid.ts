@@ -545,6 +545,13 @@ export function removeEmptyRows<A>(g: Grid<A>) {
 }
 
 /**
+ * Delete the row at the given path from the grid.
+ */
+export function deleteRow<A>(g: Grid<A>, row: RowPath) {
+    g.rows.splice(row.rowNo, 1);
+}
+
+/**
  * Atomically modify the width of a list of cells. The cells provided
  * must span the entire vertical height of the grid with no overlap.
  *

@@ -902,11 +902,15 @@ export class PointerEventContext {
 
     /**
      * Construct a new `DragState` from this `PointerEventContext`.
+     *
+     * The optional argument specifies if the grid cell under the
+     * pointer should be determined by rounding to the nearest cell,
+     * or choosing the containing cell.
      */
-    intoDragState(): DragState {
+    intoDragState(roundOrFloorGridOrigin: "Round" | "Floor" = "Round"): DragState {
         return new DragState({
             dragOriginPx: point.mkP2(this.event.clientX, this.event.clientY),
-            dragOriginGrid: this.flooredGridPt,
+            dragOriginGrid: roundOrFloorGridOrigin === "Round" ? this.roundedGridPt : this.flooredGridPt,
             gridScale: point.mkV2(this.rootRect.width / this.gridW, this.rootRect.height / this.gridH),
             pointerId: this.event.pointerId
         });

@@ -100,7 +100,7 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
             )
         );
 
-        const ds = ctx.intoDragState();
+        const ds = ctx.intoDragState("Floor");
         this.startDrag(ds);
     }
 
