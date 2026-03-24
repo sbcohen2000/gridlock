@@ -116,3 +116,36 @@ export function rowLines(row: grid.Row<Cell>): string[] {
     while(lines.length < row.height) lines.push("");
     return lines;
 }
+
+/**
+ * Check that inavariants of the grid hold.
+ */
+export function checkGridInvariants(st: { grid: grid.Grid<Cell> }): boolean {
+    if(!grid.debugCheckGridDimsConsistency(st.grid)) {
+        return false;
+    }
+
+    for(const cell of grid.allCells(st.grid)) {
+        const theRow = grid.lookupRow(st.grid, cell);
+        const theCell = grid.lookupCell(st.grid, cell);
+
+        if(theRow.height <= 0) return false;
+        if(theCell.width <= 0) return false;
+
+        // Each cell must have enough lines to account for its height (it
+        // can have more, but not fewer).
+        if(theCell.data.lines.length <= 0 || theCell.data.lines.length < theRow.height) {
+            return false;
+        }
+
+        // Each cell's disabled guides must be less than cell's width
+        // and greater than zero.
+        for(const guide of theCell.data.disabledGuides.values()) {
+            if(0 <= guide || theCell.width <= guide) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}

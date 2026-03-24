@@ -8,6 +8,7 @@ import {
     TextPrims,
 } from "../../src/state/index.js";
 import { expect } from "chai";
+import { checkGridInvariants } from "../../src/state/state-iface.js";
 
 describe("edge-prims", () => {
     describe("moveHorizontalEdge", () => {
@@ -186,6 +187,7 @@ describe("edge-prims", () => {
                   " Exception Masks---+           +---Exception Flags ";
 
             expect(serialize.printCompactGrid(st)).to.equal(exp);
+            expect(checkGridInvariants(st)).to.be.true;
         });
     });
 
@@ -275,6 +277,7 @@ describe("edge-prims", () => {
                   "g              ";
 
             expect(serialize.printCompactGrid(st)).to.equal(exp);
+            expect(checkGridInvariants(st)).to.be.true;
         });
     });
 });

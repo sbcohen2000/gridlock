@@ -25,3 +25,12 @@ within the type definition like this:
    * @returns {fc.Arbitrary<Promise<TextPrimsState>>} An arbitrary editor state
    */
   ```
+
+# Grid Invariants
+- Each cell in the grid must have at least one (possibly empty) line of text.
+- The number of lines of text in a cell _may_ exceed the cell's height, but it _cannot_ be less than the cell's height.
+  - When the number of lines exceeds the height, this is sometimes referred to as an "incomplete" or "clipped" cell.
+- Similar to lines, the length of a line of text _may_ exceed it's parent cell's width.
+  - But as opposed to height, there is no restriction on how short a line may be (any line can be empty).
+- Each cell's disabled guides must point to a local column somewhere within the cell (i.e. the guide's value is
+  greater than zero, but less than the cell's width).
