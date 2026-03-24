@@ -94,14 +94,16 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
             return;
         }
 
-        this.commitInverse(
-            this._ceState.selectCellUnderPoint(
-                ctx.flooredGridPt,
-                ctx.event.shiftKey
-            )
-        );
+        const ds = ctx.intoDragState("Floor", () => {
+            // On click,
+            this.commitInverse(
+                this._ceState.selectCellUnderPoint(
+                    ctx.flooredGridPt,
+                    ctx.event.shiftKey
+                )
+            );
+        });
 
-        const ds = ctx.intoDragState("Floor");
         this.startDrag(ds);
     }
 
