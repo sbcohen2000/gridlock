@@ -1,39 +1,32 @@
 import * as grid from "../grid.js";
-import * as point from "../point.js";
 import { AbstractEditorView } from "./abstract-editor-view.js";
 import {
     MoveCellBoundaryPrims,
     MoveRowBoundaryPrims,
     SlideCellBoundaryPrims,
-    SlideRowBoundaryPrims,
-    TextPrims
+    SlideRowBoundaryPrims
 } from "../state/index.js";
-import { withSnapshotInverse } from "../state/inverse.js";
-
 import type { Inverse, AnyState } from "../state/index.js";
-
-export interface DragState {
-    dragOriginPx: point.P2;
-    dragOriginGrid: point.P2;
-    gridScale: point.V2;
-    lastArg: number;
-}
+import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
+import { DragState } from "./drag-state.js";
+import { TextPrims } from "../state/index.js";
+import { withSnapshotInverse } from "../state/inverse.js";
 
 /**
  * Abstract base class for edge dragging views. Subclasses provide
  * the direction-specific edge primitives.
  */
-export class AbstractEdgeDraggingView extends AbstractEditorView {
+export abstract class AbstractEdgeDraggingView extends AbstractEditorViewWithDragging {
     _eeState: AnyState;
-    #dragState: DragState | null;
+    private _lastDelta: number = 0;
 
     constructor(prev: AbstractEditorView, eeState: AnyState, dragState?: DragState) {
-        super(prev, eeState);
-        if(new.target === AbstractEdgeDraggingView) {
-            throw new Error("Cannot instantiate AbstractEdgeDraggingView directly");
-        }
+        super(prev, eeState, dragState);
         this._eeState = eeState;
-        this.#dragState = dragState ?? null;
+
+        if(prev instanceof AbstractEdgeDraggingView) {
+            this._lastDelta = prev._lastDelta;
+        }
     }
 
     applyInverse(inverse: Inverse<AnyState>): AnyState {
@@ -58,44 +51,36 @@ export class AbstractEdgeDraggingView extends AbstractEditorView {
         throw new Error("Method not implemented");
     }
 
-    _viewRoot(root: HTMLElement) {
-        super._viewRoot(root);
+    onDrag(e: PointerEvent, ds: DragState) {
+        const d = this.computeDelta(e, ds);
 
-        root.onpointermove = (e) => {
-            if(!this.#dragState) return;
+        if(d !== this._lastDelta && d !== 0) {
+            this.applyEdgePrimitive(d);
+        }
+        this._lastDelta = d;
+    }
 
-            const d = this.computeDelta(e, this.#dragState);
+    onDragEnd(e: PointerEvent, ds: DragState) {
+        void e;
+        void ds;
 
-            if(this.#dragState.lastArg !== d && d !== 0) {
-                this.applyEdgePrimitive(d);
-            }
-            this.#dragState.lastArg = d;
-        };
-
-        root.onpointerup = (e) => {
-            root.releasePointerCapture(e.pointerId);
-            if(this.#dragState) {
-                this.#dragState = null;
-                const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
-                this.commitInverse(inv);
-                this.requestReplaceEditorView(this.createViewForState(st));
-            }
-        };
+        // Once the drag ends, switch to text-editing view.
+        const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
+        this.commitInverse(inv);
+        this.requestReplaceEditorView(this.createViewForState(st));
     }
 }
 
 function cellBoundaryDelta(state: MoveCellBoundaryPrims | SlideCellBoundaryPrims, e: PointerEvent, ds: DragState): number {
-    const dxPx = e.clientX - ds.dragOriginPx.x;
-    const dxGrid = ds.dragOriginGrid.x + Math.round(dxPx / ds.gridScale.dx);
+    const gridX = ds.gridX(e);
     const currentEdgeX = grid.rectOfCell(state.grid, { rowNo: state.rowNo, colNo: state.colNo }).right;
-    return dxGrid - currentEdgeX;
+    return gridX - currentEdgeX;
 }
 
 function rowBoundaryDelta(state: MoveRowBoundaryPrims | SlideRowBoundaryPrims, e: PointerEvent, ds: DragState): number {
-    const dyPx = e.clientY - ds.dragOriginPx.y;
-    const dyGrid = ds.dragOriginGrid.y + Math.round(dyPx / ds.gridScale.dy);
+    const gridY = ds.gridY(e);
     const currentEdgeY = grid.rectOfRow(state.grid, { rowNo: state.rowNo }).bottom;
-    return dyGrid - currentEdgeY;
+    return gridY - currentEdgeY;
 }
 
 export class SlideCellBoundaryView extends AbstractEdgeDraggingView {

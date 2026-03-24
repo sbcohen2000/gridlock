@@ -1,18 +1,25 @@
 import * as cmenu from "./context-menu.js";
 import * as point from "../point.js";
+import * as rect from "../rect.js";
 import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
+import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
 import { CellPrims } from "../state/index.js";
+import { DragState } from "./drag-state.js";
 
 import type * as grid from "../grid.js";
 import type { Recycler } from "../framework/index.js";
 import type { Inverse, AnyState } from "../state/index.js";
 
-export class CellEditingView extends AbstractEditorView {
+export class CellEditingView extends AbstractEditorViewWithDragging {
     _ceState: CellPrims;
 
     constructor(prev: AbstractEditorView, state: CellPrims) {
         super(prev, state);
         this._ceState = state;
+
+        if(prev instanceof CellEditingView) {
+            this._dragRect = prev._dragRect;
+        }
     }
 
     applyInverse(inverse: Inverse<AnyState>): AnyState {
@@ -49,6 +56,8 @@ export class CellEditingView extends AbstractEditorView {
             const cellsPluralSuffix = this._ceState.pluralCells ? "s" : "";
             const rowsPluralSuffix = this._ceState.pluralRows ? "s" : "";
 
+            const canMergeCells = this._ceState.canMergeSelectedCells();
+
             const descr: cmenu.ContextMenuDescription = {
                 origin: point.mkP2(ctx.event.clientX, ctx.event.clientY),
                 menu: [
@@ -72,7 +81,11 @@ export class CellEditingView extends AbstractEditorView {
                     }, !canInsertCell),
                     cmenu.button(`Insert cell${cellsPluralSuffix} to the right`, () => {
                         this.commitInverse(this._ceState.insertCellRight());
-                    }, !canInsertCell)
+                    }, !canInsertCell),
+                    cmenu.divider(),
+                    cmenu.button("Merge cells", () => {
+                        this.commitInverse(this._ceState.mergeSelectedCells());
+                    }, !canMergeCells)
                 ]
             };
 
@@ -86,6 +99,53 @@ export class CellEditingView extends AbstractEditorView {
                 !ctx.event.shiftKey
             )
         );
+
+        const ds = ctx.intoDragState("Floor");
+        this.startDrag(ds);
+    }
+
+    /**
+     * Record a rectangle in grid coordinates of the current drag. It
+     * is `null` if there is no present drag.
+     */
+    private _dragRect: rect.Rect | null = null;
+
+    onDrag(e: PointerEvent, ds: DragState) {
+        this._dragRect = rect.fromPoints(
+            ds.dragOriginGrid,
+            point.mkP2(
+                ds.gridX(e, Math.ceil),
+                ds.gridY(e, Math.ceil)
+            )
+        );
+
+        this.commitInverse(
+            this._ceState.selectCellsUnderRect(
+                this._dragRect,
+                !e.shiftKey
+            ),
+        );
+
+        this.requestRedraw();
+    }
+
+    onDragEnd(e: PointerEvent, ds: DragState) {
+        void e;
+        void ds;
+        this._dragRect = null;
+        this.requestRedraw();
+    }
+
+    viewGridRootOverlay(r: Recycler) {
+        if(this.dragState && this._dragRect && rect.area(this._dragRect) > 0) {
+            r.elem({ tag: "div", key: "cell-selection-drag-preview" }, (cellSelectionDragPreviewElem) => {
+                cellSelectionDragPreviewElem.className = "editor-cell-selection-drag-preview";
+                cellSelectionDragPreviewElem.style.left   = `${this._dragRect.left}ch`;
+                cellSelectionDragPreviewElem.style.top    = `${this._dragRect.top}em`;
+                cellSelectionDragPreviewElem.style.width  = `${rect.width(this._dragRect)}ch`;
+                cellSelectionDragPreviewElem.style.height = `${rect.height(this._dragRect)}em`;
+            });
+        }
     }
 
     /**

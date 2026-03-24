@@ -76,6 +76,23 @@ export class CellPrims implements State<CellPrims> {
         }
     }
 
+    selectCellsUnderRect(r: rect.Rect, clear?: boolean): Inverse<CellPrims> {
+        const cells = grid.cellsUnderRect(this.grid, r);
+
+        if(cells.length === 0) {
+            return new IdInverse();
+        }
+        const snapshot = this.clone();
+
+        if(clear) {
+            this.selection = cells;
+        } else {
+            this.selection.push(...cells);
+        }
+
+        return new SnapshotInverse(snapshot, "select cell");
+    }
+
     selectCellUnderPoint(pt: point.P2, clear?: boolean): Inverse<CellPrims> {
         const cell = grid.cellUnderPoint(this.grid, pt);
 
@@ -151,14 +168,43 @@ export class CellPrims implements State<CellPrims> {
      * Delete the rows of the selected cells.
      */
     deleteRows(): Inverse<CellPrims> {
-        throw new Error("TODO");
+        if(this.selection.length === 0) return new IdInverse();
+
+        // Collect unique row numbers to delete, sorted descending so
+        // that splicing doesn't shift indices of rows yet to be removed.
+        const rowNos = [...new Set(this.selection.map(cell => cell.rowNo))]
+            .toSorted((a, b) => b - a);
+
+        if(rowNos.length >= this.grid.rows.length) {
+            // When all of the rows in the grid are selected, only
+            // keep the last row.
+            rowNos.shift();
+        }
+
+        const snapshot = this.clone();
+
+        for(const rowNo of rowNos) {
+            grid.deleteRow(this.grid, { rowNo });
+        }
+
+        this.selection = [];
+        return new SnapshotInverse(snapshot, "delete rows");
     }
 
     /**
      * Clear the contents of the selected cells.
      */
     clearCellContents(): Inverse<CellPrims> {
-        throw new Error("TODO");
+        if(this.selection.length === 0) return new IdInverse();
+        const snapshot = this.clone();
+
+        for(const cell of this.selection) {
+            const theCell = grid.lookupCell(this.grid, cell);
+            const theRow  = grid.lookupRow(this.grid, cell);
+            theCell.data.lines = Array.from({ length: theRow.height }, () => "");
+        }
+
+        return new SnapshotInverse(snapshot, "clear cell content");
     }
 
     /**

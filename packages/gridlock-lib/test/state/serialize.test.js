@@ -1,7 +1,8 @@
 import * as fc from "fast-check";
-import { serialize, TextPrims } from "../../src/state/index.js";
+import { serialize } from "../../src/state/index.js";
 import { arbCellGrid } from "../arbitrary-cell-grid.js";
 import { expect } from "chai";
+import { checkGridInvariants } from "../../src/state/state-iface.js";
 
 describe("serialize", () => {
     it("printCellGrid and parseCellGrid are inverses", () => {
@@ -13,6 +14,7 @@ describe("serialize", () => {
                     const g1 = serialize.parseCommonState(src0);
                     const src1 = serialize.printCommonState({ grid: g1 });
                     expect(src0).to.equal(src1);
+                    expect(checkGridInvariants({ grid: g1 })).to.be.true;
                 }
             )
         );
@@ -44,6 +46,7 @@ describe("serialize", () => {
                     const g1 = serialize.parseCompactGrid(src0);
                     const src1 = serialize.printCompactGrid({ grid: g1 });
                     expect(src0).to.equal(src1);
+                    expect(checkGridInvariants({ grid: g1 })).to.be.true;
                 }
             )
         );

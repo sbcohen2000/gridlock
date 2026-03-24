@@ -6,6 +6,7 @@ import { arbCellGrid } from "../arbitrary-cell-grid.js";
 import { arbitraryPrimitiveCommand, summarizePrimitiveCommands } from "./arbitrary-primitive-command.js";
 import { expect } from "chai";
 import { serialize, TextPrims } from "../../src/state/index.js";
+import { checkGridInvariants } from "../../src/state/state-iface.js";
 
 /** @import { AnyState } from "../../src/state/state-iface.js" */
 
@@ -43,8 +44,8 @@ describe("Primitive command properties", () => {
                         st[method](...args);
                     }
 
-                    // Check that grid dimensions are consistent
-                    expect(grid.debugCheckGridDimsConsistency(st.grid)).to.be.true;
+                    // Check that grid invariants are preserved
+                    expect(checkGridInvariants(st)).to.be.true;
                 }
             ),
             {

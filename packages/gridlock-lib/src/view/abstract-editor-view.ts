@@ -14,12 +14,12 @@ import {
     disableCellGuides,
     enableCellGuides
 } from "../state/index.js";
+import { DragState } from "./drag-state.js";
+import { SnapshotInverse, TimedSnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 import { cellContentExceedsCellWidth, maximumCellHeight, rowContentExceedsRowHeight } from "../state/state-iface.js";
 import { padLeftToLength } from "../util.js";
-import { SnapshotInverse, TimedSnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 
 import type { Inverse, AnyState } from "../state/index.js";
-import type { DragState } from "./edge-editing-view.js";
 import type { Recycler } from "../framework/index.js";
 
 const MAX_HISTORY: number = 100;
@@ -242,19 +242,9 @@ export abstract class AbstractEditorView extends AbstractView {
               : withSnapshotInverse(SlideRowBoundaryPrims.slideRowBoundary)(this.state, row.rowNo);
 
         this.commitInverse(inv);
-        // Capture the pointer of the root element so that the
-        // user can drag outside of the current bounds of the
-        // element if necessary.
-        this._root.setPointerCapture(ctx.event.pointerId);
 
-        const dragState: DragState = {
-            dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
-            dragOriginGrid: ctx.roundedGridPt,
-            gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
-            lastArg: 0
-        };
-
-        this.requestReplaceEditorView(this.createViewForState(st, dragState));
+        const ds = ctx.intoDragState();
+        this.requestReplaceEditorView(this.createViewForState(st, ds));
         return true;
     }
 
@@ -272,19 +262,9 @@ export abstract class AbstractEditorView extends AbstractView {
               : withSnapshotInverse(SlideCellBoundaryPrims.slideCellBoundary)(this.state, cell.rowNo, cell.colNo);
 
         this.commitInverse(inv);
-        // Capture the pointer of the root element so that the
-        // user can drag outside of the current bounds of the
-        // element if necessary.
-        this._root.setPointerCapture(ctx.event.pointerId);
 
-        const dragState: DragState = {
-            dragOriginPx: point.mkP2(ctx.event.clientX, ctx.event.clientY),
-            dragOriginGrid: ctx.roundedGridPt,
-            gridScale: point.mkV2(ctx.rootRect.width / ctx.gridW, ctx.rootRect.height / ctx.gridH),
-            lastArg: 0
-        };
-
-        this.requestReplaceEditorView(this.createViewForState(st, dragState));
+        const ds = ctx.intoDragState();
+        this.requestReplaceEditorView(this.createViewForState(st, ds));
         return true;
     }
 
@@ -553,6 +533,14 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 
     /**
+     * Give subclasses a chance to draw an overlay over the entire
+     * grid.
+     */
+    viewGridRootOverlay(r: Recycler) {
+        void r;
+    }
+
+    /**
      * Populate the root element of the editor view. Subclasses may
      * override this to attach additional behaviour to the root element.
      */
@@ -594,6 +582,7 @@ export abstract class AbstractEditorView extends AbstractView {
                         grid.allRows(this.state.grid),
                         (row: grid.RowPath, r: Recycler) =>
                             this.#viewRow(row, r))
+                    .view(r => this.viewGridRootOverlay(r))
                     .commit();
             })
             .view((r: Recycler) => HistoryView(r, this.#history, this.#undoIndex))
@@ -909,6 +898,22 @@ export class PointerEventContext {
 
     get gridH(): number {
         return rect.height(this.gridRect);
+    }
+
+    /**
+     * Construct a new `DragState` from this `PointerEventContext`.
+     *
+     * The optional argument specifies if the grid cell under the
+     * pointer should be determined by rounding to the nearest cell,
+     * or choosing the containing cell.
+     */
+    intoDragState(roundOrFloorGridOrigin: "Round" | "Floor" = "Round"): DragState {
+        return new DragState({
+            dragOriginPx: point.mkP2(this.event.clientX, this.event.clientY),
+            dragOriginGrid: roundOrFloorGridOrigin === "Round" ? this.roundedGridPt : this.flooredGridPt,
+            gridScale: point.mkV2(this.rootRect.width / this.gridW, this.rootRect.height / this.gridH),
+            pointerId: this.event.pointerId
+        });
     }
 }
 

@@ -64,7 +64,14 @@
     text-align: right;
     color: gray;
     height: 1em;
-    white-space: preserve;
+    white-space: preserve nowrap;
+}
+
+/*****************************************************************************/
+/** Grid Root                                                                */
+
+.grid-root {
+    position: relative;
 }
 
 /*****************************************************************************/
@@ -395,4 +402,13 @@
         transparent   20%,
         transparent  100%
     );
+}
+
+/*****************************************************************************/
+/** Cell Editing View                                                       **/
+
+.editor-cell-selection-drag-preview {
+    position: absolute;
+    pointer-events: none;
+    outline: 2px solid black;
 }

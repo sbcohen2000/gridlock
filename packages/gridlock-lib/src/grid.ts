@@ -545,6 +545,13 @@ export function removeEmptyRows<A>(g: Grid<A>) {
 }
 
 /**
+ * Delete the row at the given path from the grid.
+ */
+export function deleteRow<A>(g: Grid<A>, row: RowPath) {
+    g.rows.splice(row.rowNo, 1);
+}
+
+/**
  * Atomically modify the width of a list of cells. The cells provided
  * must span the entire vertical height of the grid with no overlap.
  *
@@ -655,6 +662,14 @@ export function cellUnderPoint<A>(g: Grid<A>, p: point.P2): CellPath | undefined
     const colNo = colUnderGlobalX(g.rows[rp.rowNo], p.x);
     if (colNo === undefined) return undefined;
     return { rowNo: rp.rowNo, colNo };
+}
+
+/**
+ * Find the list of cells in `g` under the given `Rect`.
+ */
+export function cellsUnderRect<A>(g: Grid<A>, r: rect.Rect): CellPath[] {
+    return [...allPositionedCells(g).flatMap(([cell, cellRect]) =>
+        rect.intersects(r, cellRect) ? [cell] : [])];
 }
 
 /**
@@ -863,3 +878,4 @@ export function splitRow<A>(
 
     g.rows.splice(row.rowNo, 1, topRow, bottomRow);
 }
+

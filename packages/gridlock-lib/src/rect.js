@@ -81,3 +81,32 @@ export function fromXYWH(x, y, w, h) {
         bottom: y + h
     }
 }
+
+/**
+ * Create a new rectangle from two points.
+ *
+ * @param {point.P2} a
+ * @param {point.P2} b
+ * @returns {Rect}
+ */
+export function fromPoints(a, b) {
+    return {
+        left: Math.min(a.x, b.x),
+        right: Math.max(a.x, b.x),
+        top: Math.min(a.y, b.y),
+        bottom: Math.max(a.y, b.y)
+    }
+}
+
+/**
+ * Test if two rectangles intersect.
+ *
+ * @param {Rect} a
+ * @param {Rect} b
+ * @returns {boolean} `true` if `a` and `b` intersect, and `false`
+ *     otherwise.
+ */
+export function intersects(a, b) {
+    return a.left < b.right && a.right > b.left
+        && a.top < b.bottom && a.bottom > b.top;
+}
