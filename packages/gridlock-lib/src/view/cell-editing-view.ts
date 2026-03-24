@@ -56,6 +56,8 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
             const cellsPluralSuffix = this._ceState.pluralCells ? "s" : "";
             const rowsPluralSuffix = this._ceState.pluralRows ? "s" : "";
 
+            const canMergeCells = this._ceState.canMergeSelectedCells();
+
             const descr: cmenu.ContextMenuDescription = {
                 origin: point.mkP2(ctx.event.clientX, ctx.event.clientY),
                 menu: [
@@ -79,7 +81,11 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
                     }, !canInsertCell),
                     cmenu.button(`Insert cell${cellsPluralSuffix} to the right`, () => {
                         this.commitInverse(this._ceState.insertCellRight());
-                    }, !canInsertCell)
+                    }, !canInsertCell),
+                    cmenu.divider(),
+                    cmenu.button("Merge cells", () => {
+                        this.commitInverse(this._ceState.mergeSelectedCells());
+                    }, !canMergeCells)
                 ]
             };
 
