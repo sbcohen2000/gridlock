@@ -189,7 +189,7 @@ class AppView extends view.AbstractView {
             onclick: (e) => {
                 const examples: view.cmenu.ContextMenuItem[] =
                       [...Object.entries(EXAMPLES).map(([key, val]) => {
-                          if(key === "LABEL") {
+                          if(key === val) {
                               return view.cmenu.label(val);
                           } else {
                               return view.cmenu.button(key, () => {

@@ -1,8 +1,57 @@
 /**
- * @type {Record<string | "LABEL", string>}
+ * @type {Record<string, string>}
  */
 export const EXAMPLES = {
-    "LABEL": "ASCII Diagrams",
+    "Programming": "Programming",
+    "for_each_cpu":
+    ("ABQAFAAqAAMAKgBAAAYAQABLAAYASwBRABAAAAAAIABRAFcANAAQAAAgAFcAYwA6AAAAAyAAYwBvAAoAOgADIABvAH8ARAAAAAkgAAgADwABAAwAIAAAAAAAHwAyADkAFgAAAAAAAQABAAEAAAAAAAMAQgAaACIAAgBBAAoAAg==\n" +
+     "# Title:        for_each_cpu                                        \n" +
+     "# Example from: linux/kernel/workqueue.c:552-555                    \n" +
+     "#                                                                   \n" +
+     "                                                                    \n" +
+     "#define for_each_cpu(pool, cpu)                           \\         \n"+
+     "        for ((pool) = &per_cpu(cpu_pools, cpu)[0];        \\         \n"+
+     "             (pool) < &per_cpu(cpu_pools, cpu)[NR_POOLS]; \\         \n"+
+     "             (pool)++)                                              \n" +
+     "                                                                    \n" +
+     "/**                                                                 \n" +
+     " * for_each_pool -- iterate through all worker_pools in the system  \n" +
+     " * @pool: iteration cursor                                          \n" +
+     " * @pi: integer used for iteration                                  \n" +
+     " *                                                                  \n" +
+     " * This must be called either with wq_pool_mutex held or RCU read   \n" +
+     " * locked.                                                          \n" +
+     " *                                                                  \n"),
+    "example_name":
+    ("ABoAGgAwAAQAMAA7AAMAOwBcAAkAXABnAAsAZwBvABAAAAAAIABvAHcANAAQAAAgAHcAfQBEAAAABCAAfQCPAA8AAAAHIACPAKEAGAAPAAcgAKEAswAdADAAByAAswDJAEQAAAAQIAAIAA8AAQABAA0AMQAAACQALgAtAB4ADgALAAAACQAAAAsACwAKAAAAAAARAAAAFQAAABUAIQAWAAAAAAAaAAAAEQAAABEAEwAVAAAAEwAAAA4AQQAAADgAAAA4AEQARAAA\n" +
+     "# Title:        fovfl_ovfl_on                                                \n" +
+     "# Example from: linux/linux-master/arch/m68k/ifpsp060/src/pfpsp.S            \n" +
+     "#                                                                            \n" +
+     "#               Demonstrates occlusion of long line.                         \n" +
+     "# overflow is enabled AND overflow, of course,                               \n" +
+     "# occurred. so, we have the EXOP in fp1. now,                                \n" +
+     "# simply jump to _real_ovfl()!                                               \n" +
+     "fovfl_ovfl_on:                                                               \n" +
+     "    fmovm.x    &0x40,FP_SRC(%a6)                # save EXOP (fp1) to stack   \n" +
+     "                                                                             \n" +
+     "    mov.w      &0xe005,2 +FP_SRC(%a6)            # save exc status            \n" +
+     "                                                                             \n" +
+     "    fmovm.x    EXC_FPREGS(%a6),&0xc0            # restore fp0-fp1            \n" +
+     "    fmovm.l    USER_FPCR(%a6),%fpcr,%fpsr,%fpiar# restore ctrl regs          \n" +
+     "    movm.l     EXC_DREGS(%a6),&0x0303           # restore d0-d1/a0-a1        \n" +
+     "                                                                             \n" +
+     "# Original Program:                                                          \n" +
+     "                                                                             \n" +
+     "fovfl_ovfl_on:                                                               \n" +
+     "    fmovm.x    &0x40,FP_SRC(%a6)       # save EXOP (fp1) to stack            \n" +
+     "                                                                             \n" +
+     "    mov.w      &0xe005,2+FP_SRC(%a6)   # save exc status                     \n" +
+     "                                                                             \n" +
+     "    fmovm.x    EXC_FPREGS(%a6),&0xc0   # restore fp0-fp1                     \n" +
+     "    fmovm.l    USER_FPCR(%a6),%fpcr,%fpsr,%fpiar # restore ctrl regs         \n" +
+     "    movm.l     EXC_DREGS(%a6),&0x0303          # restore d0-d1/a0-a1         \n" +
+     "                                                                             \n"),
+    "ASCII Diagrams": "ASCII Diagrams",
     "MXCSR":
     ("AEQARABaAAUAWgBlAAEAZQB7AAEAewCcAAEAnADIAAEAyAEKAAEBCgErAAEBKwFMAAEBTAFtAAEBbQGDAAEBgwGZAAEBmQGjABEAAAAAIAGjAa0AIgARAAAgAa0BrwAzAAAABSABrwGxAB8AAAAGIAGxAbMAFAAfAAYgAbMBtQATAAAAByABtQG3AAwAEwAHIAG3AbkAFAAfAAcgAbkBuwATAAAACCABuwG9AAcAEwAIIAG9Ab8ABQAaAAggAb8BwQAUAB8ACCABwQHDABAAAAAJIAHDAcUAAwAQAAkgAcUBxwAFABMACSABxwHJAAIAGAAJIAHJAcsABQAaAAkgAcsBzQAUAB8ACSABzQHPABAAAAAKIAHPAdEABwAQAAogAdEB0wAcABcACiAB0wHVABEAAAALIAHVAdcACAARAAsgAdcB2QAaABkACyAB2QHbABEAAAAMIAHbAd0ACAARAAwgAd0B3wAaABkADCAB3wHhABEAAAANIAHhAeMAIgARAA0gAeMB5QARAAAADiAB5QHnACIAEQAOIAAIABEAAQABAAEABQAgAB0AAAAIAAAAFAATAAAAAQABABEABgAFAAEAAAABAAEAAQABAAEAAAAHAAkAAAACAAEAAAACABYAAAABAAAAEQ==\n"+
      "# Title:         MXCSR                             \n"+
