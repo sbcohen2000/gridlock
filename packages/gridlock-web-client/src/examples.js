@@ -22,7 +22,7 @@ export const EXAMPLES = {
      " * This must be called either with wq_pool_mutex held or RCU read   \n" +
      " * locked.                                                          \n" +
      " *                                                                  \n"),
-    "example_name":
+    "fovfl_ovfl_on":
     ("ABoAGgAwAAQAMAA7AAMAOwBcAAkAXABnAAsAZwBvABAAAAAAIABvAHcANAAQAAAgAHcAfQBEAAAABCAAfQCPAA8AAAAHIACPAKEAGAAPAAcgAKEAswAdADAAByAAswDJAEQAAAAQIAAIAA8AAQABAA0AMQAAACQALgAtAB4ADgALAAAACQAAAAsACwAKAAAAAAARAAAAFQAAABUAIQAWAAAAAAAaAAAAEQAAABEAEwAVAAAAEwAAAA4AQQAAADgAAAA4AEQARAAA\n" +
      "# Title:        fovfl_ovfl_on                                                \n" +
      "# Example from: linux/linux-master/arch/m68k/ifpsp060/src/pfpsp.S            \n" +
@@ -34,7 +34,7 @@ export const EXAMPLES = {
      "fovfl_ovfl_on:                                                               \n" +
      "    fmovm.x    &0x40,FP_SRC(%a6)                # save EXOP (fp1) to stack   \n" +
      "                                                                             \n" +
-     "    mov.w      &0xe005,2 +FP_SRC(%a6)            # save exc status            \n" +
+     "    mov.w      &0xe005,2+FP_SRC(%a6)            # save exc status            \n" +
      "                                                                             \n" +
      "    fmovm.x    EXC_FPREGS(%a6),&0xc0            # restore fp0-fp1            \n" +
      "    fmovm.l    USER_FPCR(%a6),%fpcr,%fpsr,%fpiar# restore ctrl regs          \n" +
