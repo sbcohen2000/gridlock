@@ -11,6 +11,7 @@ import { ViewsSelectedCells } from "./views-selected-cells-mixin.js";
 
 import type { Recycler } from "../framework/index.js";
 import type { Inverse, AnyState } from "../state/index.js";
+import { CellDraggingView } from "./cell-dragging-view.js";
 
 class _CellEditingView extends AbstractEditorViewWithDragging {
     _ceState: CellPrims;
@@ -117,7 +118,7 @@ class _CellEditingView extends AbstractEditorViewWithDragging {
 
     onDrag(e: PointerEvent, ds: DragState) {
         const origin = ds.dragOriginGrid;
-        const pt     = ds.dGrid();
+        const pt     = ds.posGrid();
         // Now, update _dragRect to a rectangle which encloses the
         // positions `origin` and `pt`.
 
@@ -171,8 +172,14 @@ class _CellEditingView extends AbstractEditorViewWithDragging {
     }
 
     onPointerDownInCellDragHandle(e: PointerEvent) {
-        void e;
-        console.log("Clicked cell drag handle!");
+        const ctx = new PointerEventContext(e, this);
+        const cellDragView = new CellDraggingView(this, this._ceState, ctx.intoDragState("Round", () => {
+            // If the drag ended up being just a
+            // click, replace the drag view with
+            // another cell-editing view.
+            this.requestReplaceEditorView(new CellEditingView(this, this._ceState));
+        }));
+        this.requestReplaceEditorView(cellDragView);
     }
 
     get ceState() {

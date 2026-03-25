@@ -33,7 +33,7 @@ class _RowDraggingView extends AbstractEditorViewWithDragging {
 
     onDrag(e: PointerEvent, ds: DragState) {
         void e;
-        const gridY = ds.dGrid(Math.floor).y;
+        const gridY = ds.posGrid().y;
         let newRowNo: number;
         if(gridY >= rect.height(grid.rectOfGrid(this._rdState.grid))) {
             newRowNo = this._rdState.grid.rows.length;
@@ -49,11 +49,6 @@ class _RowDraggingView extends AbstractEditorViewWithDragging {
 
     get ceState() {
         return this._rdState;
-    }
-
-    onPointerDownInRowDragHandle(e: PointerEvent) {
-        void e;
-        // Do nothing.
     }
 
     viewRowSelection(row: grid.RowPath, recycler: Recycler) {

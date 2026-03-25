@@ -39,26 +39,21 @@ export class DragState {
      */
     #d: number;
 
-    /** The distance from the drag origin, in pixels. */
-    #dPx: point.P2;
+    /** The last location of the mouse, in client coordinates. */
+    #posPx: point.P2;
 
     constructor(init: DragStateInitializer) {
         this.#st = { ...init };
         this.#d = 0;
-        this.#dPx = point.mkOrigin();
+        this.#posPx = point.mkP2(0, 0);
     }
 
     /**
      * Update the drag state with a new pointer event.
      */
     update(e: PointerEvent) {
-        const d = point.mkP2(
-            e.clientX - this.#st.dragOriginPx.x,
-            e.clientY - this.#st.dragOriginPx.y,
-        );
-
-        this.#d += point.distance(d, this.#dPx);
-        this.#dPx = d;
+        this.#posPx = point.mkP2(e.clientX, e.clientY);
+        this.#d += Math.sqrt(e.movementX * e.movementX + e.movementY * e.movementY);
     }
 
     /**
@@ -84,14 +79,6 @@ export class DragState {
     }
 
     /**
-     * Find the difference in pixels between the position of the drag
-     * start and the position of the cursor.
-     */
-    get dPx() {
-        return this.#dPx;
-    }
-
-    /**
      * Find the position of the current drag position in grid
      * coordiantes.
      *
@@ -99,12 +86,20 @@ export class DragState {
      * how a decimal coordiante will be turned into an integer
      * one. (The default is rounding).
      */
-    dGrid(intoInt: (a: number) => number = Math.round): point.P2 {
-        return point.offset(this.#st.dragOriginGrid,
+    posGrid(intoInt: (a: number) => number = Math.round): point.P2 {
+        const v = point.sub(
+            this.#posPx,
+            this.#st.dragOriginPx
+        );
+
+        // `v` is a vector pointing from the drag origin in `px` to
+        // the current point.
+        return point.offset(
+            this.#st.dragOriginGrid,
             point.mkV2(
-                intoInt(this.dPx.x / this.#st.gridScale.dx),
-                intoInt(this.dPx.y / this.#st.gridScale.dy)
-            )
+                intoInt(v.dx / this.#st.gridScale.dx),
+                intoInt(v.dy / this.#st.gridScale.dy),
+            ),
         );
     }
 
