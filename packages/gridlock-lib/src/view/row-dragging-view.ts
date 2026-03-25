@@ -27,7 +27,7 @@ class _RowDraggingView extends AbstractEditorViewWithDragging {
     onDragEnd() {
         // When the drag ends, commit the change and then return to
         // the cell editing view.
-        this.commitInverse(this._rdState.relocateRow(this._targetRowNo));
+        this.commitInverse(this._rdState.reorderRow(this._targetRowNo));
         this.requestReplaceEditorView(new CellEditingView(this, this._rdState));
     }
 

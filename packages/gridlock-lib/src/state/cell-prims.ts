@@ -315,11 +315,12 @@ export class CellPrims implements State<CellPrims> {
     }
 
     /**
-     * Relocate row `src` so that is appears at row index `dst`. Note
-     * that `dst` ranges on `[0, n]` where `n` is the number of rows
-     * currently in the grid.
+     * Re-order the selected row so that is appears at row index
+     * `dst`. Note that `dst` ranges on `[0, n]` where `n` is the
+     * number of rows currently in the grid, allowing the selected row
+     * to appear both before the first row and after the last one.
      */
-    relocateRow(dst: number): Inverse<CellPrims> {
+    reorderRow(dst: number): Inverse<CellPrims> {
         const srcRow = this.selectionCoversRow();
         if(!srcRow) return new IdInverse();
 
@@ -335,12 +336,12 @@ export class CellPrims implements State<CellPrims> {
         const insertAt = dst > src ? dst - 1 : dst;
         this.grid.rows.splice(insertAt, 0, row);
 
-        // Update the selection to follow the relocated row.
+        // Update the selection to follow the reordered row.
         for(const cell of this.selection) {
             cell.rowNo = insertAt;
         }
 
-        return new SnapshotInverse(snapshot, "relocate row");
+        return new SnapshotInverse(snapshot, "reorder row");
     }
 
     /**
