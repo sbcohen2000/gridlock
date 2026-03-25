@@ -7,7 +7,7 @@ import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-drag
 import { CellPrims } from "../state/index.js";
 import { DragState } from "./drag-state.js";
 
-import type { Recycler } from "../framework/index.js";
+import { CommittableRecycler, type Recycler } from "../framework/index.js";
 import type { Inverse, AnyState } from "../state/index.js";
 
 export class CellEditingView extends AbstractEditorViewWithDragging {
@@ -179,16 +179,26 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
      * Draw the selection of a row, if any, by adding items to the
      * recycler.
      */
-    viewRowSelection(row: grid.RowPath, recycler: Recycler) {
-        super.viewRowSelection(row, recycler);
+    viewRowSelection(row: grid.RowPath, r: Recycler) {
+        super.viewRowSelection(row, r);
 
         const selectedRow = this._ceState.selectionCoversRow();
         if(!selectedRow) return;
 
         if(selectedRow.rowNo !== row.rowNo) return;
 
-        recycler.elem({ tag: "div", key: "row-halo" }, (haloElem) => {
+        r.elem({ tag: "div", key: "row-halo" }, (haloElem) => {
             haloElem.className = "editor-row-halo";
+
+            new CommittableRecycler(haloElem)
+                .elem({ tag: "div", key: "row-halo-drag-handle" }, (dragHandleElem) => {
+                    dragHandleElem.className = "editor-row-halo-drag-handle"
+
+                    dragHandleElem.onpointerdown = (e: PointerEvent) => {
+                        console.log("Clicked drag handle!");
+                    }
+                })
+                .commit();
         });
     }
 }

@@ -313,6 +313,18 @@
     pointer-events: none;
 }
 
+.editor-row-halo-drag-handle {
+    position: absolute;
+    height: calc(100% + var(--selection-halo-thick));
+    width: 10px;
+    top: calc(-1 * var(--selection-halo-thick) / 2);
+    left: -10px;
+    background-color: var(--selection-color);
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+    pointer-events: auto;
+}
+
 .editor-context-menu {
     display: flex;
     flex-direction: column;
