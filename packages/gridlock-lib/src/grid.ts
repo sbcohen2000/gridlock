@@ -606,7 +606,7 @@ export function modifyWidthOfCells<A>(g: Grid<A>, cells: CellPath[], n: number) 
 /**
  * Find the row in `g` that contains global y-coordinate `y`.
  */
-function rowUnderGlobalY<A>(g: Grid<A>, y: number): RowPath | undefined {
+export function rowUnderGlobalY<A>(g: Grid<A>, y: number): RowPath | undefined {
     let rowTop = 0;
     for (let rowNo = 0; rowNo < g.rows.length; ++rowNo) {
         const row = g.rows[rowNo];

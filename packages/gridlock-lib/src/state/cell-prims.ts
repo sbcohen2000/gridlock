@@ -315,6 +315,35 @@ export class CellPrims implements State<CellPrims> {
     }
 
     /**
+     * Relocate row `src` so that is appears at row index `dst`. Note
+     * that `dst` ranges on `[0, n]` where `n` is the number of rows
+     * currently in the grid.
+     */
+    relocateRow(dst: number): Inverse<CellPrims> {
+        const srcRow = this.selectionCoversRow();
+        if(!srcRow) return new IdInverse();
+
+        const src = srcRow.rowNo;
+        if(dst === src || dst === src + 1) return new IdInverse();
+
+        const snapshot = this.clone();
+
+        // Remove the row from its current position.
+        const [row] = this.grid.rows.splice(src, 1);
+
+        // If dst is after src, the removal shifted indices down by one.
+        const insertAt = dst > src ? dst - 1 : dst;
+        this.grid.rows.splice(insertAt, 0, row);
+
+        // Update the selection to follow the relocated row.
+        for(const cell of this.selection) {
+            cell.rowNo = insertAt;
+        }
+
+        return new SnapshotInverse(snapshot, "relocate row");
+    }
+
+    /**
      * We can insert a cell to the right of the selected cells if the
      * selected cells are all on different rows.
      */
