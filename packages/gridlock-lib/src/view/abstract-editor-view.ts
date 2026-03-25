@@ -280,7 +280,7 @@ export abstract class AbstractEditorView extends AbstractView {
     /**
      * Build the contents (span fragments) for a line element.
      */
-    #buildLineFragments(lineElem: HTMLElement, line: string, cellWidth: number) {
+    #buildLineFragments(lineElem: HTMLElement, line: string, cellWidth: number, fillCharacter: string) {
         const groups = [...groupBySpaces(line)];
         for(let i = 0; i < groups.length; ++i) {
             const group = groups[i];
@@ -318,6 +318,11 @@ export abstract class AbstractEditorView extends AbstractView {
             overflowShadowCaster.style.width = `${line.length - cellWidth}ch`;
             overflowShadowCaster.className = "editor-line-overflow-shadow-caster";
             lineElem.appendChild(overflowShadowCaster);
+        } else {
+            // Draw the fill character to take up the remaining space.
+            const fillElem = document.createElement("span");
+            fillElem.innerText = Array.from({ length: cellWidth - line.length }, () => fillCharacter).join("");
+            lineElem.appendChild(fillElem);
         }
     }
 
@@ -332,7 +337,7 @@ export abstract class AbstractEditorView extends AbstractView {
             lineElem.className = "editor-line";
             lineElem.style.minWidth = `${line.length}ch`;
 
-            this.#buildLineFragments(lineElem, line, theCell.width);
+            this.#buildLineFragments(lineElem, line, theCell.width, theCell.data.fillChar ?? "");
         });
     }
 

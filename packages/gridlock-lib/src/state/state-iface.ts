@@ -17,7 +17,8 @@ export interface Cell {
 export function cloneCellData(data: Cell): Cell {
     return {
         lines: [...data.lines],
-        disabledGuides: new Set(data.disabledGuides)
+        disabledGuides: new Set(data.disabledGuides),
+        fillChar: data.fillChar
     };
 }
 

@@ -41,7 +41,7 @@ export function InteractsWithFillChar<T extends Constructor<InteractsWithFillCha
             return new SnapshotInverse(snapshot, "set fill character");
         }
 
-        /**
+        /**n
          * Get a summary of the fill char for the given selection.
          *
          * If the fill char is not the same for all of the elements in
@@ -52,17 +52,22 @@ export function InteractsWithFillChar<T extends Constructor<InteractsWithFillCha
                 const theCell = grid.lookupCell(this.state.grid, cell);
                 return theCell.data.fillChar ?? " ";
             }));
-            r.elem("span", fillCharElem => {
+            r.elem({ tag: "span", clearAttributes: true }, fillCharElem => {
+                fillCharElem.className = "editor-fill-char-preview";
+
                 if(fillChars.size === 1) {
                     const theFillChar: string = fillChars.values().next().value;
                     fillCharElem.innerText = theFillChar;
-                    fillCharElem.className = "editor-fill-char-preview";
 
                     if(theFillChar === " ") {
                         fillCharElem.classList.add("editor-space-fragment");
                     }
-                } else {
+                } else if(fillChars.size > 0) {
                     fillCharElem.innerText = "multiple";
+                    fillCharElem.className = "editor-fill-char-description";
+                } else {
+                    fillCharElem.innerText = "none";
+                    fillCharElem.className = "editor-fill-char-description";
                 }
             });
         }

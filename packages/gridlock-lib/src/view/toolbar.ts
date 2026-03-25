@@ -41,10 +41,10 @@ interface ToolbarCustomElement extends BaseToolbarItemDescription {
 }
 
 export type ToolbarItemDescription =
-ToolbarButtonDescription
-| ToolbarSpacerDescription
-| ToolbarDividerDescription
-| ToolbarCustomElement;
+  ToolbarButtonDescription
+  | ToolbarSpacerDescription
+  | ToolbarDividerDescription
+  | ToolbarCustomElement;
 
 /**
  * Build a button element in the given recycler.

@@ -136,7 +136,7 @@ class _TextEditingView extends AbstractEditorView {
             e.e.preventDefault();
             e.e.stopPropagation();
             if(this.#handleKeyEvent(e.e)) {
-                return;
+                return true;
             }
         }
 
