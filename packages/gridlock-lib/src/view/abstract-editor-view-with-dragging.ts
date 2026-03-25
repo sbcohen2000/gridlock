@@ -76,11 +76,11 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
         };
 
         root.onpointerup = (e) => {
-            this.concludeDrag(e);
+            this.#concludeDrag(e);
         };
     }
 
-    private concludeDrag(e: PointerEvent) {
+    #concludeDrag(e: PointerEvent) {
         this._root.releasePointerCapture(e.pointerId);
         if(this.#dragState) {
             if(this.#dragState.isClick) {

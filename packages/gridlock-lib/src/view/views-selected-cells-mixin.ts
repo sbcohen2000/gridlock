@@ -4,9 +4,8 @@
  */
 
 import * as grid from "../grid.js";
-import { Recycler, CommittableRecycler } from "../framework/index.js";
 import { CellPrims } from "../state/cell-prims.js";
-import { AbstractEditorView } from "./abstract-editor-view.js";
+import { Recycler, CommittableRecycler } from "../framework/index.js";
 
 type Constructor<T = {}> = new (...args: any[]) => T;
 
@@ -16,7 +15,8 @@ type Constructor<T = {}> = new (...args: any[]) => T;
 interface ViewsSelectedCellsBase {
     viewCellSelection(cell: grid.CellPath, recycler: Recycler): void;
     viewRowSelection(row: grid.RowPath, recycler: Recycler): void;
-    onPointerDownInRowDragHandle(e: PointerEvent): void;
+    onPointerDownInRowDragHandle?(e: PointerEvent): void;
+    onPointerDownInCellDragHandle?(e: PointerEvent): void;
     ceState: CellPrims;
 }
 
@@ -33,6 +33,17 @@ export function ViewsSelectedCells<T extends Constructor<ViewsSelectedCellsBase>
                 recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
                     haloElem.className = "editor-cell-halo";
                 });
+
+                // If this is the only cell in the selection, draw the
+                // cell's drag handle.
+                if(!this.ceState.pluralCells) {
+                    recycler.elem({ tag: "div", key: "cell-halo-drag-handle" }, (dragHandleElem) => {
+                        dragHandleElem.className = "editor-cell-halo-drag-handle";
+                        if(this.onPointerDownInCellDragHandle) {
+                            dragHandleElem.onpointerdown = (e) => this.onPointerDownInCellDragHandle(e);
+                        }
+                    });
+                }
             }
         }
 
@@ -50,7 +61,9 @@ export function ViewsSelectedCells<T extends Constructor<ViewsSelectedCellsBase>
                 new CommittableRecycler(haloElem)
                     .elem({ tag: "div", key: "row-halo-drag-handle" }, (dragHandleElem) => {
                     dragHandleElem.className = "editor-row-halo-drag-handle"
-                    dragHandleElem.onpointerdown = (e) => this.onPointerDownInRowDragHandle(e);
+                    if(this.onPointerDownInRowDragHandle) {
+                        dragHandleElem.onpointerdown = (e) => this.onPointerDownInRowDragHandle(e);
+                    }
                 })
                 .commit();
             });

@@ -170,6 +170,11 @@ class _CellEditingView extends AbstractEditorViewWithDragging {
         this.requestReplaceEditorView(rowDragView);
     }
 
+    onPointerDownInCellDragHandle(e: PointerEvent) {
+        void e;
+        console.log("Clicked cell drag handle!");
+    }
+
     get ceState() {
         return this._ceState;
     }
