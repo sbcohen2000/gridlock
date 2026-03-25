@@ -2,7 +2,7 @@ import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
 import * as util from "../util.js";
-import { Cell, cloneCellData, splitCellData, State, horizontallyCatCellLines, rowLines } from "./state-iface.js";
+import { Cell, cloneCellData, splitCellData, State, horizontallyCatCellLines, rowLines, ensureCellLinesMatchRowHeight, ensureCellDisabledGuidesInBounds } from "./state-iface.js";
 import { SnapshotInverse, Inverse, IdInverse } from "./inverse.js";
 import { applyPartition, findOptimalPartition } from "./find-optimal-partition.js";
 
@@ -147,7 +147,7 @@ export class CellPrims implements State<CellPrims> {
      * If the current selection covers a single row, then return a
      * path to the selected row. Otherwise, return `undefined`.
      */
-    selectionCoversRow(): grid.RowPath | undefined {
+    selectionCoveringRow(): grid.RowPath | undefined {
         const byRow = grid.collectCellsByRow(this.selection);
         if(byRow.size === 1) {
             const [rowNo, cells]: [number, grid.CellPath[]] = byRow.entries().next().value;
@@ -158,6 +158,17 @@ export class CellPrims implements State<CellPrims> {
             }
 
             return { rowNo };
+        }
+        return undefined;
+    }
+
+    /**
+     * If the selection covers exactly one cell, then return a path to the
+     * selected cell. Otherwise, return `undefined`.
+     */
+    selectionCoveringCell(): grid.CellPath | undefined {
+        if(this.selection.length === 1) {
+            return this.selection[0];
         }
         return undefined;
     }
@@ -246,8 +257,8 @@ export class CellPrims implements State<CellPrims> {
 
         for(const cell of this.selection) {
             const theCell = grid.lookupCell(this.grid, cell);
-            const theRow  = grid.lookupRow(this.grid, cell);
-            theCell.data.lines = Array.from({ length: theRow.height }, () => "");
+            theCell.data.lines = [];
+            ensureCellLinesMatchRowHeight(this.grid, cell);
         }
 
         return new SnapshotInverse(snapshot, "clear cell content");
@@ -321,7 +332,7 @@ export class CellPrims implements State<CellPrims> {
      * to appear both before the first row and after the last one.
      */
     reorderRow(dst: number): Inverse<CellPrims> {
-        const srcRow = this.selectionCoversRow();
+        const srcRow = this.selectionCoveringRow();
         if(!srcRow) return new IdInverse();
 
         const src = srcRow.rowNo;
@@ -342,6 +353,32 @@ export class CellPrims implements State<CellPrims> {
         }
 
         return new SnapshotInverse(snapshot, "reorder row");
+    }
+
+    /**
+     * Replace the contents of `target` with the contents of the
+     * selected cell, also selecting the `target` cell. If the
+     * selection doesn't refer to a single cell, then this method does
+     * nothing.
+     */
+    replaceCellContent(target: grid.CellPath): Inverse<CellPrims> {
+        const srcCell = this.selectionCoveringCell();
+        if(!srcCell) return new IdInverse();
+
+        const theSrcCell = grid.lookupCell(this.grid, srcCell);
+        const theTargetCell = grid.lookupCell(this.grid, target);
+
+        if(!theTargetCell) return new IdInverse();
+
+        const snapshot = this.clone();
+
+        theTargetCell.data.lines = [...theSrcCell.data.lines];
+        theTargetCell.data.disabledGuides = new Set(theSrcCell.data.disabledGuides);
+        ensureCellDisabledGuidesInBounds(theTargetCell);
+        ensureCellLinesMatchRowHeight(this.grid, target);
+        this.clearCellContents();
+
+        return new SnapshotInverse(snapshot, "replace cell content");
     }
 
     /**

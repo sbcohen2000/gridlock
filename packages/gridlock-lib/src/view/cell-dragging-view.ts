@@ -30,7 +30,9 @@ class _CellDraggingView extends AbstractEditorViewWithDragging {
     onDragEnd() {
         // When the drag ends, commit the change and then return to
         // the cell editing view.
-
+        if(this._targetCellPath !== undefined) {
+            this._cdState.replaceCellContent(this._targetCellPath);
+        }
         this.requestReplaceEditorView(new CellEditingView(this, this._cdState));
     }
 

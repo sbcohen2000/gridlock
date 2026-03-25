@@ -27,7 +27,7 @@ export function ViewsSelectedCells<T extends Constructor<ViewsSelectedCellsBase>
 
             // If the selection covers exactly one row, then the selection
             // will be drawn in `viewRowSelection` instead.
-            if(this.ceState.selectionCoversRow()) return;
+            if(this.ceState.selectionCoveringRow()) return;
 
             if(this.ceState.selection.find(c => grid.eqCellPath(c, cell))) {
                 recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
@@ -50,7 +50,7 @@ export function ViewsSelectedCells<T extends Constructor<ViewsSelectedCellsBase>
         viewRowSelection(row: grid.RowPath, r: Recycler) {
             super.viewRowSelection(row, r);
 
-            const selectedRow = this.ceState.selectionCoversRow();
+            const selectedRow = this.ceState.selectionCoveringRow();
             if(!selectedRow) return;
 
             if(selectedRow.rowNo !== row.rowNo) return;

@@ -117,6 +117,45 @@ export function rowLines(row: grid.Row<Cell>): string[] {
     return lines;
 }
 
+function trimEmptyLines(n: number, lines: string[]): void {
+    if(lines.length <= n) return;
+    const maxTrim = lines.length - n;
+    for(let i = 0; i < maxTrim; ++i) {
+        if(lines.at(-1) === "") {
+            lines.pop();
+        } else {
+            break;
+        }
+    }
+}
+
+/**
+ * Add or remove blank lines from the cell at `cellPath` so that the
+ * height of its parent row does not exceed the number of lines in the
+ * cell's text.
+ */
+export function ensureCellLinesMatchRowHeight(g: grid.Grid<Cell>, cellPath: grid.CellPath): void {
+    const cell = grid.lookupCell(g, cellPath);
+    const row = grid.lookupRow(g, cellPath);
+    if(cell.data.lines.length < row.height) {
+        cell.data.lines.push(...Array.from(
+            { length: row.height - cell.data.lines.length },
+            () => "",
+        ));
+    } else if(row.height < cell.data.lines.length) {
+        trimEmptyLines(row.height, cell.data.lines);
+    }
+}
+
+/**
+ * Ensure that the disabled guides in a cell are within the cell's
+ * bounds, removing those guides which are not within bounds.
+ */
+export function ensureCellDisabledGuidesInBounds(cell: grid.Cell<Cell>) {
+    const width = cell.width;
+    cell.data.disabledGuides = new Set(new Set(cell.data.disabledGuides.values().filter(x => x < width)));
+}
+
 /**
  * Check that inavariants of the grid hold.
  */
