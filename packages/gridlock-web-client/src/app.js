@@ -279,6 +279,11 @@ function main() {
                     this.requestRedraw();
                 }
                 return true;
+            } else if (e instanceof view.ReleaseFocusViewEvent) {
+                if(this.#focusedView === e.initiator) {
+                    this.focusedView = this;
+                    this.requestRedraw();
+                }
             } else if (e instanceof view.KeyViewEvent) {
                 return true;
             } else if (e instanceof view.cmenu.OpenContextMenu) {

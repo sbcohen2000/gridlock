@@ -41,14 +41,6 @@ export class RedrawViewEvent extends ViewEvent {
 }
 
 /**
- * Notify that a view wants to receive focus.
- */
-export class RequestFocusViewEvent extends ViewEvent {
-    /** @param {AbstractView} initiator */
-    constructor(initiator) { super(initiator, true); }
-}
-
-/**
  * Notify that a keyboard key was pressed.
  */
 export class KeyViewEvent extends ViewEvent {
@@ -86,6 +78,22 @@ export class ViewDeletedViewEvent extends ViewEvent {
 
     /** @returns {AbstractView} */
     get view() { return this.#view; }
+}
+
+/**
+ * Notify that a view wants to receive focus.
+ */
+export class RequestFocusViewEvent extends ViewEvent {
+    /** @param {AbstractView} initiator */
+    constructor(initiator) { super(initiator, true); }
+}
+
+/**
+ * Notify that a view wants its focus to be released.
+ */
+export class ReleaseFocusViewEvent extends ViewEvent {
+    /** @param {AbstractView} initiator */
+    constructor(initiator) { super(initiator, true); }
 }
 
 /**
@@ -177,6 +185,13 @@ export class AbstractView {
      */
     requestFocus() {
         this.notify(new RequestFocusViewEvent(this));
+    }
+
+    /**
+     * Request that this view release focus.
+     */
+    releaseFocus() {
+        this.notify(new ReleaseFocusViewEvent(this));
     }
 
     /**

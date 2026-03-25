@@ -153,6 +153,18 @@ export function describeToolbar(editorView) {
         type: "spacer",
         key: "spacer-1",
     }, {
+        type: "textInput",
+        key: "fill-char-text-input",
+        value: "",
+        onfocus: () => {
+            // Release focus from the editor view, if it has it, so
+            // that keyboard events are routed to the textbox.
+            editorView.releaseFocus();
+        }
+    }, {
+        type: "spacer",
+        key: "spacer-2"
+    }, {
         type: "button",
         key: "save-button",
         iconSrc: save_icon_url,

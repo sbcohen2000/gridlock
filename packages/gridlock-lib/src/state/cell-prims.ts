@@ -378,6 +378,7 @@ export class CellPrims implements State<CellPrims> {
         ensureCellLinesMatchRowHeight(this.grid, target);
         this.clearCellContents();
 
+        this.selection = [target];
         return new SnapshotInverse(snapshot, "replace cell content");
     }
 

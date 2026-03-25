@@ -1,4 +1,4 @@
-import * as framework from "../framework/index.js";
+import { Recycler, CommittableRecycler } from "../framework/index.js";
 
 interface BaseToolbarItemDescription {
     type: string; /** The type of description. */
@@ -27,10 +27,21 @@ interface ToolbarDividerDescription extends BaseToolbarItemDescription {
     type: "divider";
 }
 
+interface ToolbarTextInputDescription extends BaseToolbarItemDescription {
+    type: "textInput";
+    /** The text value of the input element. */
+    value: string;
+    /** Called when the text input's value is modified by the user. */
+    onchange?: (newValue: string) => void;
+    /** Called when the text input gains focus. */
+    onfocus?: () => void;
+}
+
 export type ToolbarItemDescription =
 ToolbarButtonDescription
 | ToolbarSpacerDescription
-| ToolbarDividerDescription;
+| ToolbarDividerDescription
+| ToolbarTextInputDescription;
 
 /**
  * Build a button element in the given recycler.
@@ -38,7 +49,7 @@ ToolbarButtonDescription
  * @param descr
  * @param r
  */
-function viewToolbarButton(descr: ToolbarButtonDescription, r: framework.UncommittableRecycler) {
+function viewToolbarButton(descr: ToolbarButtonDescription, r: Recycler) {
     r.elem({ tag: "div", key: descr.key }, buttonElem => {
 
         buttonElem.className = "editor-button";
@@ -51,7 +62,7 @@ function viewToolbarButton(descr: ToolbarButtonDescription, r: framework.Uncommi
         }
 
         if(descr.iconSrc) {
-            new framework.CommittableRecycler(buttonElem)
+            new CommittableRecycler(buttonElem)
                 .elem("img", (iconImg) => {
                 iconImg.className = "editor-button-icon";
                 if(iconImg.getAttribute("src") !== descr.iconSrc) {
@@ -75,7 +86,7 @@ function viewToolbarButton(descr: ToolbarButtonDescription, r: framework.Uncommi
  * @param descr
  * @param r
  */
-function viewToolbarSpacer(descr: ToolbarSpacerDescription, r: framework.UncommittableRecycler) {
+function viewToolbarSpacer(descr: ToolbarSpacerDescription, r: Recycler) {
     r.elem({ tag: "div", key: descr.key }, spacerElem => {
         spacerElem.className = "editor-toolbar-spacer";
     });
@@ -87,10 +98,35 @@ function viewToolbarSpacer(descr: ToolbarSpacerDescription, r: framework.Uncommi
  * @param descr
  * @param r
  */
-function viewToolbarDivider(descr: ToolbarDividerDescription, r: framework.UncommittableRecycler) {
+function viewToolbarDivider(descr: ToolbarDividerDescription, r: Recycler) {
     r.elem({ tag: "div", key: descr.key }, dividerElem => {
         dividerElem.className = "editor-toolbar-divider";
     })
+}
+
+/**
+ * Build a toolbar text input element in the given recycler.
+ *
+ * @param descr
+ * @param r
+ */
+function viewToolbarTextInput(descr: ToolbarTextInputDescription, r: Recycler) {
+    r.elem({ tag: "input", key: descr.key }, inputElem => {
+        inputElem.className = "editor-toolbar-text-input";
+        inputElem.value = descr.value;
+        inputElem.spellcheck = false;
+        inputElem.onchange = (e) => {
+            if(descr.onchange) {
+                descr.onchange((e.target as HTMLInputElement).value);
+            }
+        };
+
+        inputElem.onfocus = () => {
+            if(descr.onfocus) {
+                descr.onfocus();
+            }
+        };
+    });
 }
 
 /**
@@ -99,11 +135,12 @@ function viewToolbarDivider(descr: ToolbarDividerDescription, r: framework.Uncom
  * @param descr
  * @param r
  */
-function viewToolbarItem(descr: ToolbarItemDescription, r: framework.UncommittableRecycler) {
+function viewToolbarItem(descr: ToolbarItemDescription, r: Recycler) {
     switch(descr.type) {
-        case "button":  return viewToolbarButton(descr, r);
-        case "spacer":  return viewToolbarSpacer(descr, r);
-        case "divider": return viewToolbarDivider(descr, r);
+        case "button":    return viewToolbarButton(descr, r);
+        case "spacer":    return viewToolbarSpacer(descr, r);
+        case "divider":   return viewToolbarDivider(descr, r);
+        case "textInput": return viewToolbarTextInput(descr, r);
     }
 }
 
@@ -113,10 +150,10 @@ function viewToolbarItem(descr: ToolbarItemDescription, r: framework.Uncommittab
  * @param descr
  * @param r
  */
-export function ViewToolbar(descr: ToolbarItemDescription[], r: framework.UncommittableRecycler) {
+export function ViewToolbar(descr: ToolbarItemDescription[], r: Recycler) {
     r.elem("div", toolbarElem => {
         toolbarElem.className = "editor-toolbar";
-        new framework.CommittableRecycler(toolbarElem)
+        new CommittableRecycler(toolbarElem)
             .views(descr, (d, r) => viewToolbarItem(d, r))
             .commit();
     });

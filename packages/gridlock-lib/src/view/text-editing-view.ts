@@ -8,7 +8,6 @@ import type { InitialViewState } from "./abstract-editor-view.js";
 import type { Recycler } from "../framework/index.js";
 import type { ViewEvent } from "./abstract-view.js";
 import type { Inverse, AnyState } from "../state/index.js";
-import { CellEditingView } from "./cell-editing-view.js";
 
 export class TextEditingView extends AbstractEditorView {
     _teState: TextPrims;
