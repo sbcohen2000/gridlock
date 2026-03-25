@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "build": "scripts/build.sh /",
-        "watch": "esbuild src/app.js src/app.css --loader:.png=file --public-path=/dist --sourcemap=inline --bundle --outdir=www/dist --watch --servedir=www",
+        "watch": "esbuild src/app.ts src/app.css --loader:.png=file --public-path=/dist --sourcemap=inline --bundle --outdir=www/dist --watch --servedir=www",
         "clean": "rm -rf www/dist",
         "typecheck": "tsc -p jsconfig.json"
     },

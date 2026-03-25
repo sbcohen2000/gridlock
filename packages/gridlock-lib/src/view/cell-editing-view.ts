@@ -12,6 +12,7 @@ import { ViewsSelectedCells } from "./views-selected-cells-mixin.js";
 import type { Recycler } from "../framework/index.js";
 import type { Inverse, AnyState } from "../state/index.js";
 import { CellDraggingView } from "./cell-dragging-view.js";
+import { InteractsWithFillChar } from "./interacts-with-fill-char-mixin.js";
 
 class _CellEditingView extends AbstractEditorViewWithDragging {
     _ceState: CellPrims;
@@ -185,9 +186,14 @@ class _CellEditingView extends AbstractEditorViewWithDragging {
     get ceState() {
         return this._ceState;
     }
+
+    get selectedCells(): grid.CellPath[] {
+        return this._ceState.selection;
+    }
 }
 
-export const CellEditingView = ViewsSelectedCells(_CellEditingView);
+export const CellEditingView =
+    InteractsWithFillChar(ViewsSelectedCells(_CellEditingView));
 
 AbstractEditorView.registerViewFactory(CellPrims, (prev, st) =>
     new CellEditingView(prev, st as CellPrims));

@@ -7,6 +7,11 @@ export interface Cell {
      * The location of any disabled guides within this cell.
      */
     disabledGuides: Set<number>;
+    /**
+     * The cell's fill character. If it's not given, it defaults to
+     * space.
+     */
+    fillChar?: string;
 }
 
 export function cloneCellData(data: Cell): Cell {

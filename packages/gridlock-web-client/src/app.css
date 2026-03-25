@@ -233,6 +233,11 @@
     white-space: preserve nowrap;
 }
 
+.editor-fill-char-preview {
+    white-space: preserve nowrap;
+    font-family: monospace;
+}
+
 .editor-space-fragment {
     background-image: radial-gradient(
         circle at 50% 60%,

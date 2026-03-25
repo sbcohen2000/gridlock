@@ -1,5 +1,6 @@
 import * as grid from "../grid.js";
 import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
+import { InteractsWithFillChar } from "./interacts-with-fill-char-mixin.js";
 import { KeyViewEvent } from "./abstract-view.js";
 import { SnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 import { TextPrims, CellPrims } from "../state/index.js";
@@ -9,7 +10,7 @@ import type { Recycler } from "../framework/index.js";
 import type { ViewEvent } from "./abstract-view.js";
 import type { Inverse, AnyState } from "../state/index.js";
 
-export class TextEditingView extends AbstractEditorView {
+class _TextEditingView extends AbstractEditorView {
     _teState: TextPrims;
 
     constructor(prev: AbstractEditorView | InitialViewState, state: TextPrims) {
@@ -22,7 +23,7 @@ export class TextEditingView extends AbstractEditorView {
     }
 
     applyInverse(inverse: Inverse<AnyState>): AnyState {
-        inverse.apply<TextEditingView, "_teState">("_teState", this);
+        inverse.apply<_TextEditingView, "_teState">("_teState", this);
         return this._teState;
     }
 
@@ -164,7 +165,13 @@ export class TextEditingView extends AbstractEditorView {
 
         this.commitInverse(new SnapshotInverse(snapshot, "paste text"));
     }
+
+    get selectedCells(): grid.CellPath[] {
+        return [this._teState.selection.cell];
+    }
 }
+
+export const TextEditingView = InteractsWithFillChar(_TextEditingView);
 
 AbstractEditorView.registerViewFactory(TextPrims, (prev, st) =>
     new TextEditingView(prev, st as TextPrims));

@@ -1,4 +1,5 @@
 import { Recycler, CommittableRecycler } from "../framework/index.js";
+import { AbstractView } from "./abstract-view.js";
 
 interface BaseToolbarItemDescription {
     type: string; /** The type of description. */
@@ -12,9 +13,9 @@ interface ToolbarButtonDescription extends BaseToolbarItemDescription {
     /** The button's label. */
     label?: string;
     /** Whether or not the button should be shown as enabled. */
-    enabled?: boolean;
+    enabled?: () => boolean;
     /** Whether or not the button should be shown as disabled. */
-    disabled?: boolean;
+    disabled?: () => boolean;
     /** What should happen when the button is clicked. */
     onclick?: (e: MouseEvent) => void;
 }
@@ -27,21 +28,17 @@ interface ToolbarDividerDescription extends BaseToolbarItemDescription {
     type: "divider";
 }
 
-interface ToolbarTextInputDescription extends BaseToolbarItemDescription {
-    type: "textInput";
-    /** The text value of the input element. */
-    value: string;
-    /** Called when the text input's value is modified by the user. */
-    onchange?: (newValue: string) => void;
-    /** Called when the text input gains focus. */
-    onfocus?: () => void;
+interface ToolbarCustomElement extends BaseToolbarItemDescription {
+    type: "custom";
+    /** A view which represents the custom toolbar item. */
+    view: AbstractView
 }
 
 export type ToolbarItemDescription =
 ToolbarButtonDescription
 | ToolbarSpacerDescription
 | ToolbarDividerDescription
-| ToolbarTextInputDescription;
+| ToolbarCustomElement;
 
 /**
  * Build a button element in the given recycler.
@@ -51,13 +48,15 @@ ToolbarButtonDescription
  */
 function viewToolbarButton(descr: ToolbarButtonDescription, r: Recycler) {
     r.elem({ tag: "div", key: descr.key }, buttonElem => {
+        const isEnabled = descr.enabled ? descr.enabled() : false;
+        const isDisabled = descr.disabled ? descr.disabled() : false;
 
         buttonElem.className = "editor-button";
-        if(descr.enabled ?? false) {
+        if(isEnabled) {
             buttonElem.classList.add("editor-button-enabled");
         }
 
-        if(descr.disabled ?? false) {
+        if(isDisabled) {
             buttonElem.classList.add("editor-button-disabled");
         }
 
@@ -71,7 +70,7 @@ function viewToolbarButton(descr: ToolbarButtonDescription, r: Recycler) {
                 iconImg.width  = 18;
                 iconImg.height = 18;
             })
-                .commit();
+            .commit();
         } else {
             buttonElem.innerText = descr.label ?? "button";
         }
@@ -110,23 +109,8 @@ function viewToolbarDivider(descr: ToolbarDividerDescription, r: Recycler) {
  * @param descr
  * @param r
  */
-function viewToolbarTextInput(descr: ToolbarTextInputDescription, r: Recycler) {
-    r.elem({ tag: "input", key: descr.key }, inputElem => {
-        inputElem.className = "editor-toolbar-text-input";
-        inputElem.value = descr.value;
-        inputElem.spellcheck = false;
-        inputElem.onchange = (e) => {
-            if(descr.onchange) {
-                descr.onchange((e.target as HTMLInputElement).value);
-            }
-        };
-
-        inputElem.onfocus = () => {
-            if(descr.onfocus) {
-                descr.onfocus();
-            }
-        };
-    });
+function viewToolbarCustomElement(descr: ToolbarCustomElement, r: Recycler) {
+    descr.view.view(r);
 }
 
 /**
@@ -137,24 +121,34 @@ function viewToolbarTextInput(descr: ToolbarTextInputDescription, r: Recycler) {
  */
 function viewToolbarItem(descr: ToolbarItemDescription, r: Recycler) {
     switch(descr.type) {
-        case "button":    return viewToolbarButton(descr, r);
-        case "spacer":    return viewToolbarSpacer(descr, r);
-        case "divider":   return viewToolbarDivider(descr, r);
-        case "textInput": return viewToolbarTextInput(descr, r);
+        case "button":  return viewToolbarButton(descr, r);
+        case "spacer":  return viewToolbarSpacer(descr, r);
+        case "divider": return viewToolbarDivider(descr, r);
+        case "custom":  return viewToolbarCustomElement(descr, r);
     }
 }
 
-/**
- * Build a toolbar in the given recycler.
- *
- * @param descr
- * @param r
- */
-export function ViewToolbar(descr: ToolbarItemDescription[], r: Recycler) {
-    r.elem("div", toolbarElem => {
-        toolbarElem.className = "editor-toolbar";
-        new CommittableRecycler(toolbarElem)
-            .views(descr, (d, r) => viewToolbarItem(d, r))
-            .commit();
-    });
+export class ToolbarView extends AbstractView {
+    #descr: ToolbarItemDescription[];
+
+    constructor(parent: AbstractView, descr: ToolbarItemDescription[]) {
+        super(parent);
+        // Re-parent the views we've added in the toolbar item
+        // descriptions.
+        for(const item of descr) {
+            if(item.type === "custom") {
+                item.view.parent = this;
+            }
+        }
+        this.#descr = descr;
+    }
+
+    view(r: Recycler) {
+        r.elem("div", toolbarElem => {
+            toolbarElem.className = "editor-toolbar";
+            new CommittableRecycler(toolbarElem)
+                .views(this.#descr, (d, r) => viewToolbarItem(d, r))
+                .commit();
+        });
+    }
 }
