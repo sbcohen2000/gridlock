@@ -18,10 +18,14 @@
         -3.5px 1.7px 3.8px -2.3px hsl(var(--shadow-color) / 0.48),
         -9.3px 4.6px 10.2px -3.4px hsl(var(--shadow-color) / 0.39);
 
-    /* Guide lines */
+    /* guide lines */
     --guide-thick: 1px;
     --guide-hitbox-thick: 4px;
     --guide-color: #ccc;
+
+    /* row drop preview */
+    --drop-preview-thick: 4px;
+    --drop-preview-color: gray;
 }
 
 /*****************************************************************************/
@@ -138,6 +142,38 @@
     display: flex;
     flex-direction: row;
     position: relative;
+}
+
+.editor-row-halo-drag-handle {
+    position: absolute;
+    height: calc(100% + var(--selection-halo-thick));
+    width: 10px;
+    top: calc(-1 * var(--selection-halo-thick) / 2);
+    left: -10px;
+    background-color: var(--selection-color);
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+    pointer-events: auto;
+    cursor: pointer;
+    background-image: url("../www/assets/knurl.png");
+    background-position: center;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 10px auto;
+}
+
+.editor-row-drag-drop-preview {
+    position: absolute;
+    top: calc(-1 * var(--drop-preview-thick) / 2);
+    height: var(--drop-preview-thick);
+    left: 0;
+    right: 0;
+    background-color: var(--drop-preview-color);
+}
+
+.editor-row-drag-drop-preview-end {
+    top: unset;
+    bottom: calc(-1 * var(--drop-preview-thick) / 2);
 }
 
 /*****************************************************************************/
@@ -311,24 +347,6 @@
     outline: var(--selection-halo-thick) solid var(--selection-color);
     outline-offset: calc(-1 * var(--selection-halo-thick) / 2);
     pointer-events: none;
-}
-
-.editor-row-halo-drag-handle {
-    position: absolute;
-    height: calc(100% + var(--selection-halo-thick));
-    width: 10px;
-    top: calc(-1 * var(--selection-halo-thick) / 2);
-    left: -10px;
-    background-color: var(--selection-color);
-    border-top-left-radius: 2px;
-    border-bottom-left-radius: 2px;
-    pointer-events: auto;
-    cursor: pointer;
-    background-image: url("../www/assets/knurl.png");
-    background-position: center;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 10px auto;
 }
 
 .editor-context-menu {
