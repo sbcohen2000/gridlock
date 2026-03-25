@@ -323,6 +323,12 @@
     border-top-left-radius: 2px;
     border-bottom-left-radius: 2px;
     pointer-events: auto;
+    cursor: pointer;
+    background-image: url("../www/assets/knurl.png");
+    background-position: center;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 10px auto;
 }
 
 .editor-context-menu {

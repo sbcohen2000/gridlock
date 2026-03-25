@@ -2,13 +2,14 @@ import * as cmenu from "./context-menu.js";
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
-import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
+import { AbstractEditorView, PointerEventContext, PointerInCellEventContext } from "./abstract-editor-view.js";
 import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
 import { CellPrims } from "../state/index.js";
 import { DragState } from "./drag-state.js";
 
 import { CommittableRecycler, type Recycler } from "../framework/index.js";
 import type { Inverse, AnyState } from "../state/index.js";
+import { RowDraggingView } from "./row-dragging-view.js";
 
 export class CellEditingView extends AbstractEditorViewWithDragging {
     _ceState: CellPrims;
@@ -195,7 +196,14 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
                     dragHandleElem.className = "editor-row-halo-drag-handle"
 
                     dragHandleElem.onpointerdown = (e: PointerEvent) => {
-                        console.log("Clicked drag handle!");
+                        const ctx = new PointerEventContext(e, this);
+                        const rowDragView = new RowDraggingView(this, this._ceState, ctx.intoDragState("Round", () => {
+                            // If the drag ended up being just a
+                            // click, replace the drag view with
+                            // another cell-editing view.
+                            this.requestReplaceEditorView(new CellEditingView(this, this._ceState));
+                        }));
+                        this.requestReplaceEditorView(rowDragView);
                     }
                 })
                 .commit();
