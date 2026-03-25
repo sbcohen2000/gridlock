@@ -6,25 +6,26 @@ import { AbstractEditorView, PointerEventContext, PointerInCellEventContext } fr
 import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
 import { CellPrims } from "../state/index.js";
 import { DragState } from "./drag-state.js";
-
-import { CommittableRecycler, type Recycler } from "../framework/index.js";
-import type { Inverse, AnyState } from "../state/index.js";
 import { RowDraggingView } from "./row-dragging-view.js";
+import { ViewsSelectedCells } from "./views-selected-cells-mixin.js";
 
-export class CellEditingView extends AbstractEditorViewWithDragging {
+import type { Recycler } from "../framework/index.js";
+import type { Inverse, AnyState } from "../state/index.js";
+
+class _CellEditingView extends AbstractEditorViewWithDragging {
     _ceState: CellPrims;
 
     constructor(prev: AbstractEditorView, state: CellPrims) {
         super(prev, state);
         this._ceState = state;
 
-        if(prev instanceof CellEditingView) {
+        if(prev instanceof _CellEditingView) {
             this._dragRect = prev._dragRect;
         }
     }
 
     applyInverse(inverse: Inverse<AnyState>): AnyState {
-        inverse.apply<CellEditingView, "_ceState">("_ceState", this);
+        inverse.apply<_CellEditingView, "_ceState">("_ceState", this);
         return this._ceState;
     }
 
@@ -158,58 +159,23 @@ export class CellEditingView extends AbstractEditorViewWithDragging {
         }
     }
 
-    /**
-     * Draw the selection of a cell, if any, by adding items to the
-     * recycler.
-     */
-    viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
-        super.viewCellSelection(cell, recycler);
-
-        // If the selection covers exactly one row, then the selection
-        // will be drawn in `viewRowSelection` instead.
-        if(this._ceState.selectionCoversRow()) return;
-
-        if(this._ceState.selection.values().find(c => grid.eqCellPath(c, cell))) {
-            recycler.elem({ tag: "div", key: "cell-halo" }, (haloElem) => {
-                haloElem.className = "editor-cell-halo";
-            });
-        }
+    onPointerDownInRowDragHandle(e: PointerEvent) {
+        const ctx = new PointerEventContext(e, this);
+        const rowDragView = new RowDraggingView(this, this._ceState, ctx.intoDragState("Round", () => {
+            // If the drag ended up being just a
+            // click, replace the drag view with
+            // another cell-editing view.
+            this.requestReplaceEditorView(new CellEditingView(this, this._ceState));
+        }));
+        this.requestReplaceEditorView(rowDragView);
     }
 
-    /**
-     * Draw the selection of a row, if any, by adding items to the
-     * recycler.
-     */
-    viewRowSelection(row: grid.RowPath, r: Recycler) {
-        super.viewRowSelection(row, r);
-
-        const selectedRow = this._ceState.selectionCoversRow();
-        if(!selectedRow) return;
-
-        if(selectedRow.rowNo !== row.rowNo) return;
-
-        r.elem({ tag: "div", key: "row-halo" }, (haloElem) => {
-            haloElem.className = "editor-row-halo";
-
-            new CommittableRecycler(haloElem)
-                .elem({ tag: "div", key: "row-halo-drag-handle" }, (dragHandleElem) => {
-                    dragHandleElem.className = "editor-row-halo-drag-handle"
-
-                    dragHandleElem.onpointerdown = (e: PointerEvent) => {
-                        const ctx = new PointerEventContext(e, this);
-                        const rowDragView = new RowDraggingView(this, this._ceState, ctx.intoDragState("Round", () => {
-                            // If the drag ended up being just a
-                            // click, replace the drag view with
-                            // another cell-editing view.
-                            this.requestReplaceEditorView(new CellEditingView(this, this._ceState));
-                        }));
-                        this.requestReplaceEditorView(rowDragView);
-                    }
-                })
-                .commit();
-        });
+    get ceState() {
+        return this._ceState;
     }
 }
+
+export const CellEditingView = ViewsSelectedCells(_CellEditingView);
 
 AbstractEditorView.registerViewFactory(CellPrims, (prev, st) =>
     new CellEditingView(prev, st as CellPrims));

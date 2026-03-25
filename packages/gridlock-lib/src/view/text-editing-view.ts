@@ -36,7 +36,7 @@ export class TextEditingView extends AbstractEditorView {
             // cell-editing state and open the context menu.
             const st = CellPrims.editCells(this.state);
             st.addCell(ctx.cell);
-            this.requestReplaceEditorView(this.createViewForState(st), (newView: CellEditingView) => {
+            this.requestReplaceEditorView(this.createViewForState(st), newView => {
                 const newCtx = new PointerInCellEventContext(ctx.event, newView, ctx.cell);
                 newView.onPointerDownInCell(newCtx);
             });

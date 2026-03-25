@@ -13,3 +13,4 @@
   `apply` take one. Of course, it means that the state in each view
   will need to be in a `RefCell`, but we can define a getter in the
   class to simplify state access.
+- [ ] Dragging should be a mixin, not an ABC
