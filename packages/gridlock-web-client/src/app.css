@@ -233,6 +233,14 @@
     white-space: preserve nowrap;
 }
 
+.editor-fill-char-preview-view {
+    border: 1px solid black;
+}
+
+.editor-fill-char-preview-view-focused {
+    border: 1px solid var(--selection-color);
+}
+
 .editor-fill-char-preview {
     white-space: preserve nowrap;
     font-family: monospace;

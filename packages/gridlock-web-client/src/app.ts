@@ -168,7 +168,7 @@ class AppView extends view.AbstractView {
         }, {
             type: "custom",
             key: "fill-char-text-input",
-            view: new view.FillCharPreviewView(null),
+            constructView: (parent) => new view.FillCharPreviewView(parent, this.#editorView),
         }, {
             type: "spacer",
             key: "spacer-2"
@@ -452,15 +452,27 @@ function main() {
             if(this.#focusedView !== v) {
                 let oldFocusedView = this.#focusedView;
                 this.#focusedView = v;
-                oldFocusedView.notify(new view.LostFocusViewEvent(this), true);
+
+                if(oldFocusedView) {
+                    oldFocusedView.notify(new view.LostFocusViewEvent(this), true);
+                }
+
+                util.assert(this.#focusedView instanceof view.AbstractView, "The focused view is not a view.");
                 this.#focusedView.notify(new view.ReceivedFocusViewEvent(this), true);
             }
         }
 
         handleEvent(e: view.ViewEvent): boolean {
             if (e instanceof view.ViewDeletedViewEvent) {
-                if(this.#focusedView === e.view) {
-                    this.#focusedView = this;
+                if(this.#focusedView === e.deletedView) {
+                    if(e.replacementView) {
+                        // If the deleted view was replaced with a
+                        // different one, focus the new view.
+                        this.focusedView = e.replacementView;
+                    } else {
+                        // Otherwise, focus ourselves.
+                        this.focusedView = this;
+                    }
                     this.requestRedraw();
                 }
                 return true;

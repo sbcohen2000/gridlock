@@ -30,8 +30,14 @@ interface ToolbarDividerDescription extends BaseToolbarItemDescription {
 
 interface ToolbarCustomElement extends BaseToolbarItemDescription {
     type: "custom";
-    /** A view which represents the custom toolbar item. */
-    view: AbstractView
+    /**
+     * A function which can be used to construct a new view.
+     */
+    constructView?: (parent: ToolbarView) => AbstractView;
+    /**
+     * A view which represents the custom toolbar item.
+     */
+    view?: AbstractView;
 }
 
 export type ToolbarItemDescription =
@@ -103,51 +109,44 @@ function viewToolbarDivider(descr: ToolbarDividerDescription, r: Recycler) {
     })
 }
 
-/**
- * Build a toolbar text input element in the given recycler.
- *
- * @param descr
- * @param r
- */
-function viewToolbarCustomElement(descr: ToolbarCustomElement, r: Recycler) {
-    descr.view.view(r);
-}
-
-/**
- * Build a toolbar item in the given recycler.
- *
- * @param descr
- * @param r
- */
-function viewToolbarItem(descr: ToolbarItemDescription, r: Recycler) {
-    switch(descr.type) {
-        case "button":  return viewToolbarButton(descr, r);
-        case "spacer":  return viewToolbarSpacer(descr, r);
-        case "divider": return viewToolbarDivider(descr, r);
-        case "custom":  return viewToolbarCustomElement(descr, r);
-    }
-}
-
 export class ToolbarView extends AbstractView {
     #descr: ToolbarItemDescription[];
 
     constructor(parent: AbstractView, descr: ToolbarItemDescription[]) {
         super(parent);
-        // Re-parent the views we've added in the toolbar item
-        // descriptions.
-        for(const item of descr) {
-            if(item.type === "custom") {
-                item.view.parent = this;
-            }
-        }
         this.#descr = descr;
+    }
+
+    #viewToolbarCustomElement(descr: ToolbarCustomElement, r: Recycler) {
+        if(descr.constructView) {
+            const newView = descr.constructView(this);
+            const oldView = descr.view;
+            if(oldView) {
+                // Swap the new and old views.
+                this.notifyViewDeleted(oldView, newView);
+            }
+            descr.view = newView;
+        }
+
+        if(descr.view) {
+            descr.view.view(r);
+        }
+    }
+
+    #viewToolbarItem(descr: ToolbarItemDescription, r: Recycler) {
+        switch(descr.type) {
+            case "button":  return viewToolbarButton(descr, r);
+            case "spacer":  return viewToolbarSpacer(descr, r);
+            case "divider": return viewToolbarDivider(descr, r);
+            case "custom":  return this.#viewToolbarCustomElement(descr, r);
+        }
     }
 
     view(r: Recycler) {
         r.elem("div", toolbarElem => {
             toolbarElem.className = "editor-toolbar";
             new CommittableRecycler(toolbarElem)
-                .views(this.#descr, (d, r) => viewToolbarItem(d, r))
+                .views(this.#descr, (d, r) => this.#viewToolbarItem(d, r))
                 .commit();
         });
     }

@@ -61,23 +61,31 @@ export class KeyViewEvent extends ViewEvent {
 }
 
 /**
- * Notify that a view was deleted.
+ * Notify that a view was deleted, and optionally inform our parent of
+ * a view which replaced it, and should receive the deleted view's
+ * focus status, if it had any.
  */
 export class ViewDeletedViewEvent extends ViewEvent {
     /** @type {AbstractView} */
-    #view;
+    #deletedView;
+    /** @type {AbstractView | null} */
+    #replacementView;
 
     /**
      * @param {AbstractView} initiator
-     * @param {AbstractView} view
+     * @param {AbstractView} deletedView
+     * @param {AbstractView} [replacementView]
      */
-    constructor(initiator, view) {
+    constructor(initiator, deletedView, replacementView) {
         super(initiator, true);
-        this.#view = view;
+        this.#deletedView = deletedView;
+        this.#replacementView = replacementView ?? null;
     }
 
     /** @returns {AbstractView} */
-    get view() { return this.#view; }
+    get deletedView() { return this.#deletedView; }
+    /** @returns {AbstractView} */
+    get replacementView() { return this.#replacementView; }
 }
 
 /**
@@ -198,10 +206,12 @@ export class AbstractView {
      * Notify the views above us that a view was deleted from the
      * tree.
      *
-     * @param {AbstractView} view The view which was deleted.
+     * @param {AbstractView} deletedView The view which was deleted.
+     * @param {AbstractView} [replacementView] The view which replaced
+     *     the deleted view, if any.
      */
-    notifyViewDeleted(view) {
-        this.notify(new ViewDeletedViewEvent(this, view));
+    notifyViewDeleted(deletedView, replacementView) {
+        this.notify(new ViewDeletedViewEvent(this, deletedView, replacementView));
     }
 
     /**
