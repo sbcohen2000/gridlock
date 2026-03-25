@@ -164,7 +164,7 @@ describe("edge-prims", () => {
 
         it("Can shift text between two cells where the cells are (vertically) incomplete", () => {
             const src =
-                  "ABQAFAAyAAIAMgA8AAEAPABGAAEARgBQABEAAAAAAFAAWgAQABEAAABaAGQAEgAhAAAAZABmADMAAAAFAGYAaAAzAAAABgAIABEAAQABAAEABQAQAA8AAAAIAAAAEAANAAAAAAAAADI=\n"+
+                  "ABQAFAA1AAIANQBAAAEAQABLAAEASwBVABEAAAAAIABVAF8AEAARAAAgAF8AaQASACEAACAAaQBrADMAAAAFIABrAG0AMwAAAAYgAAgAEQABAAEAAQAFABAADwAAAAgAAAAQAA0AAAAAAAAAMg==\n"+
                   "# Title:         MXCSR                             \n"  +
                   "# Example from: \"Taking ASCII Drawings Seriously:  \n" +
                   "#                How Programmers Diagram Code\"     \n" +
@@ -177,7 +177,7 @@ describe("edge-prims", () => {
             st.slideVerticalEdge(-12);
 
             const exp =
-                  "ABQAFAAyAAIAMgA8AAEAPABGAAEARgBQABEAAAAAAFAAWgAEABEAAABaAGQAHgAVAAAAZABmADMAAAAFAGYAaAAzAAAABgAIABEAAQABAAEABAAEAAMAAAAEAAEAHAAZAAAABAAAADI=\n"+
+                  "ABQAFAA1AAIANQBAAAEAQABLAAEASwBVABEAAAAAIABVAF8ABAARAAAgAF8AaQAeABUAACAAaQBrADMAAAAFIABrAG0AMwAAAAYgAAgAEQABAAEAAQAEAAQAAwAAAAQAAQAcABkAAAAEAAAAMg==\n"+
                   "# Title:         MXCSR                             \n"  +
                   "# Example from: \"Taking ASCII Drawings Seriously:  \n" +
                   "#                How Programmers Diagram Code\"     \n" +
@@ -254,7 +254,7 @@ describe("edge-prims", () => {
 
         it("Can slide a horizontal edge where the below cell is incomplete", () => {
             const src =
-                  "AA4ADgAYAAEAGAAiAAMAIgAkAA8AAAAAACQAMAAPAAAAAQABAAEAAQABAAEAAQAB\n"+
+                  "AA4ADgAZAAEAGQAkAAMAJAAmAA8AAAAAIAAmADIADwAAAAEgAAEAAQABAAEAAQABAAE=\n"+
                   "a              \n" +
                   "b              \n" +
                   "c              \n" +
@@ -267,7 +267,7 @@ describe("edge-prims", () => {
             st.slideHorizontalEdge(1);
 
             const exp =
-                  "AA4ADgAYAAIAGAAiAAIAIgAmAA8AAAAAACYAMAAPAAAAAgABAAEAAQABAAEAAQAB\n" +
+                  "AA4ADgAZAAIAGQAkAAIAJAAoAA8AAAAAIAAoADIADwAAAAIgAAEAAQABAAEAAQABAAE=\n" +
                   "a              \n" +
                   "b              \n" +
                   "c              \n" +

@@ -59,7 +59,7 @@ describe("cell-prims", () => {
     describe("mergeSelectedCells", () => {
         it("Can merge rows with occluded content", () => {
             const src =
-                  "ABoAGgAkAAEAJAAuAAEALgA4AAEAOABCAAEAQgBEAAYAAAAAAEQASAAGAAAAAQBIAEwABgAAAAMATABQAAYAAAAFAAEAAQABAAEAAQABAAE=\n" +
+                  "ABoAGgAlAAEAJQAwAAEAMAA7AAEAOwBGAAEARgBIAAYAAAAAIABIAEwABgAAAAEgAEwAUAAGAAAAAyAAUABUAAYAAAAFIAABAAEAAQABAAEAAQAB\n" +
                   "a     \n" +
                   "b     \n" +
                   "c     \n" +
@@ -76,7 +76,7 @@ describe("cell-prims", () => {
             st.mergeSelectedCells();
 
             const exp =
-                  "AAgACAASAAQAEgAgAAYAAAAAAAEAAQABAAEAAQABAAE=\n" +
+                  "AAgACAATAAQAEwAhAAYAAAAAIAABAAEAAQABAAEAAQAB\n" +
                   "a     \n" +
                   "b     \n" +
                   "c     \n" +

@@ -81,7 +81,7 @@ export function textEditingStateFromCommonStateStr(src: string): TextPrims {
     return TextPrims.editText({ grid: g });
 }
 
-type CompactGridData = { upperLeft: point.P2, lineLengths: number[] };
+type CompactGridData = { upperLeft: point.P2, lineLengths: number[], fillChar: string };
 type ExpandedGridData = { lines: string[] } & CompactGridData;
 
 /**
@@ -124,7 +124,8 @@ export function _expandGrid(st: { grid: grid.Grid<Cell> }): {
                 data: {
                     upperLeft: point.mkP2(textX, textY),
                     lineLengths,
-                    lines: cell.data.lines
+                    lines: cell.data.lines,
+                    fillChar: cell.data.fillChar ?? " "
                 }
             });
 
@@ -199,7 +200,8 @@ function compactGrid(src: string, g: grid.Grid<CompactGridData>): grid.Grid<Cell
                         srcLines[cell.data.upperLeft.y + i]
                             .slice(cell.data.upperLeft.x, cell.data.upperLeft.x + len)
                     ),
-                    disabledGuides: new Set()
+                    disabledGuides: new Set(),
+                    fillChar: cell.data.fillChar === " " ? undefined : cell.data.fillChar
                 }
             }))
         }))
@@ -246,7 +248,7 @@ function base64ToBytes(str: string): Uint8Array {
  * The format is as follows:
  *             |<-------------- per-row data ------------->|<--- per-cell data --- ...
  *
- *  | rows_end | begin end height | ... | begin end height | begin end width x y | ...
+ *  | rows_end | begin end height | ... | begin end height | begin end width x y fill | ...
  *       |         |                    ^                  ^   |    |
  *       \______________________________/                  |   |    |
  *                 \______________________________________/    |    |
@@ -259,17 +261,18 @@ function base64ToBytes(str: string): Uint8Array {
  *     ------ per-line data ---------->|
  */
 
-const BYTES_PER_NUM = 2;
-const BYTES_PER_ROW_ENTRY  = 3 * BYTES_PER_NUM; // begin, end, height
-const BYTES_PER_CELL_ENTRY = 5 * BYTES_PER_NUM; // begin, end, width, x, y
-const BYTES_PER_LINE_ENTRY = 1 * BYTES_PER_NUM; // length
+const BYTES_PER_CHAR = 1;
+const BYTES_PER_NUM  = 2;
+const BYTES_PER_ROW_ENTRY  = 3 * BYTES_PER_NUM;  // begin, end, height
+const BYTES_PER_CELL_ENTRY = 5 * BYTES_PER_NUM   // begin, end, width, x, y
+                           + 1 * BYTES_PER_CHAR; // fill
+const BYTES_PER_LINE_ENTRY = 1 * BYTES_PER_NUM;  // length
 
 /**
  * Produce a string which encodes the metrics of each cell in the
  * grid. See the above format diagram.
  */
 export function _printCompactGridSpec(g: grid.Grid<CompactGridData>): string {
-
     const nRows       = g.rows.length;
     const nCells      = [...grid.allCells(g)].length;
     const nLines      = grid.allCells(g).reduce((sum, cell) => {
@@ -310,6 +313,8 @@ export function _printCompactGridSpec(g: grid.Grid<CompactGridData>): string {
             cellDataPtr += BYTES_PER_NUM;
             dv.setUint16(cellDataPtr, cell.data.upperLeft.y); // y
             cellDataPtr += BYTES_PER_NUM;
+            dv.setUint8(cellDataPtr, cell.data.fillChar.charCodeAt(0)); // fill
+            cellDataPtr += BYTES_PER_CHAR;
 
             for(const line of cell.data.lineLengths) {
                 dv.setUint16(lineDataPtr, line); // length
@@ -362,6 +367,8 @@ export function _parseCompactGridSpec(src: string): grid.Grid<CompactGridData> {
             cellDataPtr += BYTES_PER_NUM;
             const y = dv.getUint16(cellDataPtr);
             cellDataPtr += BYTES_PER_NUM;
+            const fillChar = String.fromCharCode(dv.getUint8(cellDataPtr)); // fill
+            cellDataPtr += BYTES_PER_CHAR;
 
             const nLines = (lineEnd - lineBegin) / BYTES_PER_LINE_ENTRY;
 
@@ -376,7 +383,8 @@ export function _parseCompactGridSpec(src: string): grid.Grid<CompactGridData> {
                 width,
                 data: {
                     upperLeft: point.mkP2(x, y),
-                    lineLengths
+                    lineLengths,
+                    fillChar
                 }
             });
         }
