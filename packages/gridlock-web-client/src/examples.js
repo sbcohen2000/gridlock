@@ -3,6 +3,26 @@
  */
 export const EXAMPLES = {
     "Programming": "Programming",
+    "string literal":
+    ("ACAAIAA2AAIANgBMAAUATABXAAIAVwBtAAMAbQCDAAYAgwCHABEAAAAAIACHAIsAVgARAAAgAIsAlQBkAAAAAiAAlQCfAAMAZAACIACfAKMAZwAAAAcgAKMAqQAFAAAACSAAqQCvAGIABQAJIACvALsARAAAAAwgALsAxwAjAEQADCAACgARAA4AHwATAAwAYwAqABcAAAAAAAEAAQABABAACQACAAIAAgBKAFEARQAAAAwAQwArACoAFwAAAAAAAQABAAEAAQ==\n" +
+     "# Example:       string literal                                                                        \n" +
+     "# Example from: \"Leaves of Grass,\" Walt Whitmann                                                       \n" +
+     "// Without newline:                                                                                    \n" +
+     "const poem =                                                                                           \n" +
+     "    \"Stranger, if you passing meet me and desire to speak to me, why should you not speak to me?\\n\" +  \n" +
+     "    \"And why should I not speak to you?\\n\"                                                          +  \n" +
+     "    \" --Walt Whitman\\n\"                                                                             ;  \n" +
+     "// With newline:                                                                                       \n" +
+     "// Steps:                                                                                              \n" +
+     "//   1. Insert newline after ',' (note that the column of the + doesn't change)                        \n" +
+     "//   2. Indent, add extra syntax. (note again that the column of the + doesn't change)                 \n" +
+     "//   3. Drag the guide in order to correct the column of the '+'s and ';'.                             \n" +
+     "                                                                                                       \n" +
+     "const poem =                                                                                           \n" +
+     "    \"Stranger, if you passing meet me and desire to speak to me,\\n\" +                                  \n" +
+     "    \"    why should you not speak to me?\\n\"                         +                                  \n" +
+     "    \"And why should I not speak to you?\\n\"                          +                                  \n" +
+     "    \" --Walt Whitman\\n\"                                             ;                                  \n"),
     "for_each_cpu":
     ("ABQAFAAqAAMAKgBAAAYAQABLAAYASwBRABAAAAAAIABRAFcANAAQAAAgAFcAYwA6AAAAAyAAYwBvAAoAOgADIABvAH8ARAAAAAkgAAgADwABAAwAIAAAAAAAHwAyADkAFgAAAAAAAQABAAEAAAAAAAMAQgAaACIAAgBBAAoAAg==\n" +
      "# Title:        for_each_cpu                                        \n" +
