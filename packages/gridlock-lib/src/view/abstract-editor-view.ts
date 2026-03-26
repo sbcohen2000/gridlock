@@ -588,7 +588,7 @@ export abstract class AbstractEditorView extends AbstractView {
                     .view(r => this.viewGridRootOverlay(r))
                     .commit();
             })
-            .view((r: Recycler) => HistoryView(r, this.#history, this.#undoIndex))
+            // .view((r: Recycler) => HistoryView(r, this.#history, this.#undoIndex))
             .commit();
     }
 
