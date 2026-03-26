@@ -37,6 +37,8 @@
     flex-direction: row;
     box-shadow: var(--shadow-elevation-medium);
 
+    margin: 12px;
+
     padding-right: 2px;
     padding-bottom: 2px;
     border-right: 1px solid #eee;
