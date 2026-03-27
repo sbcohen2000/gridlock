@@ -102,7 +102,6 @@ export const EXAMPLES = {
      "                 ++      +---Denormals-are-zero    \n"+
      "                 |                                 \n"+
      "                 +---Rounding Mode                 \n"),
-
     "Speech Recognizer":
     ("ACYAJgA8AAQAPABHAAEARwBzAAoAcwCfAAEAnwDLAAEAywDWAAIA1gDeABEAAAAAIADeAOYAIgARAAAgAOYA6AAzAAAABCAA6AD8AAUAAAAFIAD8ARAAFQAFAAUgARABJAAVABoABSABJAE4AAQALwAFIAE4AToABQAAAA8gAToBPAASAAUADyABPAE+ABgAFwAPIAE+AUAABAAvAA8gAUABQgAFAAAAECABQgFEABUABQAQIAFEAUYAFQAaABAgAUYBSAAEAC8AECABSAFMADMAAAARIAAIABEAAQABABEAIAAdAAAAMwAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAFQABAAEAAQABABUAAQABABUAAQABABUAAQAVAAEAAQABABUAAQABAAEAAQABAAEAAQABAAEAAQABAAAAAQAIAAEAAAABAAEAAQArAAA=\n"+
      "# Title:         Speech Recognizer                 \n"+
@@ -124,4 +123,22 @@ export const EXAMPLES = {
      "     |                    |                    |   \n"+
      " VS = voice search, SR = speech recognition        \n"+
      "                                                   \n"),
+    "Tea Ceremony":
+    ("ABQAFAAqAAIAKgA1AAEANQCCAA0AggCGAAkAAAAAIACGAIoAGwAJAAAgAIoAjAAkAAAAAiAAjACmAAgAAAADIACmAMAAAQAIAAN8AMAA2gAIAAkAAyAA2gD0AAEAEQADfAD0AQ4ABwASAAMgAQ4BKAABABkAA3wBKAFCAAoAGgADIAAIAAIADAAAABsAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAYACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQAGAAcAAAAFAAcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJAAAAAAAAAAAAAAAAAAAAAAAAAAAACA==\n" +
+     "# Title: Tea Ceremony               \n" +
+     "#                                   \n" +
+     "     kettle     cup     pot         \n" +
+     "                                    \n" +
+     "water ->                  <- leaves \n" +
+     "          boiling                   \n" +
+     "          water                     \n" +
+     "         ------->                   \n" +
+     "                   cool             \n" +
+     "                   water            \n" +
+     "                  ------>           \n" +
+     "                                    \n" +
+     "                    tea             \n" +
+     "                  <------           \n" +
+     "                                    \n" +
+     "                          -> waste  \n"),
 };
