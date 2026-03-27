@@ -71,6 +71,19 @@ export const EXAMPLES = {
      "    fmovm.l    USER_FPCR(%a6),%fpcr,%fpsr,%fpiar # restore ctrl regs         \n" +
      "    movm.l     EXC_DREGS(%a6),&0x0303          # restore d0-d1/a0-a1         \n" +
      "                                                                             \n"),
+    "scc_clr":
+    ("AA4ADgAkAAMAJABFAAgARQBLABAAAAAAIABLAFEAHgAQAAAgAFEAYQAKAAAAAyAAYQBxABcACgADIABxAIEADQAjAAMgAAcADwABAAcAHwAKAAgABgAGAAcACQAHAAYABQAAAAMACAAXAAAAGQANAAAAAAAMAAAADAAAAAkACQAA\n" +
+     "# Tile:         scc_clr                         \n" +
+     "# Example from: linux/arch/m68k/fpsp040/round.S \n" +
+     "#               (Line 199)                      \n" +
+     "scc_clr:                                        \n" +
+     "  tstl    %d0                      |test rs = 0 \n" +
+     "  bnes    sgl_done                              \n" +
+     "  andiw   #0xfe00,LOCAL_HI+2(%a0)  |clear l-bit \n" +
+     "sgl_done:                                       \n" +
+     "  andil   #0xffffff00,LOCAL_HI(%a0)|truncate    \n" +
+     "  clrl    LOCAL_LO(%a0)            |clear d2    \n" +
+     "  rts                                           \n"),
     "ASCII Diagrams": "ASCII Diagrams",
     "MXCSR":
     ("AEQARABaAAUAWgBlAAEAZQB7AAEAewCcAAEAnADIAAEAyAEKAAEBCgErAAEBKwFMAAEBTAFtAAEBbQGDAAEBgwGZAAEBmQGjABEAAAAAIAGjAa0AIgARAAAgAa0BrwAzAAAABSABrwGxAB8AAAAGIAGxAbMAFAAfAAYgAbMBtQATAAAAByABtQG3AAwAEwAHIAG3AbkAFAAfAAcgAbkBuwATAAAACCABuwG9AAcAEwAIIAG9Ab8ABQAaAAggAb8BwQAUAB8ACCABwQHDABAAAAAJIAHDAcUAAwAQAAkgAcUBxwAFABMACSABxwHJAAIAGAAJIAHJAcsABQAaAAkgAcsBzQAUAB8ACSABzQHPABAAAAAKIAHPAdEABwAQAAogAdEB0wAcABcACiAB0wHVABEAAAALIAHVAdcACAARAAsgAdcB2QAaABkACyAB2QHbABEAAAAMIAHbAd0ACAARAAwgAd0B3wAaABkADCAB3wHhABEAAAANIAHhAeMAIgARAA0gAeMB5QARAAAADiAB5QHnACIAEQAOIAAIABEAAQABAAEABQAgAB0AAAAIAAAAFAATAAAAAQABABEABgAFAAEAAAABAAEAAQABAAEAAAAHAAkAAAACAAEAAAACABYAAAABAAAAEQ==\n"+
