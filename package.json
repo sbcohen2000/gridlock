@@ -11,5 +11,8 @@
         "clean": "npm run clean --workspaces",
         "build": "scripts/build-web-client.sh /",
         "typecheck": "npm run typecheck --workspaces"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.3"
     }
 }
