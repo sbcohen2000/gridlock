@@ -519,5 +519,6 @@
 .editor-cell-selection-drag-preview {
     position: absolute;
     pointer-events: none;
-    outline: 2px solid black;
+    outline: 1px solid var(--selection-color);
+    background-color: rgba(119, 160, 237, 0.2);
 }
