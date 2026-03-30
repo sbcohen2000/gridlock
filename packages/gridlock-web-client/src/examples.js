@@ -141,4 +141,18 @@ export const EXAMPLES = {
      "                  <------           \n" +
      "                                    \n" +
      "                          -> waste  \n"),
+    "Data": "Data",
+    "LaTeX Table":
+    ("ACwALAA3AAIANwBCAAEAQgB5AAIAeQCwAAEAsADnAAEA5wEeAAMBHgEpAAEBKQEtAC8AAAAAIAEtAS8ALwAAAAIgAS8BMwALAAAAAyABMwE3AA4ACwADIAE3ATsADQAZAAMgATsBPwAHACYAAyABPwFDAAIALQADIAFDAUUACwAAAAUgAUUBRwAOAAsABSABRwFJAA0AGQAFIAFJAUsABwAmAAUgAUsBTQACAC0ABSABTQFPAAsAAAAGIAFPAVEADgALAAYgAVEBUwANABkABiABUwFVAAcAJgAGIAFVAVcAAgAtAAYgAVcBXQALAAAAByABXQFjAA4AFwAHIAFjAWkADQAlAAcgAWkBbwAHADIAByABbwF1AAIAOQAHIAF1AXcALwAAAAogABQAAQAYAAgABgANAAAADAAAAAYAAAACAAAABQAIAAUABAACAAoACQAEAAQAAgAHABcAEAAIAAAAAAAFAAAAAAAFAAAAAAACAAAAAAAN\n" +
+     "# Title: LaTeX Table                                       \n" +
+     "#                                                          \n" +
+     "\\begin{tabular}{l|l|l|l}                                   \n"+
+     "Language   & Type System & Functional & Pure \\\\            \n"+
+     "\\hline                                                     \n"+
+     "OCaml      & Static      & Yes        & No   \\\\            \n"+
+     "JavaScript & Dynamic     & No         & No   \\\\            \n"+
+     "Haskell                & Static      & Yes        & Yes  \\\\\n"+
+     "% Remove \"Pure\" column.                                    \n"+
+     "% Haskell first?                                           \n"+
+     "\\end{tabular}                                              \n"),
 };
