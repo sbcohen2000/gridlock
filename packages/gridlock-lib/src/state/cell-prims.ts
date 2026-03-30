@@ -139,8 +139,29 @@ export class CellPrims implements State<CellPrims> {
         return new SnapshotInverse(snapshot, "select cell");
     }
 
+    /**
+     * Determine if we can merge the selected cells.
+     *
+     * We can merge in two cases:
+     *
+     * 1. The entire selection can be merged (via the `grid`'s
+     *    lower-level notion of merging).
+     * 2. Every row of the selection can be independently merged via
+     *    the same low-level mechanism.
+     */
     canMergeSelectedCells(): boolean {
-        return grid.canMergeCells(this.grid, [...this.selection.values()]);
+        if(this.selection.length === 1) return true;
+
+        const selection = [...this.selection.values()];
+        if(grid.canMergeCells(this.grid, selection)) {
+            // Case 1.
+            return true;
+        }
+
+        const byRow = grid.collectCellsByRow(this.selection);
+        return byRow.values().every(row =>
+            row.length === 1 || grid.canMergeCells(this.grid, row)
+        );
     }
 
     /**
@@ -173,25 +194,21 @@ export class CellPrims implements State<CellPrims> {
         return undefined;
     }
 
-    mergeSelectedCells(): Inverse<CellPrims> {
-        const snapshot = this.clone();
+    /**
+     * Merge the given cells, returning the merged cell.
+     */
+    #mergeCells(cells: grid.CellPath[]): grid.CellPath {
+        if(cells.length === 1) return cells[0];
 
         const g = this.grid;
-
-        // Group cells by row to determine single-row vs multi-row merge.
-        const byRow = new Map<number, grid.CellPath[]>();
-        for(const cell of this.selection) {
-            const inRow = byRow.get(cell.rowNo);
-            if(inRow) inRow.push(cell);
-            else byRow.set(cell.rowNo, [cell]);
-        }
+        const byRow = grid.collectCellsByRow(cells);
 
         // Compute the text for the merged cell.
         let lines: string[];
         if(byRow.size === 1) {
             // We've got a single row, so horizontally concatentate
             // the selected cells.
-            const sortedCells = this.selection
+            const sortedCells = cells
                 .toSorted((a, b) => a.colNo - b.colNo)
                 .map(c => grid.lookupCell(g, c));
             lines = horizontallyCatCellLines(sortedCells);
@@ -204,9 +221,9 @@ export class CellPrims implements State<CellPrims> {
 
         // Merge disabled guides, adjusting offsets relative to the
         // merged cell's left edge.
-        const mergedRect = rect.unions(...this.selection.map(cell => grid.rectOfCell(g, cell)));
+        const mergedRect = rect.unions(...cells.map(cell => grid.rectOfCell(g, cell)));
         const disabledGuides = new Set<number>();
-        for(const cell of this.selection) {
+        for(const cell of cells) {
             const theCell = grid.lookupCell(g, cell);
             const cellRect = grid.rectOfCell(g, cell);
             const offset = cellRect.left - mergedRect.left;
@@ -215,9 +232,27 @@ export class CellPrims implements State<CellPrims> {
             }
         }
 
-        const newSelectedCell = grid.mergeCells(g, this.selection, { lines, disabledGuides });
-        this.selection = [newSelectedCell];
+        return grid.mergeCells(g, cells, { lines, disabledGuides });
+    }
 
+    mergeSelectedCells(): Inverse<CellPrims> {
+        const snapshot = this.clone();
+
+        const selection = [...this.selection.values()];
+        if(grid.canMergeCells(this.grid, selection)) {
+            // If we can merge all of the cells in the selection in
+            // one go, do so.
+            const newSelectedCell = this.#mergeCells(selection);
+            this.selection = [newSelectedCell];
+            return new SnapshotInverse(snapshot, "merge cells");
+        }
+
+        // Otherwise, try to merge each row one-by-one.
+        const newSelectedCells = [...grid.collectCellsByRow(selection).values().map(cells =>
+            this.#mergeCells(cells)
+        )];
+
+        this.selection = newSelectedCells;
         return new SnapshotInverse(snapshot, "merge cells");
     }
 

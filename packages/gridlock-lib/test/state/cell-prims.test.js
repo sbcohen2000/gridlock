@@ -88,6 +88,59 @@ describe("cell-prims", () => {
             expect(serialize.printCompactGrid(st)).to.equal(exp);
             expect(checkGridInvariants(st)).to.be.true;
         });
+
+        it("Can merge a single cell", () => {
+            const src =
+                  "hello\n" +
+                  "+-----+\n" +
+                  "+-----+";
+
+            const st = CellPrims.editCells({ grid: serialize.parseCommonState(src) });
+            // Select the cell
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+
+            expect(st.canMergeSelectedCells()).to.be.true;
+            st.mergeSelectedCells();
+
+            expect(serialize.printCommonState(st)).to.equal(src);
+        });
+
+        it("Can merge cells across multiple rows", () => {
+            const src =
+                  "a   b    c\n" +
+                  "\n"           +
+                  "d   e\n"      +
+                  "\n"           +
+                  "+---+----+----+\n" +
+                  "|   |    |    |\n" +
+                  "+---+----+----+\n" +
+                  "|   |         |\n" +
+                  "+---+---------+"
+
+            const st = CellPrims.editCells({ grid: serialize.parseCommonState(src) });
+            // Select the entire first row.
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+            st.selectCellUnderPoint(point.mkP2(4, 0));
+            st.selectCellUnderPoint(point.mkP2(9, 0));
+            // Select the last cell in the second row.
+            st.selectCellUnderPoint(point.mkP2(4, 2));
+
+            expect(st.canMergeSelectedCells()).to.be.true;
+            st.mergeSelectedCells();
+
+            const exp =
+                  "a   b    c\n" +
+                  "\n"           +
+                  "d   e\n"      +
+                  "\n"           +
+                  "+-------------+\n" +
+                  "|             |\n" +
+                  "+---+---------+\n" +
+                  "|   |         |\n" +
+                  "+---+---------+"
+
+            expect(serialize.printCommonState(st)).to.equal(exp);
+        });
     });
 
     describe("clearCellContents", () => {
