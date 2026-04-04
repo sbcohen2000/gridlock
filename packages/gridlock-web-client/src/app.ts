@@ -38,6 +38,10 @@ class AppView extends view.AbstractView {
         super(parent);
         this.#replaceEditorView(initialEditorView);
         this.#toolbarView = new view.toolbar.ToolbarView(this, [{
+            type: "custom",
+            key: "testy",
+            constructView: (parent) => new view.RedrawDebugView(parent),
+        }, {
             type: "button",
             key: "undo-button",
             iconSrc: undo_icon_url,

@@ -28,3 +28,4 @@ export { TextEditingView } from "./text-editing-view.js";
 export { RowSlicingView, CellSlicingView } from "./cell-slicing-view.js";
 export { InteractsWithFillChar, interactsWithFillChar } from "./interacts-with-fill-char-mixin.js";
 export { FillCharPreviewView } from "./fill-char-preview-view.js";
+export { RedrawDebugView } from "./redraw-debug-view.js";
