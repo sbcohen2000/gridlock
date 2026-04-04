@@ -473,7 +473,6 @@ function main() {
                         // Otherwise, focus ourselves.
                         this.focusedView = this;
                     }
-                    this.requestRedraw();
                 }
                 return true;
             } else if (e instanceof view.RedrawViewEvent) {
