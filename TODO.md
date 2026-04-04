@@ -1,5 +1,5 @@
 # Before Deadline
-- [ ] Specify fill character
+- [X] Specify fill character
 - [ ] Mode where we view the program text, entirely expanded, without grid lines
   - Edits can be disallowed in this mode
 - [X] Selected cell outlines should be more prominent, as well as disabled guides
