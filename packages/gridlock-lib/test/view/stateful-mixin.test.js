@@ -1,4 +1,4 @@
-import { Store } from "../../src/view/stateful-mixin.js";
+import { Store } from "../../src/view/abstract-stateful-view.js";
 import { expect } from "chai";
 
 describe("Store", () => {

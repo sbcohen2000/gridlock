@@ -1,24 +1,43 @@
 import { Recycler } from "../framework/index.js";
-import { Stateful, StateView } from "./stateful-mixin.js";
 import { AbstractView } from "./abstract-view.js";
+import { AbstractStatefulView, StateView } from "./abstract-stateful-view.js";
 
 type RedrawDebugViewState = {
-    redraws: number;
+    data: {
+        time: Date,
+        pctRecycled: number
+    }[];
 }
 
-class _RedrawDebugView extends AbstractView {
+export class RedrawDebugView extends AbstractStatefulView<RedrawDebugViewState> {
+    constructor(parent: AbstractView | null) {
+        super(
+            parent,
+            { data: [] },
+            ["redraw_debug_view_state"]
+        );
+    }
+
     viewState(r: Recycler, v: StateView<RedrawDebugViewState>) {
-        r.elem("span", spanElem => {
-            spanElem.innerText = v.state.redraws.toString();
-            spanElem.onclick = () => {
-                v.setState(({ redraws }) => ({ redraws: redraws + 1 }));
-            };
+        r.elem("canvas", canvasElem => {
+            canvasElem.width = 40;
+            canvasElem.height = 10;
+            const ctx = canvasElem.getContext("2d");
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(40, 10);
+            ctx.stroke();
         });
     }
 
-    path = ["redraw_debug_view_state"];
+    /**
+     * Record that a redraw has occurred.
+     *
+     * @param pctRedrawn Is the percent (on [0, 1]) of the HTML
+     * elements which were recycled from the previous render.
+     */
+    recordRedraw(pctRecycled: number) {
+        const date = new Date();
+    }
 }
-
-export const RedrawDebugView = Stateful(_RedrawDebugView, {
-    redraws: 0,
-});

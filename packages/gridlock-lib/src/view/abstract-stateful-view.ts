@@ -15,8 +15,6 @@ import { Recycler } from "../framework/framework.js";
 import { assert } from "../util.js";
 import { AbstractView } from "./abstract-view.js";
 
-type Constructor<T = {}> = new (...args: any[]) => T;
-
 /**
  * A path element into the application state.
  *
@@ -36,44 +34,38 @@ export interface StateView<S> {
     setState(st: S | ((oldSt: S) => S)): void;
 }
 
-interface StatefulBase<S> extends AbstractView {
+export abstract class AbstractStatefulView<S> extends AbstractView {
+    #path: Path;
+    #store: Store;
+
+    constructor(parent: AbstractView | null, initialState: S, path: Path, store: Store = TheStore) {
+        super(parent);
+        this.#path = path;
+        this.#store = store;
+        this.#store.updateAtPath(path, (x) => x, initialState);
+    }
+
+    view(r: Recycler) {
+        let view: StateView<S> = {
+            state: this.#store.getAtPath(this.#path),
+            setState: (st: S | ((oldSt: S) => S)) => {
+                if(st instanceof Function) {
+                    this.#store.updateAtPath(this.#path, st);
+                } else {
+                    this.#store.updateAtPath(this.#path, (_) => st);
+                }
+                this.requestRedraw();
+            }
+        };
+
+        this.viewState(r, view);
+    }
+
     /**
      * How do we view the state as an HTML element? This class is
      * implemented by the mixee.
      */
-    viewState(_recycler: Recycler, view: StateView<S>): void;
-
-    /**
-     * The path into the state which this stateful view subscribes to.
-     */
-    path: Path;
-}
-
-export function Stateful<S, T extends Constructor<StatefulBase<S>>>(Base: T, initialState: S, store: Store = TheStore) {
-    return class Stateful extends Base {
-        constructor(...args: any[]) {
-            super(...args);
-
-            // Place the initial state in the store.
-            store.updateAtPath(this.path, (x) => x, initialState);
-        }
-
-        view(r: Recycler) {
-            let view: StateView<S> = {
-                state: store.getAtPath(this.path),
-                setState: (st: S | ((oldSt: S) => S)) => {
-                    if(st instanceof Function) {
-                        store.updateAtPath(this.path, st);
-                    } else {
-                        store.updateAtPath(this.path, (_) => st);
-                    }
-                    this.requestRedraw();
-                }
-            };
-
-            this.viewState(r, view);
-        }
-    }
+    abstract viewState(_recycler: Recycler, view: StateView<S>): void;
 }
 
 /**
