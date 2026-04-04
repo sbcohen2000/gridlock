@@ -8,8 +8,6 @@ import { expect } from "chai";
 import { serialize, TextPrims } from "../../src/state/index.js";
 import { checkGridInvariants } from "../../src/state/state-iface.js";
 
-/** @import { AnyState } from "../../src/state/state-iface.js" */
-
 /**
  * Generate an arbitrary starting state by generating a grid and then
  * setting the point to an arbitrary position within the grid.

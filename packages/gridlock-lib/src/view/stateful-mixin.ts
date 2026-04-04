@@ -1,6 +1,14 @@
 /**
  * Defines a mixin which knows how to re-draw this view in response to
  * state changes.
+ *
+ * The application state is effectively one big JavaScript object.
+ *
+ * Each mixee of `Stateful` can define a view function which
+ * subscribes to a _path_ in this state object. The view will request a
+ * re-draw when the value at the path changes.
+ *
+ * Each mixee can also cause the state at this path to be updated.
  */
 
 import { Recycler } from "../framework/framework.js";
@@ -8,6 +16,20 @@ import { assert } from "../util.js";
 import { AbstractView } from "./abstract-view.js";
 
 type Constructor<T = {}> = new (...args: any[]) => T;
+
+/**
+ * A path element into the application state.
+ *
+ * If it's a string, it represents the key of an object. If it's a
+ * number, it represents an index into an array.
+ */
+type PathElem = string | number;
+
+/**
+ * A path is a sequence of path elements, where the topmost element
+ * comes first.
+ */
+type Path = PathElem[];
 
 export interface StateView<S> {
     state: S;
@@ -22,46 +44,30 @@ interface StatefulBase<S> extends AbstractView {
     viewState(_recycler: Recycler, view: StateView<S>): void;
 
     /**
-     * A key to associate with this class. If there will be multiple
-     * instances of this class, the mixee should define `key` to
-     * disambiguate between the stored states.
+     * The path into the state which this stateful view subscribes to.
      */
-    key?: string;
+    path: Path;
 }
 
-export function Stateful<S, T extends Constructor<StatefulBase<S>>>(Base: T, initialState: S) {
+export function Stateful<S, T extends Constructor<StatefulBase<S>>>(Base: T, initialState: S, store: Store = TheStore) {
     return class Stateful extends Base {
-        #setState(s: S | ((old: S) => S)) {
-            const key = this.key ?? "_default_key";
-            const old = (Store.stateRef(this.constructor, initialState, key) as { ref: S } | undefined);
-            assert(old !== undefined);
+        constructor(...args: any[]) {
+            super(...args);
 
-            if(s instanceof Function) {
-                s = s(old.ref);
-            }
-
-            if(old.ref !== s) {
-                old.ref = s;
-                this.requestRedraw();
-            }
-        }
-
-        get #state() {
-            const key = this.key ?? "_default_key";
-            const st = Store.stateRef(this.constructor, initialState, key) as { ref: S } | undefined;
-            assert(st !== undefined);
-            return st.ref;
+            // Place the initial state in the store.
+            store.updateAtPath(this.path, (x) => x, initialState);
         }
 
         view(r: Recycler) {
             let view: StateView<S> = {
-                state: this.#state,
+                state: store.getAtPath(this.path),
                 setState: (st: S | ((oldSt: S) => S)) => {
                     if(st instanceof Function) {
-                        this.#setState(st(this.#state));
+                        store.updateAtPath(this.path, st);
                     } else {
-                        this.#setState(st);
+                        store.updateAtPath(this.path, (_) => st);
                     }
+                    this.requestRedraw();
                 }
             };
 
@@ -74,28 +80,93 @@ export function Stateful<S, T extends Constructor<StatefulBase<S>>>(Base: T, ini
  * A singleton class which stores the state of all of the instances of
  * the `Stateful` mixin.
  */
-const Store = new class {
+export class Store {
+    #state: object;
+
     /**
-     * The map where we store the state. It's a nested map, where the
-     * first layer corresponds to instances of `Stateful`, and the second
-     * map is indexed by a user-specified key.
+     * Get the state value at the given `path`.
      */
-    constrToState: WeakMap<Function, Map<string, { ref: any }>> = new WeakMap();
+    getAtPath(path: Path): any {
+        let value = this.#state;
+        for(const elem of path) {
+            if(typeof elem === "number") {
+                assert(Array.isArray(value));
+            } else {
+                assert(typeof value === "object");
+            }
+            value = value[elem];
+        }
+        return value;
+    }
 
-    stateRef(constr: Function, initialState: any, key?: string): { ref: any } {
-        key = key ?? "_default_key";
-        let instances = this.constrToState.get(constr);
-
-        if(instances === undefined) {
-            // This is the first time we've seen a stateful view of
-            // `constr` type.
-            instances = new Map();
-            instances.set(key, { ref: initialState });
-            this.constrToState.set(constr, instances);
+    /**
+     * Update the state value at the given path.
+     *
+     * If `put` is provided, it will be put at the path, and path
+     * elements will be created as necessary. Otherwise, an exception
+     * is thrown if a nonexistent path element is accessed.
+     */
+    updateAtPath(path: Path, f: (v: any) => any, put?: any): any {
+        if(path.length === 0) {
+            // If we're trying to modify the root of the state object,
+            // just do so directly.
+            this.#state = f(this.#state ?? put);
+            return;
         }
 
-        const st = instances.get(key);
-        assert(st !== undefined);
-        return st;
+        // Initialize the state if it's empty.
+        if(this.#state === undefined) {
+            this.#state = freshValueForPathElem(path[0])
+        }
+
+        let parent = this.#state;
+        for(let i = 0; i < path.length - 1; ++i) {
+            const elem = path[i];
+            if(Object.hasOwn(parent, elem)) {
+                // The parent has a child with the next path segment.
+                parent = parent[elem];
+            } else {
+                // The parent doesn't have a child with the next path
+                // segment.  If we have a `put`, then we should create
+                // a new child of the correct type.  Otheriwse, this
+                // is an error.
+                if(put === undefined) {
+                    throw new Error("Path Error");
+                } else {
+                    parent[elem] = freshValueForPathElem(path[i + 1]);
+                    parent = parent[elem];
+                }
+            }
+        }
+
+        // Perform our modification on this last path segment.
+        const lastElem = path.at(-1);
+        if(Object.hasOwn(parent, lastElem)) {
+            parent[lastElem] = f(parent[lastElem]);
+        } else if(put !== undefined) {
+            parent[lastElem] = f(put);
+        } else {
+            throw new Error("Path Error");
+        }
     }
+
+    /**
+     * Get the entire state of the store. This is currently exported
+     * only for testing, no client should need to access this.
+     */
+    get state() {
+        return this.#state;
+    }
+}
+
+const TheStore = new Store();
+
+function freshValueForPathElem(elem: PathElem): any[] | object {
+    let v: any[] | object;
+    if(typeof elem === "number") {
+        v = [];
+    } else {
+        v = {};
+    }
+    return v;
 }

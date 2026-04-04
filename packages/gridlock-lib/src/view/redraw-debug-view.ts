@@ -15,6 +15,8 @@ class _RedrawDebugView extends AbstractView {
             };
         });
     }
+
+    path = ["redraw_debug_view_state"];
 }
 
 export const RedrawDebugView = Stateful(_RedrawDebugView, {
