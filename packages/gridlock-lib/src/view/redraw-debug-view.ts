@@ -1,6 +1,6 @@
 import { Recycler } from "../framework/index.js";
 import { AbstractView } from "./abstract-view.js";
-import { AbstractStatefulView, StateView } from "./abstract-stateful-view.js";
+import { AbstractStatefulView } from "./abstract-stateful-view.js";
 
 type RedrawDebugViewState = {
     data: {
@@ -18,7 +18,7 @@ export class RedrawDebugView extends AbstractStatefulView<RedrawDebugViewState> 
         );
     }
 
-    viewState(r: Recycler, v: StateView<RedrawDebugViewState>) {
+    viewState(r: Recycler, st: RedrawDebugViewState) {
         r.elem("canvas", canvasElem => {
             canvasElem.width = 40;
             canvasElem.height = 10;

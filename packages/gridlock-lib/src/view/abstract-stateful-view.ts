@@ -29,11 +29,6 @@ type PathElem = string | number;
  */
 type Path = PathElem[];
 
-export interface StateView<S> {
-    state: S;
-    setState(st: S | ((oldSt: S) => S)): void;
-}
-
 export abstract class AbstractStatefulView<S> extends AbstractView {
     #path: Path;
     #store: Store;
@@ -46,26 +41,25 @@ export abstract class AbstractStatefulView<S> extends AbstractView {
     }
 
     view(r: Recycler) {
-        let view: StateView<S> = {
-            state: this.#store.getAtPath(this.#path),
-            setState: (st: S | ((oldSt: S) => S)) => {
-                if(st instanceof Function) {
-                    this.#store.updateAtPath(this.#path, st);
-                } else {
-                    this.#store.updateAtPath(this.#path, (_) => st);
-                }
-                this.requestRedraw();
-            }
-        };
-
-        this.viewState(r, view);
+        this.viewState(r, this.#store.getAtPath(this.#path));
     }
 
     /**
      * How do we view the state as an HTML element? This class is
      * implemented by the mixee.
      */
-    abstract viewState(_recycler: Recycler, view: StateView<S>): void;
+    abstract viewState(_recycler: Recycler, st: S): void;
+
+    /**
+     * Update the state of this view.
+     */
+    setState(st: S | ((oldSt: S) => S)) {
+        if(st instanceof Function) {
+            this.#store.updateAtPath(this.#path, st);
+        } else {
+            this.#store.updateAtPath(this.#path, (_) => st);
+        }
+    }
 }
 
 /**
