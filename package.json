@@ -4,7 +4,8 @@
     "type": "module",
     "workspaces": [
         "packages/gridlock-lib",
-        "packages/gridlock-web-client"
+        "packages/gridlock-web-client",
+        "packages/gridlock-electron-client"
     ],
     "scripts": {
         "test": "npm run test --workspaces --if-present",
