@@ -197,9 +197,7 @@
     position: absolute;
     right: 0;
     z-index: -2;
-    /* A left-pointing triangle. */
-    background-image: url("data:image/svg+xml,<svg height=\"10\" width=\"10\" xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"0,5 10,10 10,0\" style=\"fill:black\" /></svg>");
-    background-size: 100% 100%;
+    background: linear-gradient(to left, black, transparent);
     filter: blur(4px);
 }
 
