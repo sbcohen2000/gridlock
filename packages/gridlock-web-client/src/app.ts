@@ -33,14 +33,16 @@ const BINDING_WIDTH = 24; //px;
 class AppView extends view.AbstractView {
     #editorView: view.AbstractEditorView;
     #toolbarView: view.toolbar.ToolbarView;
+    #redrawDebugView: view.RedrawDebugView;
 
     constructor(parent: view.AbstractView, initialEditorView: view.AbstractEditorView) {
         super(parent);
         this.#replaceEditorView(initialEditorView);
+        this.#redrawDebugView = new view.RedrawDebugView(this)
         this.#toolbarView = new view.toolbar.ToolbarView(this, [{
             type: "custom",
             key: "testy",
-            constructView: (parent) => new view.RedrawDebugView(parent),
+            view: this.#redrawDebugView
         }, {
             type: "button",
             key: "undo-button",
@@ -390,6 +392,13 @@ class AppView extends view.AbstractView {
         }
         return false;
     }
+
+    /*************************************************************************/
+    /** Debugging                                                           **/
+
+    recordRedraw(pctRecycled: number) {
+        this.#redrawDebugView.recordRedraw(pctRecycled);
+    }
 }
 
 function main() {
@@ -538,7 +547,7 @@ function main() {
 
             r.commit();
 
-            // console.log(framework.RecycleStatistics.report());
+            this.#appView.recordRedraw(framework.RecycleStatistics.recycledPct);
             return document.body;
         }
     })(null, initialView);

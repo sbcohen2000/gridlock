@@ -52,12 +52,19 @@ export abstract class AbstractStatefulView<S> extends AbstractView {
 
     /**
      * Update the state of this view.
+     *
+     * The second optional argument allows the user to suppress the
+     * redraw which this operation will normally cause.
      */
-    setState(st: S | ((oldSt: S) => S)) {
+    setState(st: S | ((oldSt: S) => S), redraw: boolean = true) {
         if(st instanceof Function) {
             this.#store.updateAtPath(this.#path, st);
         } else {
             this.#store.updateAtPath(this.#path, (_) => st);
+        }
+
+        if(redraw) {
+            this.requestRedraw();
         }
     }
 }
