@@ -1,3 +1,4 @@
+import "./cell-dragging-view.css";
 import * as grid from "../grid.js";
 import type { Inverse, AnyState } from "../state/index.js";
 import { AbstractEditorView } from "./abstract-editor-view.js";

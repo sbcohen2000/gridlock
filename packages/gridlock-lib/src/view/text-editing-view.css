@@ -1,0 +1,20 @@
+@keyframes blink {
+    0%, 45% { opacity: 1; }
+    55%, 100% { opacity: 0; }
+}
+
+.editor-cursor {
+    pointer-events: none;
+    width: 1ch;
+    height: 1em;
+    z-index: 4;
+    backdrop-filter: invert(100%) saturate(0%);
+
+    /* animation: blink 1s ease-in-out infinite; */
+}
+
+.editor-cursor.editor-cursor-unfocused {
+    backdrop-filter: none;
+    outline: 1px solid black;
+    outline-offset: -1px;
+}

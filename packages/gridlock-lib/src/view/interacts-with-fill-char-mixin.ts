@@ -3,6 +3,8 @@
  * the selection and also update the selection with a new fill char.
  */
 
+import "./abstract-editor-view.css";
+import "./fill-char-preview-view.css";
 import * as grid from "../grid.js";
 import { Recycler } from "../framework/index.js";
 import { AnyState } from "../state/index.js";

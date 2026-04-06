@@ -1,3 +1,4 @@
+import "./abstract-editor-view.css";
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";

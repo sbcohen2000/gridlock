@@ -7,8 +7,8 @@
     "type": "module",
     "scripts": {
         "test": "mocha --recursive",
-        "watch": "esbuild src/index.js --outfile=dist/index.js --format=esm --watch --bundle --sourcemap='inline'",
-        "build": "esbuild src/index.js --outfile=dist/index.js --format=esm --bundle && tsc -p jsconfig.typecheck.json",
+        "watch": "esbuild src/index.js --outfile=dist/index.js --format=esm --watch --bundle --sourcemap='inline' --loader:.png=dataurl",
+        "build": "esbuild src/index.js --outfile=dist/index.js --format=esm --bundle --loader:.png=dataurl && tsc -p jsconfig.typecheck.json",
         "clean": "rm -rf dist",
         "typecheck": "tsc -p jsconfig.typecheck.json"
     },

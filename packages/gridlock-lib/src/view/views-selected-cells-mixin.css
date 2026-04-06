@@ -1,0 +1,49 @@
+.editor-row-halo,
+.editor-cell-halo {
+    height: 100%;
+    width: 100%;
+    left: 0;
+    top: 0;
+    position: absolute;
+    z-index: 3;
+    outline: var(--selection-halo-thick) solid var(--selection-color);
+    outline-offset: calc(-1 * var(--selection-halo-thick) / 2);
+    pointer-events: none;
+}
+
+.editor-row-halo-drag-handle {
+    position: absolute;
+    height: calc(100% + var(--selection-halo-thick));
+    width: 10px;
+    top: calc(-1 * var(--selection-halo-thick) / 2);
+    left: -10px;
+    background-color: var(--selection-color);
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+    pointer-events: auto;
+    cursor: pointer;
+    background-image: url("./assets/row-knurl.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 10px auto;
+    z-index: 3;
+}
+
+.editor-cell-halo-drag-handle {
+    position: absolute;
+    right: calc(var(--guide-thick) / 2);
+    bottom: calc(var(--guide-thick) / 2);
+    height: calc(10px + var(--guide-thick));
+    width: calc(10px + var(--guide-thick));
+
+    background-color: var(--selection-color);
+    border-top-left-radius: 2px;
+    pointer-events: auto;
+    cursor: pointer;
+
+    background-image: url("./assets/cell-knurl.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 10px 10px;
+    z-index: 3;
+}

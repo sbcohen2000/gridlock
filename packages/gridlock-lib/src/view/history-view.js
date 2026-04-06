@@ -1,3 +1,4 @@
+import "./history-view.css";
 import { CommittableRecycler } from "../framework/index.js";
 import { SnapshotInverse } from "../state/inverse.js";
 

@@ -1,3 +1,4 @@
+import "./context-menu.css";
 import * as point from "../point.js";
 import { AbstractView, ViewEvent } from "./abstract-view.js";
 import { CommittableRecycler } from "../framework/index.js";

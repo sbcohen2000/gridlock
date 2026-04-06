@@ -1,3 +1,4 @@
+import "./fill-char-preview-view.css";
 import { CommittableRecycler, Recycler } from "../framework/framework.js";
 import { AbstractEditorView } from "./abstract-editor-view.js";
 import { AbstractView, KeyViewEvent, ViewEvent } from "./abstract-view.js";

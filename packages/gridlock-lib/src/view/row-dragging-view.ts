@@ -1,3 +1,4 @@
+import "./row-dragging-view.css";
 import * as grid from "../grid.js";
 import * as rect from "../rect.js";
 import type { Inverse, AnyState } from "../state/index.js";

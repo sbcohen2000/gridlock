@@ -3,7 +3,7 @@ set -e
 
 ROOT_PATH=${1:-/}
 
-npx esbuild src/app.ts src/app.css \
+npx esbuild src/app.ts \
     --loader:.png=file \
     --public-path="${ROOT_PATH}dist/" \
     --bundle \

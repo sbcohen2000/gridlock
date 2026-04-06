@@ -3,6 +3,7 @@
  * a method for finding the current selection.
  */
 
+import "./views-selected-cells-mixin.css";
 import * as grid from "../grid.js";
 import { CellPrims } from "../state/cell-prims.js";
 import { Recycler, CommittableRecycler } from "../framework/index.js";

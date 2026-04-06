@@ -1,0 +1,38 @@
+.editor-toolbar {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    column-gap: 4px;
+    align-items: baseline;
+    border-bottom: 1px solid gray;
+}
+
+.editor-button {
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.editor-button-icon {
+    vertical-align: middle;
+}
+
+.editor-button-enabled {
+    border: 1px solid gray;
+    box-shadow: inset 0 0 2px gray;
+    background-color: var(--button-pressed-bg-color);
+    border-radius: 2px;
+}
+
+.editor-button-disabled {
+    filter: opacity(50%) saturate(0%);
+}
+
+.editor-toolbar-spacer {
+    flex-grow: 1;
+}
+
+.editor-toolbar-divider {
+    border-right: 1px solid gray;
+    align-self: stretch;
+}

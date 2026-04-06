@@ -1,0 +1,13 @@
+.editor-cell-drag-drop-preview {
+    height: 100%;
+    width: 100%;
+    left: 0;
+    top: 0;
+    position: absolute;
+    z-index: 3;
+    /* Uses a gray outline rather than the selection color to indicate a
+     * drop target, not a selection. */
+    outline: var(--selection-halo-thick) solid gray;
+    outline-offset: calc(-1 * var(--selection-halo-thick) / 2);
+    pointer-events: none;
+}

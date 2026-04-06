@@ -1,0 +1,224 @@
+:root {
+    /* space dots */
+    --space-dot-color: gainsboro;
+    --trailing-space-dot-color: #ebb7a0;
+
+    /* buttons */
+    --button-pressed-bg-color: #eee;
+
+    /* selections */
+    --selection-color: #77a0ed;
+    --selection-halo-thick: 2px;
+
+    /* shadows */
+    --shadow-color: 0deg 0% 52%;
+    --shadow-elevation-medium:
+        -0.4px 0.2px 0.4px hsl(var(--shadow-color) / 0.66),
+        -1.2px 0.6px 1.3px -1.1px hsl(var(--shadow-color) / 0.57),
+        -3.5px 1.7px 3.8px -2.3px hsl(var(--shadow-color) / 0.48),
+        -9.3px 4.6px 10.2px -3.4px hsl(var(--shadow-color) / 0.39);
+
+    /* guide lines */
+    --guide-thick: 1px;
+    --guide-hitbox-thick: 4px;
+    --guide-color: #ccc;
+
+    /* row drop preview */
+    --drop-preview-thick: 4px;
+    --drop-preview-color: gray;
+}
+
+/*****************************************************************************/
+/** Editor Root                                                              */
+
+.editor-root {
+    vertical-align: top;
+    display: inline-flex;
+    flex-direction: row;
+    font-family: monospace;
+}
+
+.editor-line-nums-margin {
+    display: flex;
+    flex-direction: column;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.editor-line-num {
+    text-align: right;
+    color: gray;
+    height: 1em;
+    white-space: preserve nowrap;
+}
+
+/*****************************************************************************/
+/** Grid Root                                                                */
+
+.grid-root {
+    position: relative;
+}
+
+/*****************************************************************************/
+/** Editor Guides                                                            */
+
+.editor-row-guide-hitbox,
+.editor-row-guide,
+.editor-cell-guide-hitbox,
+.editor-cell-guide {
+    position: absolute;
+    cursor: pointer;
+}
+
+.editor-row-guide-hitbox,
+.editor-cell-guide-hitbox {
+    z-index: 9;
+}
+
+.editor-cell-guide-hitbox,
+.editor-cell-guide {
+    top: 0;
+    bottom: 0;
+}
+
+.editor-cell-guide {
+    right: calc(-1 * var(--guide-thick) / 2);
+    border-right: var(--guide-thick) solid var(--guide-color);
+}
+
+.editor-disabled-cell-guide {
+    border-right-style: dashed;
+}
+
+.editor-cell-guide-hitbox {
+    right: calc(-1 * var(--guide-hitbox-thick) / 2);
+    width: var(--guide-hitbox-thick);
+}
+
+.editor-row-guide-hitbox,
+.editor-row-guide {
+    left: 0;
+    right: 0;
+}
+
+.editor-row-guide {
+    bottom: calc(-1 * var(--guide-thick) / 2);
+    border-bottom: var(--guide-thick) solid var(--guide-color);
+}
+
+.editor-row-guide-hitbox {
+    bottom: calc(-1 * var(--guide-hitbox-thick) / 2);
+    height: var(--guide-hitbox-thick);
+}
+
+.editor-cell-guide-hitbox:hover,
+.editor-row-guide-hitbox:hover {
+    background-color: rgba(200, 200, 200, 0.5);
+}
+
+/*****************************************************************************/
+/** Editor Rows                                                              */
+
+.editor-row {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+}
+
+.editor-row-blind {
+    position: absolute;
+    height: 6px;
+    left: calc(var(--guide-thick) / 2);
+    right: calc(var(--guide-thick) / 2);
+    bottom: 0;
+
+    background-image: url("./assets/row-blind.png");
+    background-size: auto 6px;
+}
+
+/*****************************************************************************/
+/** Editor Cells                                                             */
+
+.editor-cell {
+    position: relative;
+}
+
+.editor-cell.editor-cell-display-clipped {
+    z-index: 1;
+}
+
+.editor-cell-clip-box {
+    overflow-x: clip;
+}
+
+.editor-row.editor-row-incomplete .editor-cell-clip-box {
+    /** When the row is incomplete, clip y-overflow, since this will prevent
+     * the font's decenders from peeking out of the row's bounding box. */
+    overflow-y: clip;
+}
+
+.editor-line {
+    position: relative;
+    height: 1em;
+    white-space: preserve nowrap;
+}
+
+.editor-space-fragment {
+    background-image: radial-gradient(
+        circle at 50% 60%,
+        var(--space-dot-color)  20%,
+        transparent             20%,
+        transparent            100%
+    );
+    background-attachment: local;
+    background-size: 1ch 1em;
+    background-repeat: no-repeat;
+}
+
+.editor-trailing-space-fragment {
+    background-image: radial-gradient(
+        circle at 50% 60%,
+        var(--trailing-space-dot-color)  20%,
+        transparent                      20%,
+        transparent                     100%
+    );
+ }
+
+.editor-line-overflow-tape {
+    height: 1em;
+    position: absolute;
+    right: 0;
+    z-index: -1;
+    background-color: white;
+}
+
+.editor-line-overflow-shadow-caster {
+    height: 1em;
+    position: absolute;
+    right: 0;
+    z-index: -2;
+    /* A left-pointing triangle. */
+    background-image: url("data:image/svg+xml,<svg height=\"10\" width=\"10\" xmlns=\"http://www.w3.org/2000/svg\"><polygon points=\"0,5 10,10 10,0\" style=\"fill:black\" /></svg>");
+    background-size: 100% 100%;
+    filter: blur(4px);
+}
+
+@keyframes cell-width-flash {
+    0% { background-color: lightblue; }
+    100% { background-color: transparent; }
+}
+
+.editor-cell-width-changed {
+    animation: cell-width-flash 0.5s ease-out forwards;
+}
+
+.editor-cell-blind {
+    position: absolute;
+    width: 6px;
+    top: calc(var(--guide-thick) / 2);
+    bottom: calc(var(--guide-thick) / 2);
+    right: 0;
+
+    background-image: url("./assets/cell-blind.png");
+    background-size: 6px;
+}

@@ -1,3 +1,4 @@
+import "./toolbar.css";
 import { Recycler, CommittableRecycler } from "../framework/index.js";
 import { AbstractView } from "./abstract-view.js";
 

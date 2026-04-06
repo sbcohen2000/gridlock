@@ -1,3 +1,5 @@
+import "gridlock-lib/dist/index.css";
+import "./app.css";
 import { util, view, state, framework, point } from "gridlock-lib";
 
 import { EXAMPLES } from "./examples.js";

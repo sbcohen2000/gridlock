@@ -1,0 +1,13 @@
+.editor-row-drag-drop-preview {
+    position: absolute;
+    top: calc(-1 * var(--drop-preview-thick) / 2);
+    height: var(--drop-preview-thick);
+    left: 0;
+    right: 0;
+    background-color: var(--drop-preview-color);
+}
+
+.editor-row-drag-drop-preview-end {
+    top: unset;
+    bottom: calc(-1 * var(--drop-preview-thick) / 2);
+}

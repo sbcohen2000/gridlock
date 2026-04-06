@@ -1,3 +1,5 @@
+import "./text-editing-view.css";
+import "./views-selected-cells-mixin.css";
 import * as grid from "../grid.js";
 import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
 import { InteractsWithFillChar } from "./interacts-with-fill-char-mixin.js";
