@@ -1,4 +1,8 @@
-/** Allows TypeScript to accept CSS imports; bundling is handled by esbuild. */
+declare module "*.png" {
+  const content: string;
+  export default content;
+}
+
 declare module "*.css" {}
 
 interface Versions {

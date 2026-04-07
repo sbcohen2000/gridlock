@@ -19,6 +19,8 @@ npx esbuild src/preload.ts \
 
 # Renderer (browser)
 npx esbuild src/renderer.ts \
+    --loader:.png=file \
+    --public-path="./dist/" \
     --bundle \
     --platform=browser \
     --format=iife \
