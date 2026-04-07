@@ -1,8 +1,8 @@
-import { contextBridge } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
+import { LoadRequest, ReaddirRequest, SaveRequest } from "./ipc";
 
-contextBridge.exposeInMainWorld('versions', {
-  node: () => process.versions.node,
-  chrome: () => process.versions.chrome,
-  electron: () => process.versions.electron
-  // we can also expose variables, not just functions
+contextBridge.exposeInMainWorld('electronAPI', {
+    save:    (req: SaveRequest)    => ipcRenderer.invoke("save", req),
+    load:    (req: LoadRequest)    => ipcRenderer.invoke("load", req),
+    readdir: (req: ReaddirRequest) => ipcRenderer.invoke("readdir", req)
 })
