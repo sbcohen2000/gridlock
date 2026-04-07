@@ -11,7 +11,6 @@
  * Each mixee can also cause the state at this path to be updated.
  */
 
-import { Recycler } from "../framework/framework.js";
 import { assert } from "../util.js";
 import { AbstractView } from "./abstract-view.js";
 
@@ -27,11 +26,11 @@ type PathElem = string | number;
  * A path is a sequence of path elements, where the topmost element
  * comes first.
  */
-type Path = PathElem[];
+export type Path = PathElem[];
 
 export abstract class AbstractStatefulView<S> extends AbstractView {
-    #path: Path;
-    #store: Store;
+    readonly #path: Path;
+    readonly #store: Store;
 
     constructor(parent: AbstractView | null, initialState: S, path: Path, store: Store = TheStore) {
         super(parent);
@@ -40,15 +39,12 @@ export abstract class AbstractStatefulView<S> extends AbstractView {
         this.#store.updateAtPath(path, (x) => x, initialState);
     }
 
-    view(r: Recycler) {
-        this.viewState(r, this.#store.getAtPath(this.#path));
-    }
-
     /**
-     * How do we view the state as an HTML element? This class is
-     * implemented by the mixee.
+     * Get this view's store path.
      */
-    abstract viewState(_recycler: Recycler, st: S): void;
+    get path(): Path {
+        return this.#path;
+    }
 
     /**
      * Update the state of this view.
@@ -66,6 +62,13 @@ export abstract class AbstractStatefulView<S> extends AbstractView {
         if(redraw) {
             this.requestRedraw();
         }
+    }
+
+    /**
+     * Get the state of this component.
+     */
+    get state(): S {
+        return this.#store.getAtPath(this.#path);
     }
 }
 
@@ -152,7 +155,7 @@ export class Store {
     }
 }
 
-const TheStore = new Store();
+export const TheStore = new Store();
 
 function freshValueForPathElem(elem: PathElem): any[] | object {
     let v: any[] | object;

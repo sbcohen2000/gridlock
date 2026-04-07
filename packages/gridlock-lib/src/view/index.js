@@ -1,10 +1,8 @@
 export * as cmenu from "./context-menu.js";
 export * as toolbar from "./toolbar.js";
 export {
-    AbstractEditorView,
-    ReplaceEditorViewEvent,
-    mkInitialEditorViewState
-} from "./abstract-editor-view.js";
+    EditorView
+} from "./editor-view.js";
 export {
     AbstractView,
     KeyViewEvent,

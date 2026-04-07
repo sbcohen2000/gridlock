@@ -19,11 +19,6 @@ class _CellDraggingView extends AbstractEditorViewWithDragging {
         this._targetCellPath = undefined;
     }
 
-    applyInverse(inverse: Inverse<AnyState>): AnyState {
-        inverse.apply<_CellDraggingView, "_cdState">("_cdState", this);
-        return this._cdState;
-    }
-
     get ceState() {
         return this._cdState;
     }

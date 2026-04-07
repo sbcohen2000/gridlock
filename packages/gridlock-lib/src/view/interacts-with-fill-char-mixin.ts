@@ -17,7 +17,7 @@ type Constructor<T = {}> = new (...args: any[]) => T;
  */
 interface InteractsWithFillCharBase {
     selectedCells: grid.CellPath[];
-    state: AnyState;
+    editorState: AnyState;
 }
 
 export function InteractsWithFillChar<T extends Constructor<InteractsWithFillCharBase>>(Base: T) {
@@ -28,10 +28,10 @@ export function InteractsWithFillChar<T extends Constructor<InteractsWithFillCha
          */
         setFillChar(char: string): Inverse<InteractsWithFillChar> {
             char = char[0] ?? " ";
-            const snapshot = this.state.clone();
+            const snapshot = this.editorState.clone();
 
             this.selectedCells.forEach(cell => {
-                const theCell = grid.lookupCell(this.state.grid, cell);
+                const theCell = grid.lookupCell(this.editorState.grid, cell);
                 if(char === ' ') {
                     // Then, unset the `fillChar` on all of the cells.
                     delete theCell.data.fillChar;
@@ -51,7 +51,7 @@ export function InteractsWithFillChar<T extends Constructor<InteractsWithFillCha
          */
         viewFillChar(r: Recycler): void {
             const fillChars = new Set(this.selectedCells.map(cell => {
-                const theCell = grid.lookupCell(this.state.grid, cell);
+                const theCell = grid.lookupCell(this.editorState.grid, cell);
                 return theCell.data.fillChar ?? " ";
             }));
             r.elem({ tag: "span", clearAttributes: true }, fillCharElem => {

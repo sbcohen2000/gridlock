@@ -20,11 +20,6 @@ class _RowDraggingView extends AbstractEditorViewWithDragging {
         this._targetRowNo = undefined;
     }
 
-    applyInverse(inverse: Inverse<AnyState>): AnyState {
-        inverse.apply<_RowDraggingView, "_rdState">("_rdState", this);
-        return this._rdState;
-    }
-
     onDragEnd() {
         // When the drag ends, commit the change and then return to
         // the cell editing view.

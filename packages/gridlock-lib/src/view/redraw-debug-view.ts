@@ -26,14 +26,13 @@ export class RedrawDebugView extends AbstractStatefulView<RedrawDebugViewState> 
     }
 
     *#forEachBarInPlot(
-        st: RedrawDebugViewState,
         canvasWidth: number,
         canvasHeight: number,
     ): Generator<{ x: number, yMiddle: number }> {
         const xscl = canvasWidth / (HISTORY_LEN * TO_MILLIS); // px / ms
         const now = new Date().getTime();
 
-        for(const record of st) {
+        for(const record of this.state) {
             const msAgo = now - record.time;
             const x = canvasWidth - (msAgo * xscl);
 
@@ -46,14 +45,14 @@ export class RedrawDebugView extends AbstractStatefulView<RedrawDebugViewState> 
         }
     }
 
-    viewState(r: Recycler, st: RedrawDebugViewState) {
+    view(r: Recycler) {
         r.elem("canvas", canvasElem => {
             canvasElem.width = 40;
             canvasElem.height = 10;
             const ctx = canvasElem.getContext("2d");
 
             ctx.beginPath();
-            for(const { x, yMiddle } of this.#forEachBarInPlot(st, canvasElem.width, canvasElem.height)) {
+            for(const { x, yMiddle } of this.#forEachBarInPlot(canvasElem.width, canvasElem.height)) {
                 ctx.moveTo(x, canvasElem.height);
                 ctx.lineTo(x, yMiddle);
             }
@@ -61,7 +60,7 @@ export class RedrawDebugView extends AbstractStatefulView<RedrawDebugViewState> 
             ctx.stroke();
 
             ctx.beginPath();
-            for(const { x, yMiddle } of this.#forEachBarInPlot(st, canvasElem.width, canvasElem.height)) {
+            for(const { x, yMiddle } of this.#forEachBarInPlot(canvasElem.width, canvasElem.height)) {
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, yMiddle);
             }

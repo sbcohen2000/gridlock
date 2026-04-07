@@ -17,36 +17,21 @@ import {
 } from "../state/index.js";
 import { DragState } from "./drag-state.js";
 import { SnapshotInverse, TimedSnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
-import { cellContentExceedsCellWidth, maximumCellHeight, rowContentExceedsRowHeight } from "../state/state-iface.js";
+import {
+    Cell,
+    cellContentExceedsCellWidth,
+    maximumCellHeight,
+    rowContentExceedsRowHeight
+} from "../state/state-iface.js";
 import { padLeftToLength } from "../util.js";
 
 import type { Inverse, AnyState } from "../state/index.js";
 import type { Recycler } from "../framework/index.js";
+import { AbstractStatefulView } from "./abstract-stateful-view.js";
 
 const MAX_HISTORY: number = 100;
 
 export type EdgeDraggingMode = "Move" | "Slide";
-
-export interface InitialViewState {
-    parent: AbstractView | null;
-    history: Inverse<AnyState>[];
-    undoIndex: number;
-    edgeDraggingMode: EdgeDraggingMode;
-    cellGuidesDisabled: false;
-}
-
-/**
- * Create an `InitialViewState` to bootstrap the editor view.
- */
-export function mkInitialEditorViewState(): InitialViewState {
-    return {
-        parent: null,
-        history: [],
-        edgeDraggingMode: "Move",
-        cellGuidesDisabled: false,
-        undoIndex: -1,
-    };
-}
 
 /**
  * Group a string into a list of strings, those strings which contain
@@ -58,72 +43,147 @@ function groupBySpaces(str: string): IteratorObject<string> {
     return matches.map(match => match[0]);
 }
 
-/**
- * An editor view is an instance of an editor state, which can show
- * itself on screen and respond to events.
- */
-export abstract class AbstractEditorView extends AbstractView {
-    _root!: HTMLElement;
-
-    #history: Inverse<AnyState>[] = [];
-
+export interface AbstractEditorViewState {
+    history: Inverse<AnyState>[];
     /**
      * The index of the item in `#history` which will be undone if
      * `undo` is called.
      */
-    #undoIndex: number = -1;
+    undoIndex: number;
+    edgeDraggingMode: EdgeDraggingMode;
+    lastClick: { cell: grid.CellPath } | null;
+    cellGuidesDisabled: boolean;
+    editorState: AnyState;
+    dragState: DragState | null;
+}
 
-    #edgeDraggingMode: EdgeDraggingMode = "Move";
-    #lastClick: { cell: grid.CellPath } | null = null;
-    #cellGuidesDisabled: boolean = false;
-    #state: AnyState;
+/**
+ * Create an `InitialViewState` to bootstrap the editor view.
+ */
+export function mkInitialEditorViewState(editorState: AnyState): AbstractEditorViewState {
+    return {
+        history: [],
+        undoIndex: 0,
+        edgeDraggingMode: "Move",
+        lastClick: null,
+        cellGuidesDisabled: false,
+        editorState,
+        dragState: null
+    };
+}
 
-    constructor(prev: AbstractEditorView | InitialViewState, state: AnyState) {
-        super(prev.parent);
-        this.#history = prev.history;
-        this.#undoIndex = prev.undoIndex;
-        this.#edgeDraggingMode = prev.edgeDraggingMode;
-        this.#state = state;
-        this.#cellGuidesDisabled = prev.cellGuidesDisabled;
-        this._root = prev instanceof AbstractEditorView ? prev._root : undefined;
+export function commitInverse(st: AbstractEditorViewState, inverse: Inverse<AnyState>): AbstractEditorViewState {
+    let undoIndex = st.undoIndex;
+    // Clear everything after the `undoIndex`.
+    const history = st.history.slice(0, undoIndex + 1);
 
-        if(this.#cellGuidesDisabled && !this.canDisableCellGuides) {
+    // Try to compact the history by composing inverses.
+    while(history.length > 0) {
+        const top = history.at(-1)!;
+        if(!inverse.compose) {
+            break;
+        }
+
+        const newTop = inverse.compose(top);
+        if(!newTop) {
+            break;
+        }
+
+        history.pop();
+        --undoIndex;
+        inverse = newTop;
+    }
+
+    history.push(inverse);
+    ++undoIndex;
+
+    while(history.length > MAX_HISTORY) {
+        history.shift();
+        --undoIndex;
+    }
+
+    util.assert(
+        0 <= undoIndex && undoIndex < history.length,
+        `undoIndex is out of range (it is ${undoIndex}, but history has length ${history.length}).`
+    );
+
+    return {
+        ...st,
+        history,
+        undoIndex
+    }
+}
+
+export function undo(st: AbstractEditorViewState): AbstractEditorViewState {
+    let undoIndex = st.undoIndex;
+
+    if(undoIndex === 0 || st.history.length === 0) {
+        return;
+    }
+
+
+    if(undoIndex === history.length - 1) {
+        // If we're undoing from the last action, make a snapshot
+        // representing the current editor state. Otherwise, we
+        // won't be able to redo to the current state.
+        st = commitInverse(st, new TimedSnapshotInverse(st.editorState.clone(), Infinity, "top"));
+        --this.undoIndex; // Don't set the undo index to "top".
+    }
+
+    const top = st.history[undoIndex];
+    --undoIndex;
+
+    top.apply("editorState", st);
+    return { ...st, undoIndex };
+}
+
+export function redo(st: AbstractEditorViewState): AbstractEditorViewState {
+    // Look ahead to the next snapshot inverse. (We can't undo a
+    // non-snapshot inverse for now).
+    let undoIndex = st.undoIndex;
+    let history   = st.history;
+
+    let nextSnapshotIdx = history.slice(undoIndex + 1).findIndex(inverse =>
+        inverse instanceof SnapshotInverse
+    );
+
+    // If there's no next snapshot, then we can't redo.
+    if(nextSnapshotIdx < 0) return;
+    nextSnapshotIdx += undoIndex + 1;
+
+    undoIndex = nextSnapshotIdx;
+    history[nextSnapshotIdx].apply("editorState", st);
+    return { ...st, history, undoIndex };
+}
+
+/**
+ * An editor view is an instance of an editor state, which can show
+ * itself on screen and respond to events.
+ */
+export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEditorViewState> {
+    _root!: HTMLElement;
+
+    constructor(parent: AbstractView | null, editorState: AnyState) {
+        super(
+            parent,
+            mkInitialEditorViewState(editorState),
+            ["editor-view"]
+        );
+
+        if(this.cellGuidesDisabled && !this.canDisableCellGuides) {
             this.enableCellGuides();
         }
     }
 
-    get history(): Inverse<AnyState>[] { return this.#history; }
-
-    get undoIndex(): number { return this.#undoIndex; }
-
     /**
      * Get the current (generic) editor state.
      */
-    get state(): AnyState {
-        return this.#state;
+    get editorState(): AnyState {
+        return this.state.editorState;
     }
 
-    /*************************************************************************/
-    /** View Factory Registry                                               **/
-
-    static #viewForState = new Map<
-        Function | symbol,
-        (prev: AbstractEditorView, st: AnyState, ...args: any[]) => AbstractEditorView
-    >();
-
-    static registerViewFactory(
-        stCtor: Function | symbol,
-        viewCtor: (prev: AbstractEditorView, st: AnyState, ...args: any[]) => AbstractEditorView
-    ) {
-        AbstractEditorView.#viewForState.set(stCtor, viewCtor);
-    }
-
-    createViewForState(st: AnyState, ...args: any[]): AbstractEditorView {
-        const factory = AbstractEditorView.#viewForState.get(st.constructor);
-        if(!factory) {
-            throw new Error(`createViewForState: no factory registered for '${st.constructor.name}'`);
-        }
-        return factory(this, st, ...args);
+    get grid(): grid.Grid<Cell> {
+        return this.editorState.grid;
     }
 
     /*************************************************************************/
@@ -134,12 +194,12 @@ export abstract class AbstractEditorView extends AbstractView {
      * as a double-click by consulting `#lastClick`.
      */
     #classifyDoubleClick(cell: grid.CellPath): boolean {
-        if(this.#lastClick !== null && grid.eqCellPath(this.#lastClick.cell, cell)) {
-            this.#lastClick = null;
+        if(this.state.lastClick !== null && grid.eqCellPath(this.state.lastClick.cell, cell)) {
+            this.state.lastClick = null;
             return true;
         } else {
-            this.#lastClick = { cell };
-            window.setTimeout(() => this.#lastClick = null, 200);
+            this.state.lastClick = { cell };
+            window.setTimeout(() => this.state.lastClick = null, 200);
             return false;
         }
     }
@@ -155,11 +215,11 @@ export abstract class AbstractEditorView extends AbstractView {
             // change to text-editing mode, setting the selection
             // to the point under the cursor.
 
-            const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
-            this.commitInverse(inv);
+            const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.editorState);
+            this.stepEditorState(inv);
 
-            this.commitInverse(st.putPointOnGlobalPosition(ctx.flooredGridPt, true));
-            this.requestReplaceEditorView(this.createViewForState(st));
+            this.stepEditorState(st.putPointOnGlobalPosition(ctx.flooredGridPt, true));
+            this.setEditorState(st);
             return true;
         } else {
             return false;
@@ -177,14 +237,14 @@ export abstract class AbstractEditorView extends AbstractView {
     }
 
     get cellGuidesDisabled(): boolean {
-        return this.#cellGuidesDisabled;
+        return this.state.cellGuidesDisabled;
     }
 
-    toggleCellGuidesDisabled(andThen?: ReplaceEditorViewCB) {
-        if(this.#cellGuidesDisabled) {
-            this.enableCellGuides(andThen);
+    toggleCellGuidesDisabled() {
+        if(this.state.cellGuidesDisabled) {
+            this.enableCellGuides();
         } else {
-            this.disableCellGuides(andThen);
+            this.disableCellGuides();
         }
     }
 
@@ -193,35 +253,34 @@ export abstract class AbstractEditorView extends AbstractView {
      * locations in the first cell on the line (which, after this
      * method is called), will be the only cell on the line.
      */
-    disableCellGuides(andThen?: ReplaceEditorViewCB) {
-        if(!this.canDisableCellGuides || this.#cellGuidesDisabled) {
-            if(andThen) {
-                andThen(this);
-            }
+    disableCellGuides() {
+        if(!this.canDisableCellGuides || this.state.cellGuidesDisabled) {
             return;
         }
 
         console.log("Disabling cell guides");
-        this.#cellGuidesDisabled = true;
-        const newSt = disableCellGuides(this.state);
-        this.requestReplaceEditorView(this.createViewForState(newSt), andThen);
+
+        this.setState(oldSt => ({
+            ...oldSt,
+            cellGuidesDisabled: true,
+            editorState: disableCellGuides(oldSt.editorState)
+        }));
     }
 
     /**
      * Re-enable cell guides after they have been disabled.
      */
-    enableCellGuides(andThen?: ReplaceEditorViewCB) {
-        if(!this.#cellGuidesDisabled) {
-            if(andThen) {
-                andThen(this);
-            }
+    enableCellGuides() {
+        if(!this.cellGuidesDisabled) {
             return;
         }
 
         console.log("Enabling cell guides");
-        this.#cellGuidesDisabled = false;
-        const newSt = enableCellGuides(this.state);
-        this.requestReplaceEditorView(this.createViewForState(newSt), andThen);
+        this.setState(oldSt => ({
+            ...oldSt,
+            cellGuidesDisabled: false,
+            editorState: enableCellGuides(oldSt.editorState)
+        }));
     }
 
     /*************************************************************************/
@@ -233,17 +292,17 @@ export abstract class AbstractEditorView extends AbstractView {
     startDraggingRowGuide(ctx: PointerEventContext, row: grid.RowPath): boolean {
         // If the row is incomplete (its content overflows its boundary), we can't
         // slide it. So, we move it instead.
-        const theRow = grid.lookupRow(ctx.state.grid, row);
+        const theRow = grid.lookupRow(ctx.grid, row);
         const incomplete = rowContentExceedsRowHeight(theRow);
 
         const [inv, st] = this.edgeDraggingMode === "Move" || incomplete
-              ? withSnapshotInverse(MoveRowBoundaryPrims.moveRowBoundary)(this.state, row.rowNo)
-              : withSnapshotInverse(SlideRowBoundaryPrims.slideRowBoundary)(this.state, row.rowNo);
+              ? withSnapshotInverse(MoveRowBoundaryPrims.moveRowBoundary)(this.editorState, row.rowNo)
+              : withSnapshotInverse(SlideRowBoundaryPrims.slideRowBoundary)(this.editorState, row.rowNo);
 
-        this.commitInverse(inv);
+        this.stepEditorState(inv);
 
         const ds = ctx.intoDragState();
-        this.requestReplaceEditorView(this.createViewForState(st, ds));
+        this.setEditorState(st, ds);
         return true;
     }
 
@@ -253,17 +312,17 @@ export abstract class AbstractEditorView extends AbstractView {
     startDraggingCellGuide(ctx: PointerEventContext, cell: grid.CellPath): boolean {
         // If the cell is incomplete (its content overflows its boundary), we can't
         // slide it. So, we move it instead.
-        const theCell = grid.lookupCell(ctx.state.grid, cell);
+        const theCell = grid.lookupCell(ctx.grid, cell);
         const incomplete = cellContentExceedsCellWidth(theCell);
 
         const [inv, st] = this.edgeDraggingMode === "Move" || incomplete
-              ? withSnapshotInverse(MoveCellBoundaryPrims.moveCellBoundary)(this.state, cell.rowNo, cell.colNo)
-              : withSnapshotInverse(SlideCellBoundaryPrims.slideCellBoundary)(this.state, cell.rowNo, cell.colNo);
+              ? withSnapshotInverse(MoveCellBoundaryPrims.moveCellBoundary)(this.editorState, cell.rowNo, cell.colNo)
+              : withSnapshotInverse(SlideCellBoundaryPrims.slideCellBoundary)(this.editorState, cell.rowNo, cell.colNo);
 
-        this.commitInverse(inv);
+        this.stepEditorState(inv);
 
         const ds = ctx.intoDragState();
-        this.requestReplaceEditorView(this.createViewForState(st, ds));
+        this.setEditorState(st, ds);
         return true;
     }
 
@@ -331,7 +390,7 @@ export abstract class AbstractEditorView extends AbstractView {
      * View a particular line of the given cell.
      */
     viewLine(lineNo: number, cell: grid.CellPath, r: Recycler) {
-        const theCell = grid.lookupCell(this.state.grid, cell);
+        const theCell = grid.lookupCell(this.grid, cell);
 
         const line = theCell.data.lines[lineNo];
         r.elem({ tag: "div", key: `line-${lineNo}`, clearChildren: true }, (lineElem) => {
@@ -376,6 +435,8 @@ export abstract class AbstractEditorView extends AbstractView {
      * because `disabledCell` doesn't exist in the viewed grid).
      */
     #viewDisabledCellGuide(disabledCell: grid.CellPath, guideX: number, r: Recycler) {
+        void disabledCell;
+
         r.elem({ tag: "div", key: `disabled-cell-guide-${guideX}` }, (disabledGuideElem) => {
             disabledGuideElem.className = "editor-cell-guide";
             disabledGuideElem.classList.add("editor-disabled-cell-guide");
@@ -386,18 +447,10 @@ export abstract class AbstractEditorView extends AbstractView {
             disabledGuideHitboxElem.style.right = `calc(100% - ${guideX}ch - 2px)`;
             disabledGuideHitboxElem.onpointerdown = (e) => {
                 e.stopPropagation();
-
-                // Since cell guides are disabled before running the
-                // below, we use the hypothetical location of the
-                // disabled cell, since by the time we process the
-                // drag action, a cell at the hypothetical position
-                // will actually exist.
-                this.enableCellGuides(newView => {
-                    const ctx = new PointerEventContext(e, newView);
-                    util.assert(grid.lookupCell(newView.state.grid, disabledCell) !== undefined);
-                    newView.onPointerDownInCellGuide(ctx, disabledCell);
-                });
-            }
+                this.enableCellGuides();
+                const ctx = PointerEventContext.fromAbstractEditorView(e, this);
+                this.setState(oldSt => ({ ...oldSt, dragState: ctx.intoDragState() }));
+            };
         })
     }
 
@@ -406,8 +459,8 @@ export abstract class AbstractEditorView extends AbstractView {
      */
     #viewCell(cell: grid.CellPath, rowHeight: number, r: Recycler) {
         r.elem({ tag: "div", key: `cell-${cell.rowNo}-${cell.colNo}` }, (cellElem) => {
-            const isLastOnRow = grid.lookupRow(this.state.grid, cell).cells.length - 1 === cell.colNo;
-            const theCell = grid.lookupCell(this.state.grid, cell);
+            const isLastOnRow = grid.lookupRow(this.grid, cell).cells.length - 1 === cell.colNo;
+            const theCell = grid.lookupCell(this.grid, cell);
             const incomplete = cellContentExceedsCellWidth(theCell);
             cellElem.className = "editor-cell";
 
@@ -426,12 +479,12 @@ export abstract class AbstractEditorView extends AbstractView {
             cellElem.style.width = `${theCell.width}ch`;
 
             cellElem.onpointermove = (e) => {
-                const ctx = new PointerInCellEventContext(e, this, cell);
+                const ctx = PointerInCellEventContext.fromAbstractEditorViewAndCell(e, cell, this);
                 this.onPointerMoveInCell(ctx);
             }
 
             cellElem.onpointerdown = (e) => {
-                const ctx = new PointerInCellEventContext(e, this, cell);
+                const ctx = PointerInCellEventContext.fromAbstractEditorViewAndCell(e, cell, this);
                 this.onPointerDownInCell(ctx);
             }
 
@@ -459,7 +512,7 @@ export abstract class AbstractEditorView extends AbstractView {
                     cellGuideHitboxElem.className = "editor-cell-guide-hitbox";
                     cellGuideHitboxElem.onpointerdown = (e) => {
                         e.stopPropagation();
-                        const ctx = new PointerEventContext(e, this);
+                        const ctx = PointerEventContext.fromAbstractEditorView(e, this);
                         this.onPointerDownInCellGuide(ctx, cell);
                     }
                 })
@@ -497,8 +550,8 @@ export abstract class AbstractEditorView extends AbstractView {
      */
     #viewRow(row: grid.RowPath, r: Recycler) {
         r.elem({ tag: "div", key: `row-${row.rowNo}`, clearAttributes: true }, (rowElem) => {
-            const isLastInGrid = this.state.grid.rows.length - 1 === row.rowNo;
-            const theRow = grid.lookupRow(this.state.grid, row);
+            const isLastInGrid = this.grid.rows.length - 1 === row.rowNo;
+            const theRow = grid.lookupRow(this.grid, row);
             rowElem.className = "editor-row";
             rowElem.style.height = `${theRow.height}em`;
 
@@ -508,13 +561,13 @@ export abstract class AbstractEditorView extends AbstractView {
             }
 
             new CommittableRecycler(rowElem)
-                .views(grid.allCellsOnRow(this.state.grid, row), (cell: grid.CellPath, r: Recycler) =>
+                .views(grid.allCellsOnRow(this.grid, row), (cell: grid.CellPath, r: Recycler) =>
                     this.#viewCell(cell, theRow.height, r))
                 .view((r: Recycler) => this.viewRowSelection(row, r))
                 .elem({ tag: "div", key: "row-guide-hitbox" }, (rowGuideHitboxElem) => {
                     rowGuideHitboxElem.className = "editor-row-guide-hitbox";
                     rowGuideHitboxElem.onpointerdown = (e) => {
-                        const ctx = new PointerEventContext(e, this);
+                        const ctx = PointerEventContext.fromAbstractEditorView(e, this);
                         this.onPointerDownInRowGuide(ctx, row);
                     }
                 })
@@ -556,8 +609,8 @@ export abstract class AbstractEditorView extends AbstractView {
         new CommittableRecycler(root)
             .elem({ tag: "div", key: "line-numbers-margin" }, (lineNumsElem) => {
                 let y = 1;
-                const lineNos = grid.allRows(this.state.grid).flatMap(row => {
-                    const theRow = grid.lookupRow(this.state.grid, row);
+                const lineNos = grid.allRows(this.grid).flatMap(row => {
+                    const theRow = grid.lookupRow(this.grid, row);
                     const lineNos = Array.from({ length: theRow.height }, (_, i) => i + y);
                     y += maximumCellHeight(theRow);
                     return lineNos;
@@ -575,15 +628,16 @@ export abstract class AbstractEditorView extends AbstractView {
             .elem("div", (gridRoot) => {
                 gridRoot.className = "grid-root";
 
-                // We must be careful that this._root is always recycled,
-                // since we might have pointer events attached to it, and those
-                // pointer events must survive `ReplaceEditorViewEvent`s.
+                // We must be careful that this._root is always
+                // recycled, since we might have pointer events
+                // attached to it, and those pointer events must
+                // survive re-initialization of this class.
                 util.assert(!this._root || this._root === gridRoot);
                 this._root = gridRoot;
 
                 new CommittableRecycler(gridRoot)
                     .views(
-                        grid.allRows(this.state.grid),
+                        grid.allRows(this.grid),
                         (row: grid.RowPath, r: Recycler) =>
                             this.#viewRow(row, r))
                     .view(r => this.viewGridRootOverlay(r))
@@ -619,13 +673,6 @@ export abstract class AbstractEditorView extends AbstractView {
         void ctx;
     }
 
-    requestReplaceEditorView(
-        newView: AbstractEditorView,
-        andThen?: (newView: AbstractEditorView) => void
-    ) {
-        this.notify(new ReplaceEditorViewEvent(this, newView, andThen));
-    }
-
     /**
      * If the event is a key event, and the key event matches the key
      * for undo, issue an undo.
@@ -633,7 +680,7 @@ export abstract class AbstractEditorView extends AbstractView {
     handleUndoKey(e: ViewEvent): boolean {
         if(e instanceof KeyViewEvent) {
             if(e.e.ctrlKey && e.e.key === "/") {
-                this.undo();
+                this.setState(oldSt => undo(oldSt));
                 return true;
             }
         }
@@ -708,122 +755,32 @@ export abstract class AbstractEditorView extends AbstractView {
     /*************************************************************************/
     /** Undo History                                                        **/
 
-    commitInverse(inverse: Inverse<AnyState>) {
-        // Clear everything after the `undoIndex`.
-        this.#history = this.#history.slice(0, this.undoIndex + 1);
-
-        // Try to compact the history by composing inverses.
-        while(this.#history.length > 0) {
-            const top = this.#history.at(-1)!;
-            if(!inverse.compose) {
-                break;
-            }
-
-            const newTop = inverse.compose(top);
-            if(!newTop) {
-                break;
-            }
-
-            this.#history.pop();
-            --this.#undoIndex;
-            inverse = newTop;
-        }
-
-        this.#history.push(inverse);
-        ++this.#undoIndex;
-
-        while(this.#history.length > MAX_HISTORY) {
-            this.#history.shift();
-            --this.#undoIndex;
-        }
-
-        util.assert(
-            0 <= this.#undoIndex && this.#undoIndex < this.#history.length,
-            `undoIndex is out of range (it is ${this.#undoIndex}, but history has length ${this.#history.length}).`
-        );
-
-        this.requestRedraw();
+    /**
+     * Commit an inverse to the editor state, both committing the
+     * inverse and setting the state.
+     */
+    stepEditorState(inv: Inverse<AnyState>) {
+        this.setState(oldSt => commitInverse(oldSt, inv));
     }
 
-    abstract applyInverse(inverse: Inverse<AnyState>): AnyState;
-
-    undo() {
-        if(this.#undoIndex === 0 || this.#history.length === 0) {
-            return;
-        }
-
-        if(this.#undoIndex === this.#history.length - 1) {
-            // If we're undoing from the last action, make a snapshot
-            // representing the current editor state. Otherwise, we
-            // won't be able to redo to the current state.
-            this.commitInverse(new TimedSnapshotInverse(this.state.clone(), Infinity, "top"));
-            --this.#undoIndex; // Don't set the undo index to "top".
-        }
-
-        const top = this.#history[this.#undoIndex];
-        --this.#undoIndex;
-
-        const restoredState = this.applyInverse(top);
-
-        // Replace the view with one which can view the restored state.
-        this.requestReplaceEditorView(this.createViewForState(restoredState));
-    }
-
-    redo() {
-        // Look ahead to the next snapshot inverse. (We can't undo a
-        // non-snapshot inverse for now).
-
-        let nextSnapshotIdx = this.#history.slice(this.#undoIndex + 1).findIndex(inverse =>
-            inverse instanceof SnapshotInverse
-        );
-
-        // If there's no next snapshot, then we can't redo.
-        if(nextSnapshotIdx < 0) return;
-        nextSnapshotIdx += this.#undoIndex + 1;
-
-        this.#undoIndex = nextSnapshotIdx;
-        const restoredState = this.applyInverse(this.#history[nextSnapshotIdx]);
-
-        // Replace the view with one which can view the restored state.
-        this.requestReplaceEditorView(this.createViewForState(restoredState));
+    /**
+     * Set the current editor state of the editor, forgetting the
+     * previous state.
+     */
+    setEditorState(editorState: AnyState, dragState: DragState = null) {
+        this.setState(oldSt => ({ ...oldSt, editorState, dragState }));
     }
 
     /*************************************************************************/
     /** Edge Dragging Mode                                                  **/
 
     set edgeDraggingMode(mode: EdgeDraggingMode) {
-        this.#edgeDraggingMode = mode;
+        this.setState(oldSt => ({ ...oldSt, edgeDraggingMode: mode }));
     }
 
     get edgeDraggingMode(): EdgeDraggingMode {
-        return this.#edgeDraggingMode;
+        return this.state.edgeDraggingMode;
     }
-}
-
-type ReplaceEditorViewCB = (newView: AbstractEditorView) => void;
-
-/**
- * Notify that an editor view should be replaced.
- *
- * The event takes an optional function to apply to the new editor
- * view after it has been instantiated.
- */
-export class ReplaceEditorViewEvent extends ViewEvent {
-    #newView: AbstractEditorView;
-    #andThen: ReplaceEditorViewCB | undefined;
-
-    constructor(
-        initiator: AbstractView,
-        newView: AbstractEditorView,
-        andThen?: ReplaceEditorViewCB
-    ) {
-        super(initiator, true);
-        this.#newView = newView;
-        this.#andThen = andThen;
-    }
-
-    get newView(): AbstractEditorView { return this.#newView; }
-    get andThen(): ReplaceEditorViewCB | undefined { return this.#andThen };
 }
 
 /**
@@ -831,28 +788,34 @@ export class ReplaceEditorViewEvent extends ViewEvent {
  * don't have to recompute it all the time.
  */
 export class PointerEventContext {
-    #event: PointerEvent;
-    #view: AbstractEditorView;
-    #gridRectCache?: rect.Rect;
+    #event:      PointerEvent;
+    #rootRectPx: rect.Rect;
+    #grid:       grid.Grid<Cell>;
 
-    constructor(event: PointerEvent, view: AbstractEditorView) {
-        this.#event = event;
-        this.#view  = view;
+    static fromAbstractEditorView(event: PointerEvent, view: AbstractEditorView) {
+        return new PointerEventContext(
+            event,
+            view._root.getBoundingClientRect(),
+            view.grid
+        );
+    }
+
+    constructor(event: PointerEvent, rootRectPx: rect.Rect, g: grid.Grid<Cell>) {
+        this.#event      = event;
+        this.#rootRectPx = rootRectPx;
+        this.#grid       = g;
     }
 
     get event(): PointerEvent {
         return this.#event;
     }
 
-    get state() {
-        return this.#view.state;
+    get grid(): grid.Grid<Cell> {
+        return this.#grid;
     }
 
     get gridRect(): rect.Rect {
-        if(!this.#gridRectCache) {
-            this.#gridRectCache = grid.rectOfGrid(this.state.grid);
-        }
-        return this.#gridRectCache;
+        return grid.rectOfGrid(this.#grid);
     }
 
     /**
@@ -892,8 +855,8 @@ export class PointerEventContext {
         return point.mkP2(Math.round(pt.x), Math.floor(pt.y));
     }
 
-    get rootRect(): DOMRect {
-        return this.#view._root.getBoundingClientRect();
+    get rootRect(): rect.Rect {
+        return this.#rootRectPx;
     }
 
     get gridW(): number {
@@ -919,7 +882,10 @@ export class PointerEventContext {
         return new DragState({
             dragOriginPx: point.mkP2(this.event.clientX, this.event.clientY),
             dragOriginGrid: roundOrFloorGridOrigin === "Round" ? this.roundedGridPt : this.flooredGridPt,
-            gridScale: point.mkV2(this.rootRect.width / this.gridW, this.rootRect.height / this.gridH),
+            gridScale: point.mkV2(
+                rect.width(this.rootRect) / this.gridW,
+                rect.height(this.rootRect) / this.gridH
+            ),
             pointerId: this.event.pointerId,
             onClick,
             dragThreshold
@@ -931,8 +897,17 @@ export class PointerInCellEventContext extends PointerEventContext {
     #cell: grid.CellPath;
     #cellRectCache?: rect.Rect;
 
-    constructor(event: PointerEvent, view: AbstractEditorView, cell: grid.CellPath) {
-        super(event, view);
+    static fromAbstractEditorViewAndCell(event: PointerEvent, cell: grid.CellPath, view: AbstractEditorView) {
+        return new PointerInCellEventContext(
+            event,
+            cell,
+            view._root.getBoundingClientRect(),
+            view.grid
+        );
+    }
+
+    constructor(event: PointerEvent, cell: grid.CellPath, rootRectPx: rect.Rect, g: grid.Grid<Cell>) {
+        super(event, rootRectPx, g);
         this.#cell = cell;
     }
 
@@ -942,7 +917,7 @@ export class PointerInCellEventContext extends PointerEventContext {
 
     get cellRect(): rect.Rect {
         if(!this.#cellRectCache) {
-            this.#cellRectCache = grid.rectOfCell(this.state.grid, this.cell);
+            this.#cellRectCache = grid.rectOfCell(this.grid, this.cell);
         }
         return this.#cellRectCache;
     }

@@ -29,11 +29,6 @@ export abstract class AbstractEdgeDraggingView extends AbstractEditorViewWithDra
         }
     }
 
-    applyInverse(inverse: Inverse<AnyState>): AnyState {
-        inverse.apply<AbstractEdgeDraggingView, "_eeState">("_eeState", this);
-        return this._eeState;
-    }
-
     /**
      * Compute the target edge delta from the drag state.
      */
@@ -123,12 +118,3 @@ export class MoveRowBoundaryView extends AbstractEdgeDraggingView {
         this.commitInverse((this.state as MoveRowBoundaryPrims).moveHorizontalEdge(d));
     }
 }
-
-AbstractEditorView.registerViewFactory(SlideCellBoundaryPrims, (prev, st, dragState) =>
-    new SlideCellBoundaryView(prev, st, dragState));
-AbstractEditorView.registerViewFactory(MoveCellBoundaryPrims, (prev, st, dragState) =>
-    new MoveCellBoundaryView(prev, st, dragState));
-AbstractEditorView.registerViewFactory(SlideRowBoundaryPrims, (prev, st, dragState) =>
-    new SlideRowBoundaryView(prev, st, dragState));
-AbstractEditorView.registerViewFactory(MoveRowBoundaryPrims, (prev, st, dragState) =>
-    new MoveRowBoundaryView(prev, st, dragState));

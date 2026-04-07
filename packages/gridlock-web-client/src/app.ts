@@ -33,7 +33,7 @@ new EventSource('/esbuild').addEventListener('change', () => {
 const BINDING_WIDTH = 24; //px;
 
 class AppView extends view.AbstractView {
-    #editorView: view.AbstractEditorView;
+    #editorView: view.EditorView;
     #toolbarView: view.toolbar.ToolbarView;
     #redrawDebugView: view.RedrawDebugView;
 
@@ -356,43 +356,6 @@ class AppView extends view.AbstractView {
                 })
                 .commit();
         });
-    }
-
-    /*************************************************************************/
-    /** Event Handling                                                      **/
-
-    /**
-     * Replace the app's editor view.
-     */
-    #replaceEditorView(newView: view.AbstractEditorView) {
-        const old = this.#editorView;
-        this.#editorView = newView;
-        newView.parent = this;
-
-        if(old !== newView) {
-            this.notifyViewDeleted(old);
-
-            // Here, we `freeze` old in an attempt to catch bugs where
-            // we use an editor view after it has been replaced.
-            Object.freeze(old);
-        }
-        this.requestRedraw();
-    }
-
-    handleEvent(e: view.ViewEvent): boolean {
-        if (e instanceof view.ReplaceEditorViewEvent) {
-            this.#replaceEditorView(e.newView);
-            if(e.andThen) {
-                e.andThen(e.newView);
-            }
-            // Only request focus if e.newView is still the current
-            // view — it may have been replaced during andThen.
-            if(this.#editorView === e.newView) {
-                e.newView.requestFocus();
-            }
-            return true;
-        }
-        return false;
     }
 
     /*************************************************************************/

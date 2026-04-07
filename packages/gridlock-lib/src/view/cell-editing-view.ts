@@ -27,11 +27,6 @@ class _CellEditingView extends AbstractEditorViewWithDragging {
         }
     }
 
-    applyInverse(inverse: Inverse<AnyState>): AnyState {
-        inverse.apply<_CellEditingView, "_ceState">("_ceState", this);
-        return this._ceState;
-    }
-
     /**
      * Handle a pointer-down event inside a cell element.
      */
@@ -193,8 +188,4 @@ class _CellEditingView extends AbstractEditorViewWithDragging {
     }
 }
 
-export const CellEditingView =
-    InteractsWithFillChar(ViewsSelectedCells(_CellEditingView));
-
-AbstractEditorView.registerViewFactory(CellPrims, (prev, st) =>
-    new CellEditingView(prev, st as CellPrims));
+export const CellEditingView = InteractsWithFillChar(ViewsSelectedCells(_CellEditingView));
