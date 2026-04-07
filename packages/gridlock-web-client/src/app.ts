@@ -5,22 +5,22 @@ import { util, view, state, framework, point } from "gridlock-lib";
 import { EXAMPLES } from "./examples.js";
 import { SHORT_COMMIT_HASH, COMMIT_HASH } from "./commit-hash.js";
 
-import binder_ring_center_url       from "../www/assets/binder-ring-center.png";
-import binder_ring_end_url          from "../www/assets/binder-ring-end.png";
-import disable_cell_guides_icon_url from "../www/assets/disable-cell-guides-icon.png";
-import edit_text_icon_url           from "../www/assets/edit-text-icon.png";
-import info_icon_url                from "../www/assets/info-icon.png";
-import load_icon_url                from "../www/assets/load-icon.png";
-import merge_cells_icon_url         from "../www/assets/merge-cells-icon.png";
-import move_guide_icon_url          from "../www/assets/move-guide-icon.png";
-import redo_icon_url                from "../www/assets/redo-icon.png";
-import save_icon_url                from "../www/assets/save-icon.png";
-import select_cells_icon_url        from "../www/assets/select-cells-icon.png";
-import slide_guide_icon_url         from "../www/assets/slide-guide-icon.png"
-import split_cell_icon_url          from "../www/assets/split-cell-icon.png";
-import split_row_icon_url           from "../www/assets/split-row-icon.png";
-import trim_edge_icon_url           from "../www/assets/trim-edge-icon.png";
-import undo_icon_url                from "../www/assets/undo-icon.png";
+import binder_ring_center_url       from "../../../assets/binder-ring-center.png";
+import binder_ring_end_url          from "../../../assets/binder-ring-end.png";
+import disable_cell_guides_icon_url from "../../../assets/disable-cell-guides-icon.png";
+import edit_text_icon_url           from "../../../assets/edit-text-icon.png";
+import info_icon_url                from "../../../assets/info-icon.png";
+import load_icon_url                from "../../../assets/load-icon.png";
+import merge_cells_icon_url         from "../../../assets/merge-cells-icon.png";
+import move_guide_icon_url          from "../../../assets/move-guide-icon.png";
+import redo_icon_url                from "../../../assets/redo-icon.png";
+import save_icon_url                from "../../../assets/save-icon.png";
+import select_cells_icon_url        from "../../../assets/select-cells-icon.png";
+import slide_guide_icon_url         from "../../../assets/slide-guide-icon.png"
+import split_cell_icon_url          from "../../../assets/split-cell-icon.png";
+import split_row_icon_url           from "../../../assets/split-row-icon.png";
+import trim_edge_icon_url           from "../../../assets/trim-edge-icon.png";
+import undo_icon_url                from "../../../assets/undo-icon.png";
 
 // Reload the page when esbuild issues a change event.
 new EventSource('/esbuild').addEventListener('change', () => {
