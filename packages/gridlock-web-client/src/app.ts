@@ -33,13 +33,21 @@ new EventSource('/esbuild').addEventListener('change', () => {
 const BINDING_WIDTH = 24; //px;
 
 class AppView extends view.AbstractView {
-    #editorView: view.AbstractView;
+    #editorView: view.AnyEditorView;
     #toolbarView: view.toolbar.ToolbarView;
     #redrawDebugView: view.RedrawDebugView;
 
     constructor(parent: view.AbstractView, editorState: state.AnyState) {
         super(parent);
         this.#editorView = view.EditorView(this, editorState);
+
+        // Expose some functions on the window which can be used for
+        // testing.
+        {
+            window["printCompactGrid"]  = () => state.serialize.printCompactGrid(this.#editorView.state.editorState);
+            window["clearLocalStorage"] = () => localStorage.clear();
+        }
+
         this.#redrawDebugView = new view.RedrawDebugView(this)
         this.#toolbarView = new view.toolbar.ToolbarView(this, [{
             type: "custom",

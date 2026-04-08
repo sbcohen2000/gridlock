@@ -1,4 +1,4 @@
-import { AbstractEditorViewState, mkInitialEditorViewState } from "./abstract-editor-view.js";
+import { AbstractEditorView, AbstractEditorViewState, mkInitialEditorViewState } from "./abstract-editor-view.js";
 import { AbstractView } from "./abstract-view.js";
 import { AnyState } from "../state/state-iface.js";
 import { DiscriminatingViewBuilder } from "./stateful-discriminating-view.js";
@@ -7,8 +7,11 @@ import { CellEditingView } from "./cell-editing-view.js";
 import { CellSlicingView } from "./cell-slicing-view.js";
 import { RowSlicingView } from "./cell-slicing-view.js";
 import { MoveCellBoundaryView, MoveRowBoundaryView, SlideCellBoundaryView, SlideRowBoundaryView } from "./edge-editing-view.js";
+import { AbstractStatefulView } from "./abstract-stateful-view.js";
 
-export function EditorView(parent: AbstractView | null, editorState: AnyState): AbstractView {
+export type AnyEditorView = AbstractStatefulView<AbstractEditorViewState>;
+
+export function EditorView(parent: AbstractView | null, editorState: AnyState): AnyEditorView {
     return new DiscriminatingViewBuilder<AbstractEditorViewState>(parent,
         mkInitialEditorViewState(editorState),
         [ "editor-view" ]

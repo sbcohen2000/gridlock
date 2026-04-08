@@ -1,6 +1,7 @@
 export * as cmenu from "./context-menu.js";
 export * as toolbar from "./toolbar.js";
 export {
+    AnyEditorView,
     EditorView
 } from "./editor-view.js";
 export {

@@ -8,12 +8,16 @@
         "build": "scripts/build.sh /",
         "watch": "esbuild src/app.ts --loader:.png=file --public-path=/dist --sourcemap=inline --bundle --outdir=www/dist --watch --servedir=www",
         "clean": "rm -rf www/dist",
-        "typecheck": "tsc -p jsconfig.json"
+        "typecheck": "tsc -p jsconfig.json",
+        "playwright": "npx playwright test"
     },
     "author": "Sam Cohen",
     "license": "ISC",
     "devDependencies": {
         "esbuild": "^0.27.3",
         "gridlock-lib": "*"
+    },
+    "dependencies": {
+        "@playwright/test": "^1.59.1"
     }
 }
