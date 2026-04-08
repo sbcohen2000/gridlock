@@ -33,227 +33,18 @@ new EventSource('/esbuild').addEventListener('change', () => {
 const BINDING_WIDTH = 24; //px;
 
 class AppView extends view.AbstractView {
-    #editorView: view.EditorView;
+    #editorView: view.AbstractView;
     #toolbarView: view.toolbar.ToolbarView;
     #redrawDebugView: view.RedrawDebugView;
 
-    constructor(parent: view.AbstractView, initialEditorView: view.AbstractEditorView) {
+    constructor(parent: view.AbstractView, editorState: state.AnyState) {
         super(parent);
-        this.#replaceEditorView(initialEditorView);
+        this.#editorView = view.EditorView(this, editorState);
         this.#redrawDebugView = new view.RedrawDebugView(this)
         this.#toolbarView = new view.toolbar.ToolbarView(this, [{
             type: "custom",
             key: "testy",
             view: this.#redrawDebugView
-        }, {
-            type: "button",
-            key: "undo-button",
-            iconSrc: undo_icon_url,
-            label: "undo",
-            onclick: () => {
-                this.#editorView.undo();
-            }
-        }, {
-            type: "button",
-            key: "redo-button",
-            iconSrc: redo_icon_url,
-            label: "redo",
-            onclick: () => {
-                this.#editorView.redo();
-            }
-        }, {
-            type: "divider",
-            key: "divider-1",
-        }, {
-            type: "button",
-            key: "edit-text-button",
-            iconSrc: edit_text_icon_url,
-            label: "edit text",
-            enabled: () => this.#editorView instanceof view.TextEditingView,
-            onclick: () => {
-                const [inv, st] = state.inverse.withSnapshotInverse(state.TextPrims.editText, "edit text")(this.#editorView.state);
-                this.#editorView.commitInverse(inv);
-                this.#editorView.requestReplaceEditorView(this.#editorView.createViewForState(st));
-            }
-        }, {
-            type: "button",
-            key: "select-cells-button",
-            iconSrc: select_cells_icon_url,
-            label: "select cells",
-            enabled: () => this.#editorView instanceof view.CellEditingView,
-            onclick: () => {
-                const [inv, st] = state.inverse.withSnapshotInverse(state.CellPrims.editCells, "edit cells")(this.#editorView.state);
-                this.#editorView.commitInverse(inv);
-                this.#editorView.requestReplaceEditorView(this.#editorView.createViewForState(st));
-            }
-        }, {
-            type: "button",
-            key: "merge-cells-button",
-            iconSrc: merge_cells_icon_url,
-            label: "merge cells",
-            disabled: () => !(this.#editorView instanceof view.CellEditingView)
-                || !this.#editorView._ceState.canMergeSelectedCells(),
-            onclick: () => {
-                if(!(this.#editorView instanceof view.CellEditingView)) {
-                    return;
-                }
-
-                const inv = this.#editorView._ceState.mergeSelectedCells();
-                this.#editorView.commitInverse(inv);
-            }
-        }, {
-            type: "button",
-            key: "trim-edge-button",
-            iconSrc: trim_edge_icon_url,
-            label: "trim edge",
-            enabled: () => false,
-            onclick: () => {
-                throw new Error("TODO");
-            }
-        }, {
-            type: "button",
-            key: "split-row-button",
-            iconSrc: split_row_icon_url,
-            label: "split row",
-            enabled: () => this.#editorView instanceof view.RowSlicingView,
-            onclick: () => {
-                const [inv, st] = state.inverse.withSnapshotInverse(
-                    state.SliceRowPrims.sliceRow, "start slicing row")(this.#editorView.state);
-                this.#editorView.commitInverse(inv);
-                this.#editorView.requestReplaceEditorView(this.#editorView.createViewForState(st));
-            }
-        }, {
-            type: "button",
-            key: "split-cell-button",
-            iconSrc: split_cell_icon_url,
-            label: "split cell",
-            enabled: () => this.#editorView instanceof view.CellSlicingView,
-            onclick: () => {
-                const [inv, st] = state.inverse.withSnapshotInverse(
-                    state.SliceCellPrims.sliceCell, "start slicing cells")(this.#editorView.state);
-                this.#editorView.commitInverse(inv);
-                this.#editorView.requestReplaceEditorView(this.#editorView.createViewForState(st));
-            }
-        }, {
-            type: "divider",
-            key: "divider-2",
-        }, {
-            type: "button",
-            key: "move-guide-button",
-            iconSrc: move_guide_icon_url,
-            label: "move guides",
-            enabled: () => this.#editorView.edgeDraggingMode === "Move",
-            onclick: () => {
-                this.#editorView.edgeDraggingMode = "Move";
-                this.#editorView.requestRedraw();
-            }
-        }, {
-            type: "button",
-            key: "slide-guide-button",
-            iconSrc: slide_guide_icon_url,
-            label: "slide guides",
-            enabled: () => this.#editorView.edgeDraggingMode === "Slide",
-            onclick: () => {
-                this.#editorView.edgeDraggingMode = "Slide";
-                this.#editorView.requestRedraw();
-            }
-        }, {
-            type: "divider",
-            key: "divider-3",
-        }, {
-            type: "button",
-            key: "disable-cell-guides-button",
-            iconSrc: disable_cell_guides_icon_url,
-            label: "disable cell guides",
-            enabled: () => this.#editorView.cellGuidesDisabled,
-            disabled: () => !this.#editorView.canDisableCellGuides,
-            onclick: () => {
-                this.#editorView.toggleCellGuidesDisabled();
-            },
-        }, {
-            type: "spacer",
-            key: "spacer-1",
-        }, {
-            type: "custom",
-            key: "fill-char-text-input",
-            constructView: (parent) => new view.FillCharPreviewView(parent, this.#editorView),
-        }, {
-            type: "spacer",
-            key: "spacer-2"
-        }, {
-            type: "button",
-            key: "save-button",
-            iconSrc: save_icon_url,
-            label: "save",
-            onclick: () => {
-                const serialized = state.serialize.printCompactGrid(this.#editorView.state);
-                localStorage.setItem("editorState", serialized);
-            },
-        }, {
-            type: "button",
-            key: "load-button",
-            label: "load",
-            iconSrc: load_icon_url,
-            onclick: (e) => {
-                const examples: view.cmenu.ContextMenuItem[] =
-                      [...Object.entries(EXAMPLES).map(([key, val]) => {
-                          if(key === val) {
-                              return view.cmenu.label(val);
-                          } else {
-                              return view.cmenu.button(key, () => {
-                                  const grid = state.serialize.parseCompactGrid(val);
-                                  const freshView = this.#editorView.createViewForState(state.TextPrims.editText({ grid }));
-                                  this.#editorView.requestReplaceEditorView(freshView);
-                              })
-                          }
-                      })];
-
-                const footer: view.cmenu.ContextMenuItem[] = [
-                    view.cmenu.divider(),
-                    view.cmenu.button("clear", () => {
-                        const freshView = this.#editorView.createViewForState(state.TextPrims.mkEmpty());
-                        this.#editorView.requestReplaceEditorView(freshView);
-                    })
-                ];
-
-                const menuDescr = {
-                    origin: point.mkP2(e.clientX, e.clientY),
-                    menu: examples.concat(footer)
-                };
-                this.#editorView.notify(new view.cmenu.OpenContextMenu(this.#editorView, menuDescr));
-            },
-        }, {
-            type: "divider",
-            key: "divier-3",
-        }, {
-            type: "button",
-            label: "about",
-            key: "about-button",
-            iconSrc: info_icon_url,
-            onclick: (e) => {
-                const menuDescr: view.cmenu.ContextMenuDescription = {
-                    origin: point.mkP2(e.clientX, e.clientY),
-                    menu: [
-                        view.cmenu.label("About"),
-                        view.cmenu.button("Fork me on GitHub", () => {
-                            window.open("https://github.com/sbcohen2000/gridlock", "_blank");
-                        }),
-                        view.cmenu.button(SHORT_COMMIT_HASH, () => {
-                            window.open(`https://github.com/sbcohen2000/gridlock/commit/${COMMIT_HASH}`, "_blank");
-                        }),
-                        view.cmenu.divider(),
-                        view.cmenu.button("Print ASCII Repr.", () => {
-                            const serialized = state.serialize.printCommonState(this.#editorView.state);
-                            console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
-                        }),
-                        view.cmenu.button("Print Compact Repr.", () => {
-                            const serialized = state.serialize.printCompactGrid(this.#editorView.state);
-                            console.log(`%c${util.showMultilineString(serialized)}`, "font-family: monospace; white-space: preserve;");
-                        })
-                    ]
-                };
-                this.#editorView.notify(new view.cmenu.OpenContextMenu(this.#editorView, menuDescr))
-            }
         }]);
     }
 
@@ -369,27 +160,19 @@ class AppView extends view.AbstractView {
 function main() {
     let initialStateStr = localStorage.getItem("editorState");
 
-    const initialViewState = view.mkInitialEditorViewState();
-
-    let initialView: view.AbstractEditorView;
+    let initialEditorState: state.TextPrims;
     try {
         if(!initialStateStr) {
             throw new Error("No saved state");
         }
         const g = state.serialize.parseCompactGrid(initialStateStr);
-        initialView = new view.TextEditingView(
-            initialViewState,
-            state.TextPrims.editText({ grid: g })
-        );
+        initialEditorState = state.TextPrims.editText({ grid: g });
     } catch(e) {
         console.error("Could not recover saved state: ", e);
-        initialView = new view.TextEditingView(
-            initialViewState,
-            state.TextPrims.mkEmpty({
-                width: 30,
-                height: 4
-            })
-        );
+        initialEditorState = state.TextPrims.mkEmpty({
+            width: 30,
+            height: 4
+        });
     }
 
     const topLevelView = new (class extends view.AbstractView {
@@ -398,9 +181,9 @@ function main() {
         #animFrame: ReturnType<typeof requestAnimationFrame> | null;
         #currentContextMenu: view.cmenu.ContextMenuView | undefined;
 
-        constructor(parent: view.AbstractView | null, initialView: view.AbstractEditorView) {
+        constructor(parent: view.AbstractView | null, editorState: state.AnyState) {
             super(parent);
-            this.#appView = new AppView(this, initialView);
+            this.#appView = new AppView(this, editorState);
             this.#focusedView = this;
         }
 
@@ -515,7 +298,7 @@ function main() {
             this.#appView.recordRedraw(framework.RecycleStatistics.recycledPct);
             return document.body;
         }
-    })(null, initialView);
+    })(null, initialEditorState);
 
     document.addEventListener("keydown", (e) => {
         topLevelView.handleKeyEvent(e);

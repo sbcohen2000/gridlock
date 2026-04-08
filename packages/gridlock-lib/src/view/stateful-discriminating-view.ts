@@ -58,23 +58,30 @@ class StatefulDiscriminatingView<S> extends AbstractStatefulView<S> {
     readonly #candidates: CandidateView<S>[];
     #currentView: AbstractStatefulView<S> | null = null;
 
-    constructor(descr: StatefulDisciminatingViewDescription<S>) {
-        super(descr.parent, descr.initialState, descr.path, descr.store);
-        this.#candidates = descr.candidates;
-    }
-
-    setState(st: S | ((oldSt: S) => S), redraw: boolean = true) {
-        // First, check if the candidate view changed as a result of
-        // the state changed.
-        if(st instanceof Function) {
-            st = st(this.state);
-        }
-
+    /**
+     * Given a state, iterate through our view candidates, finding a
+     * new view which can render itself with the state.
+     */
+    #updateCurrentViewForState(st: S) {
         const newView = this.#candidates.flatMap(f => f(this, st, this.path) ?? []);
         if(newView.length > 0) {
             const [theNewView] = newView;
             this.#currentView = theNewView;
         }
+    }
+
+    constructor(descr: StatefulDisciminatingViewDescription<S>) {
+        super(descr.parent, descr.initialState, descr.path, descr.store);
+        this.#candidates = descr.candidates;
+        this.#updateCurrentViewForState(descr.initialState);
+    }
+
+    setState(st: S | ((oldSt: S) => S), redraw: boolean = true) {
+        if(st instanceof Function) {
+            st = st(this.state);
+        }
+
+        this.#updateCurrentViewForState(st);
 
         // Then, update the state in the store.
         super.setState(st, redraw);

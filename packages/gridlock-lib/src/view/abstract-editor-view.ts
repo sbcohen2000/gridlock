@@ -63,7 +63,7 @@ export interface AbstractEditorViewState {
 export function mkInitialEditorViewState(editorState: AnyState): AbstractEditorViewState {
     return {
         history: [],
-        undoIndex: 0,
+        undoIndex: -1,
         edgeDraggingMode: "Move",
         lastClick: null,
         cellGuidesDisabled: false,
