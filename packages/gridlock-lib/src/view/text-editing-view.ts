@@ -88,7 +88,6 @@ class _TextEditingView extends AbstractEditorView {
      */
     viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
         super.viewCellSelection(cell, recycler);
-        console.log("viewCellSelection!", this.teState);
 
         if(this.cellIsSelected(cell)) {
             recycler.elem({ tag: "div", key: "cursor", clearAttributes: true }, (cursorElem) => {

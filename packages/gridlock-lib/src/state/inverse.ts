@@ -76,6 +76,7 @@ export class TimedSnapshotInverse<S extends AnyState> extends SnapshotInverse<S>
         if(i instanceof TimedSnapshotInverse
             && i.fwdDescription === this.fwdDescription
             && Math.max(0, this.#timeCreated - i.#timeCreated) < this.#limit) {
+            i.#timeCreated = this.#timeCreated;
             return i;
         }
 
