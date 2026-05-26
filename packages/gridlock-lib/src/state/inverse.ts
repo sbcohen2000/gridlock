@@ -1,7 +1,5 @@
 import { AnyState } from "./state-iface.js";
 
-export type KeysWithType<T extends object, V> = {[K in keyof T]: T[K] extends V ? K : never;}[keyof T];
-
 /**
  * The inverse operation.
  */
@@ -22,12 +20,9 @@ export interface Inverse<S> {
 
     /**
      * A function which, when applied to the state, will mutate it
-     * undoing the forward operation. It is passed an approximation of
-     * a double-pointer; the caller must provide this function with
-     * the _key_ used to store the state, so that it can be completely
-     * replaced with a value of a different class, if necessary.
+     * undoing the forward operation.
      */
-    apply<A extends object, K extends KeysWithType<A, AnyState>>(key: K, stHolder: A): void;
+    apply(st: AnyState): S;
 }
 
 /**
@@ -46,8 +41,8 @@ export class SnapshotInverse<S extends AnyState> implements Inverse<S> {
         this.#fwdDescription = fwdDescription;
     }
 
-    apply<A extends object, K extends KeysWithType<A, AnyState>>(key: K, stHolder: A): void {
-        (stHolder[key] as AnyState) = this.#snapshot;
+    apply(_st: AnyState): S {
+        return this.#snapshot;
     }
 
     get fwdDescription() {
@@ -112,8 +107,8 @@ export function withSnapshotInverse<S extends AnyState, A extends any[], R>(
  * The identity inverse.
  */
 export class IdInverse implements Inverse<any> {
-    apply<A extends object, K extends KeysWithType<A, AnyState>>(_key: K, _stHolder: A): void {
-        // Nothing to be done.
+    apply(st: any): any {
+        return st;
     }
 
     compose(i: Inverse<any>): Inverse<any> {

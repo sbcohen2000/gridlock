@@ -99,21 +99,19 @@ describe("Primitive command properties", () => {
                 arbitraryStartingState(),
                 arbitraryPrimitiveCommand({ includeConstPrims: false, includeNonConstPrims: true }),
                 (st, [method, args]) => {
-                    /** @type {{ st: TextPrims }} */
-                    const stObj = { st: st.clone() };
 
-                    const beforeSerialization = serialize.printCommonState(stObj.st);
-                    const beforeGlobalPt = stObj.st.findGlobalPoint();
-                    const beforeLastGlobalCol = stObj.st.selection.lastGlobalCol;
+                    const beforeSerialization = serialize.printCommonState(st);
+                    const beforeGlobalPt = st.findGlobalPoint();
+                    const beforeLastGlobalCol = st.selection.lastGlobalCol;
 
-                    const inv = stObj.st[method](...args);
-                    inv.apply("st", stObj);
+                    const inv = st[method](...args);
+                    const newSt = inv.apply(st);
 
-                    const afterSerialization = serialize.printCommonState(stObj.st);
-                    const afterGlobalPt = stObj.st.findGlobalPoint();
+                    const afterSerialization = serialize.printCommonState(newSt);
+                    const afterGlobalPt = newSt.findGlobalPoint();
                     expect(afterSerialization).to.equal(beforeSerialization);
                     expect(afterGlobalPt).to.deep.equal(beforeGlobalPt);
-                    expect(stObj.st.selection.lastGlobalCol).to.equal(beforeLastGlobalCol);
+                    expect(newSt.selection.lastGlobalCol).to.equal(beforeLastGlobalCol);
                 }
             ),
             {
@@ -132,7 +130,7 @@ describe("Primitive command properties", () => {
 
                     const afterInverse =
                           typeof inv === "object"
-                          ? (inv.apply(st), serialize.printCommonState(st))
+                          ? serialize.printCommonState(inv.apply(st))
                           : "<no inverse>";
 
                     const errorMessage = [

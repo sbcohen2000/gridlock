@@ -3,7 +3,7 @@ import * as point from "../point.js";
 import * as rect from "../rect.js";
 import * as util from "../util.js";
 import { Cell, State, AnyState, cloneCellData } from "./state-iface.js";
-import { KeysWithType, Inverse, id, IdInverse, TimedSnapshotInverse } from "./inverse.js";
+import { Inverse, id, IdInverse, TimedSnapshotInverse } from "./inverse.js";
 
 interface TextOnGlobalLineIterItem {
     /** The global column of the first character. */
@@ -61,11 +61,11 @@ class PutPointOnGlobalPositionInverse implements Inverse<TextPrims> {
         this.#oldGlobalCol = oldGlobalCol;
     }
 
-    apply<A extends object, K extends KeysWithType<A, AnyState>>(key: K, stHolder: A): void {
-        const st = stHolder[key];
+    apply(st: AnyState): TextPrims {
         util.assert(st instanceof TextPrims);
         st.putPointOnGlobalPosition(this.#oldPos, false);
         st.selection.lastGlobalCol = this.#oldGlobalCol;
+        return st;
     }
 
     compose(i: Inverse<TextPrims>): Inverse<TextPrims> | null {
@@ -387,11 +387,11 @@ export class TextPrims implements State<TextPrims> {
             this._updateLastGlobalCol();
             return {
                 fwdDescription: "put point on next column",
-                apply<A extends object, K extends KeysWithType<A, AnyState>>(key: K, stHolder: A): void {
-                    const st = stHolder[key];
+                apply(st: AnyState): TextPrims {
                     util.assert(st instanceof TextPrims);
                     st.selection.pt.x -= 1;
                     st.selection.lastGlobalCol = oldGlobalCol;
+                    return st;
                 }
             };
         }

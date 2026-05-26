@@ -120,20 +120,21 @@ export function undo(st: AbstractEditorViewState): AbstractEditorViewState {
         return st;
     }
 
-
-    if(undoIndex === history.length - 1) {
+    if(undoIndex === st.history.length - 1) {
         // If we're undoing from the last action, make a snapshot
         // representing the current editor state. Otherwise, we
         // won't be able to redo to the current state.
         st = commitInverse(st, new TimedSnapshotInverse(st.editorState.clone(), Infinity, "top"));
-        --undoIndex; // Don't set the undo index to "top".
     }
 
     const top = st.history[undoIndex];
     --undoIndex;
 
-    top.apply("editorState", st);
-    return { ...st, undoIndex };
+    return {
+        ...st,
+        editorState: top.apply(st.editorState),
+        undoIndex
+    };
 }
 
 export function redo(st: AbstractEditorViewState): AbstractEditorViewState {
@@ -147,12 +148,16 @@ export function redo(st: AbstractEditorViewState): AbstractEditorViewState {
     );
 
     // If there's no next snapshot, then we can't redo.
-    if(nextSnapshotIdx < 0) return;
+    if(nextSnapshotIdx < 0) return st;
     nextSnapshotIdx += undoIndex + 1;
 
     undoIndex = nextSnapshotIdx;
-    history[nextSnapshotIdx].apply("editorState", st);
-    return { ...st, history, undoIndex };
+    return {
+        ...st,
+        editorState: history[nextSnapshotIdx].apply(st.editorState),
+        history,
+        undoIndex
+    };
 }
 
 /**
@@ -276,8 +281,6 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
             return;
         }
 
-        console.log("Disabling cell guides");
-
         this.setState(oldSt => ({
             ...oldSt,
             cellGuidesDisabled: true,
@@ -293,7 +296,6 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
             return;
         }
 
-        console.log("Enabling cell guides");
         this.setState(oldSt => ({
             ...oldSt,
             cellGuidesDisabled: false,
@@ -693,12 +695,16 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
 
     /**
      * If the event is a key event, and the key event matches the key
-     * for undo, issue an undo.
+     * for undo or redo, issue an undo/redo.
      */
-    handleUndoKey(e: ViewEvent): boolean {
+    handleUndoRedoKey(e: ViewEvent): boolean {
         if(e instanceof KeyViewEvent) {
             if(e.e.ctrlKey && e.e.key === "/") {
-                this.setState(undo);
+                if(e.e.shiftKey) {
+                    this.setState(redo);
+                } else {
+                    this.setState(undo);
+                }
                 return true;
             }
         }
@@ -764,7 +770,7 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
     }
 
     handleEvent(e: ViewEvent): boolean {
-        return this.handleUndoKey(e)
+        return this.handleUndoRedoKey(e)
             || this.handleCopyKey(e)
             || this.handlePasteKey(e)
             || super.handleEvent(e);
