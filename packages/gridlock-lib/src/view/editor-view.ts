@@ -21,7 +21,7 @@ export function EditorView(parent: AbstractView | null, editorState: AnyState): 
         // .or(RowSlicingView.fromAbstractViewState)
         // .or(CellSlicingView.fromAbstractViewState)
         // .or(SlideCellBoundaryView.fromAbstractViewState)
-        // .or(MoveCellBoundaryView.fromAbstractViewState)
+        .or(MoveCellBoundaryView.fromAbstractViewState)
         // .or(SlideRowBoundaryView.fromAbstractViewState)
         // .or(MoveRowBoundaryView.fromAbstractViewState)
         .build();

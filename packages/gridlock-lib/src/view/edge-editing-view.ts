@@ -1,12 +1,13 @@
 import * as grid from "../grid.js";
-import { AbstractEditorView } from "./abstract-editor-view.js";
+import { AbstractView } from "./abstract-view.js";
+import { AbstractEditorViewState } from "./abstract-editor-view.js";
 import {
     MoveCellBoundaryPrims,
     MoveRowBoundaryPrims,
     SlideCellBoundaryPrims,
     SlideRowBoundaryPrims
 } from "../state/index.js";
-import type { Inverse, AnyState } from "../state/index.js";
+import type { AnyState } from "../state/index.js";
 import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
 import { DragState } from "./drag-state.js";
 import { TextPrims } from "../state/index.js";
@@ -16,17 +17,13 @@ import { withSnapshotInverse } from "../state/inverse.js";
  * Abstract base class for edge dragging views. Subclasses provide
  * the direction-specific edge primitives.
  */
-export abstract class AbstractEdgeDraggingView extends AbstractEditorViewWithDragging {
-    _eeState: AnyState;
+export abstract class AbstractEdgeDraggingView<S extends AnyState> extends AbstractEditorViewWithDragging {
+    protected _editorState: S;
     private _lastDelta: number = 0;
 
-    constructor(prev: AbstractEditorView, eeState: AnyState, dragState?: DragState) {
-        super(prev, eeState, dragState);
-        this._eeState = eeState;
-
-        if(prev instanceof AbstractEdgeDraggingView) {
-            this._lastDelta = prev._lastDelta;
-        }
+    constructor(parent: AbstractView, editorState: S) {
+        super(parent, editorState);
+        this._editorState = editorState;
     }
 
     /**
@@ -60,10 +57,9 @@ export abstract class AbstractEdgeDraggingView extends AbstractEditorViewWithDra
         void e;
         void ds;
 
-        // Once the drag ends, switch to text-editing view.
-        const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
-        this.commitInverse(inv);
-        this.requestReplaceEditorView(this.createViewForState(st));
+        const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state.editorState);
+        this.stepEditorState(inv);
+        this.setEditorState(st);
     }
 }
 
@@ -79,42 +75,74 @@ function rowBoundaryDelta(state: MoveRowBoundaryPrims | SlideRowBoundaryPrims, d
     return gridY - currentEdgeY;
 }
 
-export class SlideCellBoundaryView extends AbstractEdgeDraggingView {
+export class SlideCellBoundaryView extends AbstractEdgeDraggingView<SlideCellBoundaryPrims> {
+    static fromAbstractViewState(parent: AbstractView | null, st: AbstractEditorViewState) {
+        if(st.editorState instanceof SlideCellBoundaryPrims) {
+            return new SlideCellBoundaryView(parent, st.editorState);
+        } else {
+            return undefined;
+        }
+    }
+
     computeDelta(ds: DragState) {
-        return cellBoundaryDelta(this.state as SlideCellBoundaryPrims, ds);
+        return cellBoundaryDelta(this._editorState, ds);
     }
 
     applyEdgePrimitive(d: number) {
-        this.commitInverse((this.state as SlideCellBoundaryPrims).slideVerticalEdge(d));
+        this.stepEditorState(this._editorState.slideVerticalEdge(d));
     }
 }
 
-export class MoveCellBoundaryView extends AbstractEdgeDraggingView {
+export class MoveCellBoundaryView extends AbstractEdgeDraggingView<MoveCellBoundaryPrims> {
+    static fromAbstractViewState(parent: AbstractView | null, st: AbstractEditorViewState) {
+        if(st.editorState instanceof MoveCellBoundaryPrims) {
+            return new MoveCellBoundaryView(parent, st.editorState);
+        } else {
+            return undefined;
+        }
+    }
+
     computeDelta(ds: DragState) {
-        return cellBoundaryDelta(this.state as MoveCellBoundaryPrims, ds);
+        return cellBoundaryDelta(this._editorState, ds);
     }
 
     applyEdgePrimitive(d: number) {
-        this.commitInverse((this.state as MoveCellBoundaryPrims).moveVerticalEdge(d));
+        this.stepEditorState(this._editorState.moveVerticalEdge(d));
     }
 }
 
-export class SlideRowBoundaryView extends AbstractEdgeDraggingView {
+export class SlideRowBoundaryView extends AbstractEdgeDraggingView<SlideRowBoundaryPrims> {
+    static fromAbstractViewState(parent: AbstractView | null, st: AbstractEditorViewState) {
+        if(st.editorState instanceof SlideRowBoundaryPrims) {
+            return new SlideRowBoundaryView(parent, st.editorState);
+        } else {
+            return undefined;
+        }
+    }
+
     computeDelta(ds: DragState) {
-        return rowBoundaryDelta(this.state as SlideRowBoundaryPrims, ds);
+        return rowBoundaryDelta(this._editorState, ds);
     }
 
     applyEdgePrimitive(d: number) {
-        this.commitInverse((this.state as SlideRowBoundaryPrims).slideHorizontalEdge(d));
+        this.stepEditorState(this._editorState.slideHorizontalEdge(d));
     }
 }
 
-export class MoveRowBoundaryView extends AbstractEdgeDraggingView {
+export class MoveRowBoundaryView extends AbstractEdgeDraggingView<MoveRowBoundaryPrims> {
+    static fromAbstractViewState(parent: AbstractView | null, st: AbstractEditorViewState) {
+        if(st.editorState instanceof MoveRowBoundaryPrims) {
+            return new MoveRowBoundaryView(parent, st.editorState);
+        } else {
+            return undefined;
+        }
+    }
+
     computeDelta(ds: DragState) {
-        return rowBoundaryDelta(this.state as MoveRowBoundaryPrims, ds);
+        return rowBoundaryDelta(this._editorState, ds);
     }
 
     applyEdgePrimitive(d: number) {
-        this.commitInverse((this.state as MoveRowBoundaryPrims).moveHorizontalEdge(d));
+        this.stepEditorState(this._editorState.moveHorizontalEdge(d));
     }
 }

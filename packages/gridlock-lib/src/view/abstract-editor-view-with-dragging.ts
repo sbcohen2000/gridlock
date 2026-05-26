@@ -1,10 +1,9 @@
 import { AbstractEditorView } from "./abstract-editor-view.js";
+import { AbstractView } from "./abstract-view.js";
 import { AnyState } from "../state/state-iface.js";
 import { DragState } from "./drag-state.js";
 
 export abstract class AbstractEditorViewWithDragging extends AbstractEditorView {
-    #dragState: DragState | null;
-
     /**
      * Construct a new editor view which will call `onDrag` and
      * `onDragEnd` after a drag has started.
@@ -12,13 +11,8 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
      * If `dragState` is provided to the constructor, then a drag will
      * begin upon construction of this view.
      */
-    constructor(prev: AbstractEditorView, editorState: AnyState, dragState?: DragState) {
-        super(prev, editorState);
-        this.#dragState = dragState ?? null;
-
-        if(dragState) {
-            this.startDrag(dragState);
-        }
+    constructor(parent: AbstractView | null, editorState: AnyState) {
+        super(parent, editorState);
     }
 
     /**
@@ -28,9 +22,9 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
      * If a drag has already started, this method has no effect.
      */
     startDrag(dragState: DragState) {
-        this.#dragState = dragState;
-        if(!this._root.hasPointerCapture(this.#dragState.pointerId)) {
-            this._root.setPointerCapture(this.#dragState.pointerId);
+        this.state.dragState = dragState;
+        if(!this._root.hasPointerCapture(this.dragState.pointerId)) {
+            this._root.setPointerCapture(this.dragState.pointerId);
         }
     }
 
@@ -57,21 +51,21 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
      * occuring.
      */
     get dragState(): DragState | null {
-        return this.#dragState ?? null;
+        return this.state.dragState;
     }
 
     _viewRoot(root: HTMLElement) {
         super._viewRoot(root);
 
         root.onpointermove = (e) => {
-            if(!this.#dragState) return;
+            if(!this.dragState) return;
 
-            this.#dragState.update(e);
+            this.dragState.update(e);
 
-            if(!this.#dragState.isClick) {
+            if(!this.dragState.isClick) {
                 // Only start emitting `onDrag` calls when we're
                 // definitely dragging.
-                this.onDrag(e, this.#dragState);
+                this.onDrag(e, this.dragState);
             }
         };
 
@@ -82,18 +76,18 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
 
     #concludeDrag(e: PointerEvent) {
         this._root.releasePointerCapture(e.pointerId);
-        if(this.#dragState) {
-            if(this.#dragState.isClick) {
+        if(this.dragState) {
+            if(this.dragState.isClick) {
                 // If we didn't drag far enough to qualify as a drag,
                 // dispatch our `onClick` handler if we have one.
-                if(this.#dragState.onClick) {
-                    this.#dragState.onClick(e);
+                if(this.dragState.onClick) {
+                    this.dragState.onClick(e);
                 }
             } else {
                 // Otherwise, signal that the drag has ended.
-                this.onDragEnd(e, this.#dragState);
+                this.onDragEnd(e, this.dragState);
             }
         }
-        this.#dragState = null;
+        this.setState(st => ({ ...st, dragState: null }));
     }
 }

@@ -5,7 +5,6 @@ import {
     AbstractEditorView,
     PointerInCellEventContext,
     AbstractEditorViewState,
-    commitInverse,
 } from "./abstract-editor-view.js";
 import { InteractsWithFillChar } from "./interacts-with-fill-char-mixin.js";
 import { KeyViewEvent } from "./abstract-view.js";
@@ -46,7 +45,7 @@ class _TextEditingView extends AbstractEditorView {
             // cell-editing state and open the context menu.
             const st = CellPrims.editCells(this.editorState);
             st.addCell(ctx.cell);
-            this.setState(oldSt => ({ ...oldSt, editorState: st }));
+            this.setEditorState(st);
             // TODO: Open context menu
             return;
         }
@@ -61,13 +60,13 @@ class _TextEditingView extends AbstractEditorView {
                 (s: TextPrims) => CellPrims.editCells(s),
                 "edit cells"
             )(this._teState);
-            this.setState(oldSt => commitInverse(oldSt, inv));
+            this.stepEditorState(inv)
             st.addCell(this._teState.selection.cell);
             st.addCell(ctx.cell);
-            this.setState(oldSt => ({ ...oldSt, editorState: st }));
+            this.setEditorState(st);
         } else {
             // Move the point to `gridPt`.
-            this.setState(oldSt => commitInverse(oldSt, this._teState.putPointOnGlobalPosition(gridPt)));
+            this.stepEditorState(this._teState.putPointOnGlobalPosition(gridPt));
             this.requestFocus();
         }
     }
