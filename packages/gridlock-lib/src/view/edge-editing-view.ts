@@ -18,12 +18,10 @@ import { withSnapshotInverse } from "../state/inverse.js";
  * the direction-specific edge primitives.
  */
 export abstract class AbstractEdgeDraggingView<S extends AnyState> extends AbstractEditorViewWithDragging {
-    protected _editorState: S;
     private _lastDelta: number = 0;
 
     constructor(parent: AbstractView, editorState: S) {
         super(parent, editorState);
-        this._editorState = editorState;
     }
 
     /**
@@ -85,11 +83,11 @@ export class SlideCellBoundaryView extends AbstractEdgeDraggingView<SlideCellBou
     }
 
     computeDelta(ds: DragState) {
-        return cellBoundaryDelta(this._editorState, ds);
+        return cellBoundaryDelta(this.typedEditorState(SlideCellBoundaryPrims), ds);
     }
 
     applyEdgePrimitive(d: number) {
-        this.stepEditorState(this._editorState.slideVerticalEdge(d));
+        this.stepEditorState(this.typedEditorState(SlideCellBoundaryPrims).slideVerticalEdge(d));
     }
 }
 
@@ -103,11 +101,11 @@ export class MoveCellBoundaryView extends AbstractEdgeDraggingView<MoveCellBound
     }
 
     computeDelta(ds: DragState) {
-        return cellBoundaryDelta(this._editorState, ds);
+        return cellBoundaryDelta(this.typedEditorState(MoveCellBoundaryPrims), ds);
     }
 
     applyEdgePrimitive(d: number) {
-        this.stepEditorState(this._editorState.moveVerticalEdge(d));
+        this.stepEditorState(this.typedEditorState(MoveCellBoundaryPrims).moveVerticalEdge(d));
     }
 }
 
@@ -121,11 +119,11 @@ export class SlideRowBoundaryView extends AbstractEdgeDraggingView<SlideRowBound
     }
 
     computeDelta(ds: DragState) {
-        return rowBoundaryDelta(this._editorState, ds);
+        return rowBoundaryDelta(this.typedEditorState(SlideRowBoundaryPrims), ds);
     }
 
     applyEdgePrimitive(d: number) {
-        this.stepEditorState(this._editorState.slideHorizontalEdge(d));
+        this.stepEditorState(this.typedEditorState(SlideRowBoundaryPrims).slideHorizontalEdge(d));
     }
 }
 
@@ -139,10 +137,10 @@ export class MoveRowBoundaryView extends AbstractEdgeDraggingView<MoveRowBoundar
     }
 
     computeDelta(ds: DragState) {
-        return rowBoundaryDelta(this._editorState, ds);
+        return rowBoundaryDelta(this.typedEditorState(MoveRowBoundaryPrims), ds);
     }
 
     applyEdgePrimitive(d: number) {
-        this.stepEditorState(this._editorState.moveHorizontalEdge(d));
+        this.stepEditorState(this.typedEditorState(MoveRowBoundaryPrims).moveHorizontalEdge(d));
     }
 }

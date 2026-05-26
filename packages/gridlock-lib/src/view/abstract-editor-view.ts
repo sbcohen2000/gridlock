@@ -23,7 +23,6 @@ import {
     maximumCellHeight,
     rowContentExceedsRowHeight
 } from "../state/state-iface.js";
-import { padLeftToLength } from "../util.js";
 
 import type { Inverse, AnyState } from "../state/index.js";
 import type { Recycler } from "../framework/index.js";
@@ -118,7 +117,7 @@ export function undo(st: AbstractEditorViewState): AbstractEditorViewState {
     let undoIndex = st.undoIndex;
 
     if(undoIndex === 0 || st.history.length === 0) {
-        return;
+        return st;
     }
 
 
@@ -127,7 +126,7 @@ export function undo(st: AbstractEditorViewState): AbstractEditorViewState {
         // representing the current editor state. Otherwise, we
         // won't be able to redo to the current state.
         st = commitInverse(st, new TimedSnapshotInverse(st.editorState.clone(), Infinity, "top"));
-        --this.undoIndex; // Don't set the undo index to "top".
+        --undoIndex; // Don't set the undo index to "top".
     }
 
     const top = st.history[undoIndex];
@@ -157,6 +156,13 @@ export function redo(st: AbstractEditorViewState): AbstractEditorViewState {
 }
 
 /**
+ * The type of constructors of objects of type `S`.
+ */
+interface Constructor<S> {
+    new (...args: any[]): S;
+}
+
+/**
  * An editor view is an instance of an editor state, which can show
  * itself on screen and respond to events.
  */
@@ -180,6 +186,18 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
      */
     get editorState(): AnyState {
         return this.state.editorState;
+    }
+
+    /**
+     * Get the current editor state, so long as it has the type
+     * `S`. If the editor state has the wrong type, return `null`.
+     */
+    typedEditorState<S>(ctor: Constructor<S>): S {
+        if(this.editorState instanceof ctor) {
+            return this.editorState;
+        } else {
+            return null;
+        }
     }
 
     get grid(): grid.Grid<Cell> {
@@ -621,7 +639,7 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
                 new CommittableRecycler(lineNumsElem)
                     .elems(lineNos, "span", (lineNo, label) => {
                         label.className = "editor-line-num";
-                        label.innerText = padLeftToLength(lineNo.toString(), 2);
+                        label.innerText = util.padLeftToLength(lineNo.toString(), 2);
                     })
                     .commit();
             })
@@ -643,7 +661,7 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
                     .view(r => this.viewGridRootOverlay(r))
                     .commit();
             })
-            // .view((r: Recycler) => HistoryView(r, this.#history, this.#undoIndex))
+            .view((r: Recycler) => HistoryView(r, this.state.history, this.state.undoIndex))
             .commit();
     }
 
@@ -680,7 +698,7 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
     handleUndoKey(e: ViewEvent): boolean {
         if(e instanceof KeyViewEvent) {
             if(e.e.ctrlKey && e.e.key === "/") {
-                this.setState(oldSt => undo(oldSt));
+                this.setState(undo);
                 return true;
             }
         }

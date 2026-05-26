@@ -15,10 +15,9 @@ import type { AbstractView } from "./abstract-view.js";
 import type { Recycler } from "../framework/index.js";
 import type { ViewEvent } from "./abstract-view.js";
 import type { AnyState } from "../state/index.js";
+import { assert } from "chai";
 
 class _TextEditingView extends AbstractEditorView {
-    _teState: TextPrims;
-
     static fromAbstractViewState(parent: AbstractView | null, st: AbstractEditorViewState) {
         if(st.editorState instanceof TextPrims) {
             return new TextEditingView(parent, st.editorState);
@@ -29,7 +28,12 @@ class _TextEditingView extends AbstractEditorView {
 
     constructor(parent: AbstractView, editorState: TextPrims) {
         super(parent, editorState);
-        this._teState = editorState;
+    }
+
+    get teState(): TextPrims {
+        let state = this.typedEditorState(TextPrims);
+        assert(state !== null, `In TextEditingView, teState is ${state} (expected TextPrims)`);
+        return state;
     }
 
     get canDisableCellGuides(): boolean {
@@ -59,14 +63,14 @@ class _TextEditingView extends AbstractEditorView {
             const [inv, st] = withSnapshotInverse(
                 (s: TextPrims) => CellPrims.editCells(s),
                 "edit cells"
-            )(this._teState);
+            )(this.teState);
             this.stepEditorState(inv)
-            st.addCell(this._teState.selection.cell);
+            st.addCell(this.teState.selection.cell);
             st.addCell(ctx.cell);
             this.setEditorState(st);
         } else {
             // Move the point to `gridPt`.
-            this.stepEditorState(this._teState.putPointOnGlobalPosition(gridPt));
+            this.stepEditorState(this.teState.putPointOnGlobalPosition(gridPt));
             this.requestFocus();
         }
     }
@@ -75,7 +79,7 @@ class _TextEditingView extends AbstractEditorView {
      * Test if the given `cell` is the selected cell.
      */
     cellIsSelected(cell: grid.CellPath) {
-        return grid.eqCellPath(this._teState.selection.cell, cell);
+        return grid.eqCellPath(this.teState.selection.cell, cell);
     }
 
     /**
@@ -84,13 +88,14 @@ class _TextEditingView extends AbstractEditorView {
      */
     viewCellSelection(cell: grid.CellPath, recycler: Recycler) {
         super.viewCellSelection(cell, recycler);
+        console.log("viewCellSelection!", this.teState);
 
         if(this.cellIsSelected(cell)) {
             recycler.elem({ tag: "div", key: "cursor", clearAttributes: true }, (cursorElem) => {
                 cursorElem.className = "editor-cursor";
                 cursorElem.style.position = "absolute";
-                cursorElem.style.left = `${this._teState.selection.pt.x}ch`;
-                cursorElem.style.top  = `${this._teState.selection.pt.y}em`;
+                cursorElem.style.left = `${this.teState.selection.pt.x}ch`;
+                cursorElem.style.top  = `${this.teState.selection.pt.y}em`;
                 if(!this.hasFocus) {
                     cursorElem.classList.add("editor-cursor-unfocused");
                 }
@@ -109,28 +114,28 @@ class _TextEditingView extends AbstractEditorView {
         if(e.key.length === 1) {
             if(e.ctrlKey) {
                 switch(e.key) {
-                    case "a": this.stepEditorState(this._teState.putPointAtStartOfGlobalLine()); break;
-                    case "e": this.stepEditorState(this._teState.putPointAtEndOfGlobalLine()); break;
-                    case "n": this.stepEditorState(this._teState.putPointOnNextGlobalLine()); break;
-                    case "p": this.stepEditorState(this._teState.putPointOnPrevGlobalLine()); break;
-                    case "b": this.stepEditorState(this._teState.putPointOnPrevGlobalCol()); break;
-                    case "f": this.stepEditorState(this._teState.putPointOnNextGlobalCol()); break;
+                    case "a": this.stepEditorState(this.teState.putPointAtStartOfGlobalLine()); break;
+                    case "e": this.stepEditorState(this.teState.putPointAtEndOfGlobalLine()); break;
+                    case "n": this.stepEditorState(this.teState.putPointOnNextGlobalLine()); break;
+                    case "p": this.stepEditorState(this.teState.putPointOnPrevGlobalLine()); break;
+                    case "b": this.stepEditorState(this.teState.putPointOnPrevGlobalCol()); break;
+                    case "f": this.stepEditorState(this.teState.putPointOnNextGlobalCol()); break;
                     default: return false;
                 }
             } else {
-                this.stepEditorState(this._teState.insertString(e.key));
+                this.stepEditorState(this.teState.insertString(e.key));
             }
         } else {
             switch(e.key) {
             case "Backspace": {
-                if(this._teState.pointAtBeginningOfGlobalLine()) {
-                    this.stepEditorState(this._teState.removeGlobalNewline());
+                if(this.teState.pointAtBeginningOfGlobalLine()) {
+                    this.stepEditorState(this.teState.removeGlobalNewline());
                 } else {
-                    this.stepEditorState(this._teState.removeString(1));
+                    this.stepEditorState(this.teState.removeString(1));
                 }
             } break;
             case "Enter": {
-                this.stepEditorState(this._teState.insertGlobalNewline());
+                this.stepEditorState(this.teState.insertGlobalNewline());
             } break;
                 default: return false;
             }
@@ -158,15 +163,15 @@ class _TextEditingView extends AbstractEditorView {
     }
 
     doPaste(clipboard: string) {
-        const snapshot = this._teState.clone();
+        const snapshot = this.teState.clone();
 
         const lines = clipboard.split("\n");
         for(let i = 0; i < lines.length; ++i) {
             const isLast = i === lines.length - 1;
 
-            this._teState.insertString(lines[i]);
+            this.teState.insertString(lines[i]);
             if(!isLast) {
-                this._teState.insertLocalNewline();
+                this.teState.insertLocalNewline();
             }
         }
 
@@ -174,7 +179,7 @@ class _TextEditingView extends AbstractEditorView {
     }
 
     get selectedCells(): grid.CellPath[] {
-        return [this._teState.selection.cell];
+        return [this.teState.selection.cell];
     }
 }
 
