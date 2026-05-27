@@ -1,27 +1,17 @@
 import { Recycler } from "../framework/index.js";
 import { AbstractView } from "./abstract-view.js";
 import { AbstractStatefulView } from "./abstract-stateful-view.js";
+import { ApplicationState } from "./application-state.js";
 
 const HISTORY_LEN = 10; // seconds
 const TO_MILLIS = 1000; // seconds -> milliseconds.
 
-type RedrawDebugViewState = {
-    /**
-     * The wall-clock time of the redraw in milliseconds.
-     */
-    time: number,
-    /**
-     * The percent of HTML elements which were recycled in the redraw.
-     */
-    pctRecycled: number,
-}[];
-
-export class RedrawDebugView extends AbstractStatefulView<RedrawDebugViewState> {
+export class RedrawDebugView extends AbstractStatefulView<ApplicationState, "redrawDebugViewState"> {
     constructor(parent: AbstractView | null) {
         super(
             parent,
             [],
-            ["redraw_debug_view_state"]
+            "redrawDebugViewState"
         );
     }
 

@@ -1,6 +1,6 @@
 import "gridlock-lib/dist/index.css";
 import "./app.css";
-import { util, view, state, framework, point } from "gridlock-lib";
+import { view, state, framework } from "gridlock-lib";
 
 import { EXAMPLES } from "./examples.js";
 import { SHORT_COMMIT_HASH, COMMIT_HASH } from "./commit-hash.js";
@@ -184,15 +184,13 @@ function main() {
     }
 
     const topLevelView = new (class extends view.AbstractView {
-        #appView: AppView;
-        #focusedView: view.AbstractView;
+        #topView: view.FocusManager<AppView>;
         #animFrame: ReturnType<typeof requestAnimationFrame> | null;
         #currentContextMenu: view.cmenu.ContextMenuView | undefined;
 
         constructor(parent: view.AbstractView | null, editorState: state.AnyState) {
             super(parent);
-            this.#appView = new AppView(this, editorState);
-            this.#focusedView = this;
+            this.#topView = new view.FocusManager(this, fmgr => new AppView(fmgr, editorState));
         }
 
         /**
@@ -213,51 +211,10 @@ function main() {
             });
         }
 
-        /**
-         * Set the currently focused view, dispatching the appropriate
-         * events.
-         */
-        set focusedView(v: view.AbstractView) {
-            if(this.#focusedView !== v) {
-                let oldFocusedView = this.#focusedView;
-                this.#focusedView = v;
-
-                if(oldFocusedView) {
-                    oldFocusedView.notify(new view.LostFocusViewEvent(this), true);
-                }
-
-                util.assert(this.#focusedView instanceof view.AbstractView, "The focused view is not a view.");
-                this.#focusedView.notify(new view.ReceivedFocusViewEvent(this), true);
-            }
-        }
-
         handleEvent(e: view.ViewEvent): boolean {
-            if (e instanceof view.ViewDeletedViewEvent) {
-                if(this.#focusedView === e.deletedView) {
-                    if(e.replacementView) {
-                        // If the deleted view was replaced with a
-                        // different one, focus the new view.
-                        this.focusedView = e.replacementView;
-                    } else {
-                        // Otherwise, focus ourselves.
-                        this.focusedView = this;
-                    }
-                }
-                return true;
-            } else if (e instanceof view.RedrawViewEvent) {
+            if (e instanceof view.RedrawViewEvent) {
                 this.requestRedraw();
                 return true;
-            } else if (e instanceof view.RequestFocusViewEvent) {
-                if(this.#focusedView !== e.initiator) {
-                    this.focusedView = e.initiator;
-                    this.requestRedraw();
-                }
-                return true;
-            } else if (e instanceof view.ReleaseFocusViewEvent) {
-                if(this.#focusedView === e.initiator) {
-                    this.focusedView = this;
-                    this.requestRedraw();
-                }
             } else if (e instanceof view.KeyViewEvent) {
                 return true;
             } else if (e instanceof view.cmenu.OpenContextMenu) {
@@ -280,11 +237,13 @@ function main() {
         handleKeyEvent(e: KeyboardEvent) {
             if(this.#currentContextMenu) {
                 this.#currentContextMenu.notify(
-                    new view.KeyViewEvent(this.#currentContextMenu, e), true
+                    new view.KeyViewEvent(this.#currentContextMenu, e),
+                    true
                 );
-            } else if(this.#focusedView !== this) {
-                this.#focusedView.notify(
-                    new view.KeyViewEvent(this.#focusedView, e), true
+            } else if(this.#topView.focusedView) {
+                this.#topView.focusedView.notify(
+                    new view.KeyViewEvent(this.#topView.focusedView, e),
+                    true
                 );
             }
         }
@@ -293,7 +252,7 @@ function main() {
             framework.RecycleStatistics.reset();
 
             const r = new framework.CommittableRecycler(document.body);
-            this.#appView.view(r);
+            this.#topView.view(r);
 
             if(this.#currentContextMenu) {
                 this.#currentContextMenu.view(r);
@@ -303,7 +262,7 @@ function main() {
 
             r.commit();
 
-            this.#appView.recordRedraw(framework.RecycleStatistics.recycledPct);
+            this.#topView.child.recordRedraw(framework.RecycleStatistics.recycledPct);
             return document.body;
         }
     })(null, initialEditorState);

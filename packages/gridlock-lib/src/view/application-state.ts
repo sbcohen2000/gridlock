@@ -24,8 +24,22 @@ export interface EditorViewState {
     rootElement: HTMLElement | null;
 }
 
+export interface RedrawDebugViewEvent {
+    /**
+     * The wall-clock time of the redraw in milliseconds.
+     */
+    time: number,
+    /**
+     * The percent of HTML elements which were recycled in the redraw.
+     */
+    pctRecycled: number,
+}
+
+export type RedrawDebugViewState = RedrawDebugViewEvent[];
+
 export interface ApplicationState {
     editorViewState: EditorViewState;
+    redrawDebugViewState: RedrawDebugViewState;
 }
 
 /**

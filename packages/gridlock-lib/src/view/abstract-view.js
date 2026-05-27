@@ -88,50 +88,11 @@ export class ViewDeletedViewEvent extends ViewEvent {
     get replacementView() { return this.#replacementView; }
 }
 
-/**
- * Notify that a view wants to receive focus.
- */
-export class RequestFocusViewEvent extends ViewEvent {
-    /** @param {AbstractView} initiator */
-    constructor(initiator) { super(initiator, true); }
-}
-
-/**
- * Notify that a view wants its focus to be released.
- */
-export class ReleaseFocusViewEvent extends ViewEvent {
-    /** @param {AbstractView} initiator */
-    constructor(initiator) { super(initiator, true); }
-}
-
-/**
- * Notify a view that it received focus.
- */
-export class ReceivedFocusViewEvent extends ViewEvent {
-    /** @param {AbstractView} initiator */
-    constructor(initiator) { super(initiator, false); }
-}
-
-export class LostFocusViewEvent extends ViewEvent {
-    /** @param {AbstractView} initiator */
-    constructor(initiator) { super(initiator, false); }
-}
-
 export class AbstractView {
     /** @type {AbstractView | null}
      *
      * The parent view, or `null`, if this view is topmost. */
     parent;
-
-    /**
-     * @type {boolean}
-     */
-    #hasFocus;
-
-    /** @returns {boolean} */
-    get hasFocus() {
-        return this.#hasFocus;
-    }
 
     /**
      * Construct a new `View`, providing the `View's` parent.
@@ -140,7 +101,6 @@ export class AbstractView {
      */
     constructor(parent) {
         this.parent = parent;
-        this.#hasFocus = false;
     }
 
     /**
@@ -172,13 +132,13 @@ export class AbstractView {
     /**
      * Handle an event.
      *
-     * @param {ViewEvent} e
+     * @param {ViewEvent} _e
      * @returns {boolean} `true` if the event should stop propagating
      *     (i.e. it was handled by this view), or `false` if the event
      *     should continue to bubble up the view tree.
      */
-    handleEvent(e) {
-        return this.handleLostFocusViewEvent(e) || this.handleReceivedFocusViewEvent(e);
+    handleEvent(_e) {
+        return false;
     }
 
     /**
@@ -186,20 +146,6 @@ export class AbstractView {
      */
     requestRedraw () {
         this.notify(new RedrawViewEvent(this));
-    }
-
-    /**
-     * Request that this view receive focus.
-     */
-    requestFocus() {
-        this.notify(new RequestFocusViewEvent(this));
-    }
-
-    /**
-     * Request that this view release focus.
-     */
-    releaseFocus() {
-        this.notify(new ReleaseFocusViewEvent(this));
     }
 
     /**
@@ -212,37 +158,5 @@ export class AbstractView {
      */
     notifyViewDeleted(deletedView, replacementView) {
         this.notify(new ViewDeletedViewEvent(this, deletedView, replacementView));
-    }
-
-    /**
-     * Handle a recieved focus event, updating this view's own
-     * `isFocused` property.
-     *
-     * @param {ViewEvent} e
-     * @returns {boolean} `true` if the event was a
-     *   `ReceivedFocusViewEvent`, and `false` otherwise.
-     */
-    handleReceivedFocusViewEvent(e) {
-        if(e instanceof ReceivedFocusViewEvent) {
-            this.#hasFocus = true;
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Handle a lost focus event, updating this view's own `isFocused`
-     * property.
-     *
-     * @param {ViewEvent} e
-     * @returns {boolean} `true` if the event was a `LostFocusEvent`,
-     *     and `false` otherwise.
-     */
-    handleLostFocusViewEvent(e) {
-        if(e instanceof LostFocusViewEvent) {
-            this.#hasFocus = false;
-            return true;
-        }
-        return false;
     }
 }

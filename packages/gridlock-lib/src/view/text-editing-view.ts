@@ -1,23 +1,21 @@
 import "./text-editing-view.css";
 import "./views-selected-cells-mixin.css";
 import * as grid from "../grid.js";
-import {
-    AbstractEditorView,
-    PointerInCellEventContext,
-} from "./abstract-editor-view.js";
+import * as util from "../util.js";
+import type { AbstractView } from "./abstract-view.js";
+import type { AnyState } from "../state/index.js";
+import type { Recycler } from "../framework/index.js";
+import type { ViewEvent } from "./abstract-view.js";
+import { AbstractEditorView, PointerInCellEventContext } from "./abstract-editor-view.js";
+import { EditorViewState } from "./application-state.js";
 import { InteractsWithFillChar } from "./interacts-with-fill-char-mixin.js";
 import { KeyViewEvent } from "./abstract-view.js";
 import { SnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 import { TextPrims, CellPrims } from "../state/index.js";
+import { Focusable } from "./focus-manager.js";
 
-import type { AbstractView } from "./abstract-view.js";
-import type { Recycler } from "../framework/index.js";
-import type { ViewEvent } from "./abstract-view.js";
-import type { AnyState } from "../state/index.js";
-import { assert } from "chai";
-
-class _TextEditingView extends AbstractEditorView {
-    static fromAbstractViewState(parent: AbstractView | null, st: AbstractEditorViewState) {
+class _TextEditingView extends Focusable(AbstractEditorView) {
+    static fromAbstractViewState(parent: AbstractView | null, st: EditorViewState) {
         if(st.editorState instanceof TextPrims) {
             return new TextEditingView(parent, st.editorState);
         } else {
@@ -31,7 +29,7 @@ class _TextEditingView extends AbstractEditorView {
 
     get teState(): TextPrims {
         let state = this.typedEditorState(TextPrims);
-        assert(state !== null, `In TextEditingView, teState is ${state} (expected TextPrims)`);
+        util.assert(state !== null, `In TextEditingView, teState is ${state} (expected TextPrims)`);
         return state;
     }
 

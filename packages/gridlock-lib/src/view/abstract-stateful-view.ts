@@ -85,21 +85,19 @@ export abstract class AbstractStatefulView<S extends object, K extends keyof S> 
     }
 
     handleViewDeletedEvent(e: ViewEvent): boolean {
-        if(e instanceof ViewDeletedViewEvent) {
-            if(e.deletedView === this) {
-                // Remove ourselves from the listeners. This is
-                // important to prevent memory leaks, since the
-                // listeners map may be the only reference we retain
-                // to the deleted view.
-                this.#store[this.#key][1].delete(this);
-                return true;
-            }
+        if(e instanceof ViewDeletedViewEvent && e.deletedView === this) {
+            // Remove ourselves from the listeners. This is
+            // important to prevent memory leaks, since the
+            // listeners map may be the only reference we retain
+            // to the deleted view.
+            this.#store[this.#key][1].delete(this);
+            return true;
         }
         return false;
     }
 
     handleEvent(e: ViewEvent): boolean {
-        return super.handleEvent(e) || this.handleViewDeletedEvent(e);
+        return this.handleViewDeletedEvent(e) || super.handleEvent(e);
     }
 
     /**

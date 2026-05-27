@@ -7,14 +7,18 @@ export {
 export {
     AbstractView,
     KeyViewEvent,
-    LostFocusViewEvent,
-    ReceivedFocusViewEvent,
     RedrawViewEvent,
-    ReleaseFocusViewEvent,
-    RequestFocusViewEvent,
     ViewDeletedViewEvent,
     ViewEvent,
 } from "./abstract-view.js";
+export {
+    FocusManager,
+    Focusable,
+    LostFocusViewEvent,
+    ReceivedFocusViewEvent,
+    RequestFocusViewEvent,
+    ReleaseFocusViewEvent
+} from "./focus-manager.js";
 export { CellEditingView } from "./cell-editing-view.js";
 export {
     MoveCellBoundaryView,

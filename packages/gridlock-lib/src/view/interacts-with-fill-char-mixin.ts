@@ -43,7 +43,7 @@ export function InteractsWithFillChar<T extends Constructor<InteractsWithFillCha
             return new SnapshotInverse(snapshot, "set fill character");
         }
 
-        /**n
+        /**
          * Get a summary of the fill char for the given selection.
          *
          * If the fill char is not the same for all of the elements in

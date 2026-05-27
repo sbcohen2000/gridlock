@@ -3,8 +3,9 @@ import { CommittableRecycler, Recycler } from "../framework/framework.js";
 import { AbstractEditorView } from "./abstract-editor-view.js";
 import { AbstractView, KeyViewEvent, ViewEvent } from "./abstract-view.js";
 import { interactsWithFillChar } from "./interacts-with-fill-char-mixin.js";
+import { Focusable } from "./focus-manager.js";
 
-export class FillCharPreviewView extends AbstractView {
+export class FillCharPreviewView extends Focusable(AbstractView) {
     /**
      * The editor view.
      */

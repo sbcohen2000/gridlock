@@ -146,7 +146,7 @@ interface Constructor<S> {
  * An editor view is an instance of an editor state, which can show
  * itself on screen and respond to events.
  */
-export abstract class AbstractEditorView extends AbstractStatefulView<ApplicationState, "editorViewState"> {
+export class AbstractEditorView extends AbstractStatefulView<ApplicationState, "editorViewState"> {
     constructor(parent: AbstractView | null, editorState: AnyState) {
         super(
             parent,
