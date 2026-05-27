@@ -13,6 +13,10 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
      */
     constructor(parent: AbstractView | null, editorState: AnyState) {
         super(parent, editorState);
+
+        if(this.state.dragState !== null) {
+            this.startDrag(this.state.dragState);
+        }
     }
 
     /**
@@ -23,8 +27,9 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
      */
     startDrag(dragState: DragState) {
         this.state.dragState = dragState;
-        if(!this._root.hasPointerCapture(this.dragState.pointerId)) {
-            this._root.setPointerCapture(this.dragState.pointerId);
+        const root = this.state.rootElement;
+        if(!root.hasPointerCapture(this.dragState.pointerId)) {
+            root.setPointerCapture(this.dragState.pointerId);
         }
     }
 
@@ -75,7 +80,7 @@ export abstract class AbstractEditorViewWithDragging extends AbstractEditorView 
     }
 
     #concludeDrag(e: PointerEvent) {
-        this._root.releasePointerCapture(e.pointerId);
+        this.state.rootElement.releasePointerCapture(e.pointerId);
         if(this.dragState) {
             if(this.dragState.isClick) {
                 // If we didn't drag far enough to qualify as a drag,

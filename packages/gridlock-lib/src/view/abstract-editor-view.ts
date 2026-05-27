@@ -15,7 +15,6 @@ import {
     disableCellGuides,
     enableCellGuides
 } from "../state/index.js";
-import { DragState } from "./drag-state.js";
 import { SnapshotInverse, TimedSnapshotInverse, withSnapshotInverse } from "../state/inverse.js";
 import {
     Cell,
@@ -23,10 +22,15 @@ import {
     maximumCellHeight,
     rowContentExceedsRowHeight
 } from "../state/state-iface.js";
-
 import type { Inverse, AnyState } from "../state/index.js";
 import type { Recycler } from "../framework/index.js";
 import { AbstractStatefulView } from "./abstract-stateful-view.js";
+import { DragState } from "./drag-state.js";
+import {
+    ApplicationState,
+    EditorViewState,
+    mkInitialEditorViewState
+} from "./application-state.js";
 
 const MAX_HISTORY: number = 100;
 
@@ -42,36 +46,7 @@ function groupBySpaces(str: string): IteratorObject<string> {
     return matches.map(match => match[0]);
 }
 
-export interface AbstractEditorViewState {
-    history: Inverse<AnyState>[];
-    /**
-     * The index of the item in `#history` which will be undone if
-     * `undo` is called.
-     */
-    undoIndex: number;
-    edgeDraggingMode: EdgeDraggingMode;
-    lastClick: { cell: grid.CellPath } | null;
-    cellGuidesDisabled: boolean;
-    editorState: AnyState;
-    dragState: DragState | null;
-}
-
-/**
- * Create an `InitialViewState` to bootstrap the editor view.
- */
-export function mkInitialEditorViewState(editorState: AnyState): AbstractEditorViewState {
-    return {
-        history: [],
-        undoIndex: -1,
-        edgeDraggingMode: "Move",
-        lastClick: null,
-        cellGuidesDisabled: false,
-        editorState,
-        dragState: null
-    };
-}
-
-export function commitInverse(st: AbstractEditorViewState, inverse: Inverse<AnyState>): AbstractEditorViewState {
+export function commitInverse(st: EditorViewState, inverse: Inverse<AnyState>): EditorViewState {
     let undoIndex = st.undoIndex;
     // Clear everything after the `undoIndex`.
     const history = st.history.slice(0, undoIndex + 1);
@@ -113,7 +88,7 @@ export function commitInverse(st: AbstractEditorViewState, inverse: Inverse<AnyS
     }
 }
 
-export function undo(st: AbstractEditorViewState): AbstractEditorViewState {
+export function undo(st: EditorViewState): EditorViewState {
     let undoIndex = st.undoIndex;
 
     if(undoIndex === 0 || st.history.length === 0) {
@@ -137,7 +112,7 @@ export function undo(st: AbstractEditorViewState): AbstractEditorViewState {
     };
 }
 
-export function redo(st: AbstractEditorViewState): AbstractEditorViewState {
+export function redo(st: EditorViewState): EditorViewState {
     // Look ahead to the next snapshot inverse. (We can't undo a
     // non-snapshot inverse for now).
     let undoIndex = st.undoIndex;
@@ -171,14 +146,12 @@ interface Constructor<S> {
  * An editor view is an instance of an editor state, which can show
  * itself on screen and respond to events.
  */
-export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEditorViewState> {
-    _root!: HTMLElement;
-
+export abstract class AbstractEditorView extends AbstractStatefulView<ApplicationState, "editorViewState"> {
     constructor(parent: AbstractView | null, editorState: AnyState) {
         super(
             parent,
             mkInitialEditorViewState(editorState),
-            ["editor-view"]
+            "editorViewState"
         );
 
         if(this.cellGuidesDisabled && !this.canDisableCellGuides) {
@@ -310,17 +283,16 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
      * Try to start dragging a row guide.
      */
     startDraggingRowGuide(ctx: PointerEventContext, row: grid.RowPath): boolean {
-        // If the row is incomplete (its content overflows its boundary), we can't
-        // slide it. So, we move it instead.
         const theRow = grid.lookupRow(ctx.grid, row);
         const incomplete = rowContentExceedsRowHeight(theRow);
 
+        // If the row is incomplete (its content overflows its boundary), we can't
+        // slide it. So, we move it instead.
         const [inv, st] = this.edgeDraggingMode === "Move" || incomplete
               ? withSnapshotInverse(MoveRowBoundaryPrims.moveRowBoundary)(this.editorState, row.rowNo)
               : withSnapshotInverse(SlideRowBoundaryPrims.slideRowBoundary)(this.editorState, row.rowNo);
 
         this.stepEditorState(inv);
-
         const ds = ctx.intoDragState();
         this.setEditorState(st, ds);
         return true;
@@ -330,17 +302,16 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
      * Try to start dragging a cell guide.
      */
     startDraggingCellGuide(ctx: PointerEventContext, cell: grid.CellPath): boolean {
-        // If the cell is incomplete (its content overflows its boundary), we can't
-        // slide it. So, we move it instead.
         const theCell = grid.lookupCell(ctx.grid, cell);
         const incomplete = cellContentExceedsCellWidth(theCell);
 
+        // If the cell is incomplete (its content overflows its boundary), we can't
+        // slide it. So, we move it instead.
         const [inv, st] = this.edgeDraggingMode === "Move" || incomplete
               ? withSnapshotInverse(MoveCellBoundaryPrims.moveCellBoundary)(this.editorState, cell.rowNo, cell.colNo)
               : withSnapshotInverse(SlideCellBoundaryPrims.slideCellBoundary)(this.editorState, cell.rowNo, cell.colNo);
 
         this.stepEditorState(inv);
-
         const ds = ctx.intoDragState();
         this.setEditorState(st, ds);
         return true;
@@ -648,12 +619,12 @@ export abstract class AbstractEditorView extends AbstractStatefulView<AbstractEd
             .elem("div", (gridRoot) => {
                 gridRoot.className = "grid-root";
 
-                // We must be careful that this._root is always
-                // recycled, since we might have pointer events
+                // We must be careful that `this.state.rootElement` is
+                // always recycled, since we might have pointer events
                 // attached to it, and those pointer events must
                 // survive re-initialization of this class.
-                util.assert(!this._root || this._root === gridRoot);
-                this._root = gridRoot;
+                util.assert(!this.state.rootElement || this.state.rootElement === gridRoot);
+                this.state.rootElement = gridRoot;
 
                 new CommittableRecycler(gridRoot)
                     .views(
@@ -819,7 +790,7 @@ export class PointerEventContext {
     static fromAbstractEditorView(event: PointerEvent, view: AbstractEditorView) {
         return new PointerEventContext(
             event,
-            view._root.getBoundingClientRect(),
+            view.state.rootElement.getBoundingClientRect(),
             view.grid
         );
     }
@@ -925,7 +896,7 @@ export class PointerInCellEventContext extends PointerEventContext {
         return new PointerInCellEventContext(
             event,
             cell,
-            view._root.getBoundingClientRect(),
+            view.state.rootElement.getBoundingClientRect(),
             view.grid
         );
     }

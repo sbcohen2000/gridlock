@@ -1,49 +1,46 @@
 /**
- * Defines a mixin which knows how to re-draw this view in response to
- * state changes.
+ * Defines an abstract which knows how to re-draw itself in response
+ * to state changes.
  *
- * The application state is effectively one big JavaScript object.
- *
- * Each mixee of `Stateful` can define a view function which
- * subscribes to a _path_ in this state object. The view will request a
- * re-draw when the value at the path changes.
- *
- * Each mixee can also cause the state at this path to be updated.
+ * The application state is effectively one big JavaScript
+ * object. Views can store their own state into keys of the
+ * object. When a view modifies the state, all of the other views
+ * which subscribe to the same key will be notified.
  */
 
 import { assert } from "../util.js";
-import { AbstractView } from "./abstract-view.js";
+import { AbstractView, ViewDeletedViewEvent, ViewEvent } from "./abstract-view.js";
 
-/**
- * A path element into the application state.
- *
- * If it's a string, it represents the key of an object. If it's a
- * number, it represents an index into an array.
- */
-type PathElem = string | number;
+export type Store<S extends object, K extends keyof S> = {
+    [P in K]: [any, Set<AbstractStatefulView<S, any>>]
+}
 
-/**
- * A path is a sequence of path elements, where the topmost element
- * comes first.
- */
-export type Path = PathElem[];
+export const TheStore: Store<any, any> = {};
 
-export abstract class AbstractStatefulView<S> extends AbstractView {
-    readonly #path: Path;
-    readonly #store: Store;
+export abstract class AbstractStatefulView<S extends object, K extends keyof S> extends AbstractView {
+    readonly #key: K;
+    readonly #store: Store<S, K>;
 
-    constructor(parent: AbstractView | null, initialState: S, path: Path, store: Store = TheStore) {
+    constructor(parent: AbstractView | null, initialState: S[K], key: K, store: Store<S, K> = TheStore) {
         super(parent);
-        this.#path = path;
+        this.#key = key;
         this.#store = store;
-        this.#store.updateAtPath(path, (x) => x, initialState);
+
+        let existing = this.#store[key];
+        if(!existing) {
+            existing = [initialState, new Set([this])];
+        } else {
+            existing[1].add(this);
+        }
+
+        this.#store[key] = existing;
     }
 
     /**
-     * Get this view's store path.
+     * Get this view's store key.
      */
-    get path(): Path {
-        return this.#path;
+    get key(): K {
+        return this.#key;
     }
 
     /**
@@ -52,11 +49,24 @@ export abstract class AbstractStatefulView<S> extends AbstractView {
      * The second optional argument allows the user to suppress the
      * redraw which this operation will normally cause.
      */
-    setState(st: S | ((oldSt: S) => S), redraw: boolean = true) {
+    setState(st: S[K] | ((oldSt: S[K]) => S[K]), redraw: boolean = true) {
+        const record = this.#store[this.#key];
+        assert(record !== undefined);
+        const [oldValue, listeners] = record;
+
+        let newValue: S[K];
         if(st instanceof Function) {
-            this.#store.updateAtPath(this.#path, st);
+            newValue = st(oldValue);
         } else {
-            this.#store.updateAtPath(this.#path, (_) => st);
+            newValue = st;
+        }
+
+        this.#store[this.#key][0] = newValue;
+
+        for(const listener of listeners) {
+            if(listener !== this) {
+                listener.stateChanged();
+            }
         }
 
         if(redraw) {
@@ -65,104 +75,37 @@ export abstract class AbstractStatefulView<S> extends AbstractView {
     }
 
     /**
+     * Subclasses may implement this to recieve notification if a view
+     * which was listening to the same state changed the state.
+     *
+     * It is not called on the view which initiated the state change.
+     */
+    stateChanged() {
+        // Do nothing.
+    }
+
+    handleViewDeletedEvent(e: ViewEvent): boolean {
+        if(e instanceof ViewDeletedViewEvent) {
+            if(e.deletedView === this) {
+                // Remove ourselves from the listeners. This is
+                // important to prevent memory leaks, since the
+                // listeners map may be the only reference we retain
+                // to the deleted view.
+                this.#store[this.#key][1].delete(this);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    handleEvent(e: ViewEvent): boolean {
+        return super.handleEvent(e) || this.handleViewDeletedEvent(e);
+    }
+
+    /**
      * Get the state of this component.
      */
-    get state(): S {
-        return this.#store.getAtPath(this.#path);
+    get state(): S[K] {
+        return this.#store[this.#key][0]!
     }
-}
-
-/**
- * A singleton class which stores the state of all of the instances of
- * the `Stateful` mixin.
- */
-export class Store {
-    #state: object;
-
-    /**
-     * Get the state value at the given `path`.
-     */
-    getAtPath(path: Path): any {
-        let value = this.#state;
-        for(const elem of path) {
-            if(typeof elem === "number") {
-                assert(Array.isArray(value));
-            } else {
-                assert(typeof value === "object");
-            }
-            value = value[elem];
-        }
-        return value;
-    }
-
-    /**
-     * Update the state value at the given path.
-     *
-     * If `put` is provided, it will be put at the path, and path
-     * elements will be created as necessary. Otherwise, an exception
-     * is thrown if a nonexistent path element is accessed.
-     */
-    updateAtPath(path: Path, f: (v: any) => any, put?: any): any {
-        if(path.length === 0) {
-            // If we're trying to modify the root of the state object,
-            // just do so directly.
-            this.#state = f(this.#state ?? put);
-            return;
-        }
-
-        // Initialize the state if it's empty.
-        if(this.#state === undefined) {
-            this.#state = freshValueForPathElem(path[0])
-        }
-
-        let parent = this.#state;
-        for(let i = 0; i < path.length - 1; ++i) {
-            const elem = path[i];
-            if(Object.hasOwn(parent, elem)) {
-                // The parent has a child with the next path segment.
-                parent = parent[elem];
-            } else {
-                // The parent doesn't have a child with the next path
-                // segment.  If we have a `put`, then we should create
-                // a new child of the correct type.  Otheriwse, this
-                // is an error.
-                if(put === undefined) {
-                    throw new Error("Path Error");
-                } else {
-                    parent[elem] = freshValueForPathElem(path[i + 1]);
-                    parent = parent[elem];
-                }
-            }
-        }
-
-        // Perform our modification on this last path segment.
-        const lastElem = path.at(-1);
-        if(Object.hasOwn(parent, lastElem)) {
-            parent[lastElem] = f(parent[lastElem]);
-        } else if(put !== undefined) {
-            parent[lastElem] = f(put);
-        } else {
-            throw new Error("Path Error");
-        }
-    }
-
-    /**
-     * Get the entire state of the store. This is currently exported
-     * only for testing, no client should need to access this.
-     */
-    get state() {
-        return this.#state;
-    }
-}
-
-export const TheStore = new Store();
-
-function freshValueForPathElem(elem: PathElem): any[] | object {
-    let v: any[] | object;
-    if(typeof elem === "number") {
-        v = [];
-    } else {
-        v = {};
-    }
-    return v;
 }

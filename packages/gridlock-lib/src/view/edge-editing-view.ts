@@ -1,6 +1,6 @@
 import * as grid from "../grid.js";
 import { AbstractView } from "./abstract-view.js";
-import { AbstractEditorViewState } from "./abstract-editor-view.js";
+import { EditorViewState } from "./application-state.js";
 import {
     MoveCellBoundaryPrims,
     MoveRowBoundaryPrims,
@@ -74,7 +74,7 @@ function rowBoundaryDelta(state: MoveRowBoundaryPrims | SlideRowBoundaryPrims, d
 }
 
 export class SlideCellBoundaryView extends AbstractEdgeDraggingView<SlideCellBoundaryPrims> {
-    static fromAbstractViewState(parent: AbstractView | null, st: AbstractEditorViewState) {
+    static fromAbstractViewState(parent: AbstractView | null, st: EditorViewState) {
         if(st.editorState instanceof SlideCellBoundaryPrims) {
             return new SlideCellBoundaryView(parent, st.editorState);
         } else {
@@ -92,7 +92,7 @@ export class SlideCellBoundaryView extends AbstractEdgeDraggingView<SlideCellBou
 }
 
 export class MoveCellBoundaryView extends AbstractEdgeDraggingView<MoveCellBoundaryPrims> {
-    static fromAbstractViewState(parent: AbstractView | null, st: AbstractEditorViewState) {
+    static fromAbstractViewState(parent: AbstractView | null, st: EditorViewState) {
         if(st.editorState instanceof MoveCellBoundaryPrims) {
             return new MoveCellBoundaryView(parent, st.editorState);
         } else {
@@ -110,7 +110,7 @@ export class MoveCellBoundaryView extends AbstractEdgeDraggingView<MoveCellBound
 }
 
 export class SlideRowBoundaryView extends AbstractEdgeDraggingView<SlideRowBoundaryPrims> {
-    static fromAbstractViewState(parent: AbstractView | null, st: AbstractEditorViewState) {
+    static fromAbstractViewState(parent: AbstractView | null, st: EditorViewState) {
         if(st.editorState instanceof SlideRowBoundaryPrims) {
             return new SlideRowBoundaryView(parent, st.editorState);
         } else {
@@ -128,7 +128,7 @@ export class SlideRowBoundaryView extends AbstractEdgeDraggingView<SlideRowBound
 }
 
 export class MoveRowBoundaryView extends AbstractEdgeDraggingView<MoveRowBoundaryPrims> {
-    static fromAbstractViewState(parent: AbstractView | null, st: AbstractEditorViewState) {
+    static fromAbstractViewState(parent: AbstractView | null, st: EditorViewState) {
         if(st.editorState instanceof MoveRowBoundaryPrims) {
             return new MoveRowBoundaryView(parent, st.editorState);
         } else {

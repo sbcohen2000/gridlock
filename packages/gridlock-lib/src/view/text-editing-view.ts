@@ -4,7 +4,6 @@ import * as grid from "../grid.js";
 import {
     AbstractEditorView,
     PointerInCellEventContext,
-    AbstractEditorViewState,
 } from "./abstract-editor-view.js";
 import { InteractsWithFillChar } from "./interacts-with-fill-char-mixin.js";
 import { KeyViewEvent } from "./abstract-view.js";
