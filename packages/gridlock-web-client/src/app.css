@@ -1,4 +1,11 @@
 /*****************************************************************************/
+/** Document                                                                 */
+
+body {
+    margin-top: 0;
+}
+
+/*****************************************************************************/
 /** Editor Root                                                              */
 
 .editor-box {
@@ -24,6 +31,14 @@
 
 /*****************************************************************************/
 /** Editor Toolbar                                                           */
+
+.editor-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: white;
+    padding-top: 8px;
+}
 
 .editor-toolbar-text-input {
     font-family: monospace;
