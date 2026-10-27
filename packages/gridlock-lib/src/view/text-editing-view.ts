@@ -126,7 +126,11 @@ class _TextEditingView extends AbstractEditorView {
                 }
             } break;
             case "Enter": {
+              if(e.shiftKey) {
+                this.commitInverse(this._teState.insertLocalNewline());
+              } else {
                 this.commitInverse(this._teState.insertGlobalNewline());
+              }
             } break;
                 default: return false;
             }
