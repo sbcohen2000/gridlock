@@ -51,4 +51,23 @@ describe("serialize", () => {
             )
         );
     });
+
+    it("parseCompactGrid throws on a zero-height row", () => {
+        const src =
+              "foo\n"   +
+              "bar\n"   +
+              "+---+\n" +
+              "+---+\n" +
+              "+---+"
+
+        const g = serialize.parseCommonState(src);
+        g.rows.splice(1, 0, {
+            type: "Row",
+            height: 0,
+            cells: [{ type: "Cell", width: 3, data: { lines: [], disabledGuides: new Set() } }],
+        });
+
+        const compact = serialize.printCompactGrid({ grid: g });
+        expect(() => serialize.parseCompactGrid(compact)).to.throw();
+    });
 });

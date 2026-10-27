@@ -450,6 +450,32 @@ describe("splitRow", () => {
 
         expect(grid.printASCII(g)).to.equal(exp);
     });
+
+    it("Refuses to split at the top edge of a row", () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "|  |\n" +
+            "+--+"
+        );
+
+        expect(() => grid.splitRow(g, { rowNo: 0 }, 0)).to.throw();
+    });
+
+    it("Refuses to split at the bottom edge of a row", () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "|  |\n" +
+            "+--+"
+        );
+
+        expect(() => grid.splitRow(g, { rowNo: 0 }, 2)).to.throw();
+    });
+});
+
+describe("mk", () => {
+    it("Refuses to make a grid with zero height", () => {
+        expect(() => grid.mk(3, 0)).to.throw();
+    });
 });
 
 describe("splitCell", () => {

@@ -218,10 +218,9 @@ export class TextPrims implements State<TextPrims> {
         }
 
         grid.modifyHeightOfRow(this.grid, cells[0], -1);
-        grid.removeEmptyRows(this.grid);
 
         const newRow = Math.max(0, globalPt.y - 1);
-        this.putPointOnGlobalPosition(point.mkP2(0, newRow));
+        this._putPointOnGlobalPosition(point.mkP2(0, newRow));
 
         return true;
     }

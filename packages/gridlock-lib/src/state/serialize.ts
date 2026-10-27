@@ -351,6 +351,9 @@ export function _parseCompactGridSpec(src: string): grid.Grid<CompactGridData> {
         rowDataPtr += BYTES_PER_NUM;
         const height = dv.getUint16(rowDataPtr);
         rowDataPtr += BYTES_PER_NUM;
+        if(height === 0) {
+            throw new Error(`Parse error. Row ${r} has height 0.`);
+        }
 
         const nCells = (cellsEnd - cellsBegin) / BYTES_PER_CELL_ENTRY;
         const cells: grid.Cell<CompactGridData>[] = [];

@@ -27,6 +27,8 @@ export class SliceRowPrims implements State<SliceRowPrims> {
 
         const rowRect = grid.rectOfRow(this.grid, cell);
         const localRow = globalPt.y - rowRect.top;
+        if(localRow <= 0) return new IdInverse();
+
         grid.splitRow(this.grid, cell, localRow, splitRowData(localRow));
 
         return new SnapshotInverse(snapshot, "split row vertically");

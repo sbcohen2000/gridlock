@@ -51,6 +51,10 @@ export function eqCellPath(a: CellPath, b: CellPath): boolean {
  * @param [label] The label to associate with this cell.
  */
 export function mk<A>(width: number, height: number, data?: A, label?: string): Grid<A> {
+    if(height <= 0) {
+        throw new Error(`invalid grid height ${height}`);
+    }
+
     const extras: Partial<{ data: A, label: string }> = {};
     if(data !== undefined) extras.data = data;
     if(label !== undefined) extras.label = label;
@@ -545,13 +549,6 @@ export function modifyHeightOfRow<A>(g: Grid<A>, row: RowPath, n: number) {
 }
 
 /**
- * Remove all rows with height 0 from the grid.
- */
-export function removeEmptyRows<A>(g: Grid<A>) {
-    g.rows = g.rows.filter(row => row.height > 0);
-}
-
-/**
  * Delete the row at the given path from the grid.
  */
 export function deleteRow<A>(g: Grid<A>, row: RowPath) {
@@ -872,6 +869,10 @@ export function splitRow<A>(
     splitLabel: (label: string) => [string, string] = (label => [label, label])
 ) {
     const theRow = g.rows[row.rowNo];
+
+    if(splitAt <= 0 || splitAt >= theRow.height) {
+        throw new Error(`invalid split (splitAt ${splitAt} for row of height ${theRow.height})`);
+    }
 
     const topCells: Cell<A>[] = theRow.cells.map(cell => {
         const c: Cell<A> = { type: "Cell", width: cell.width };
