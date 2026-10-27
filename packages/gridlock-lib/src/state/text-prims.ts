@@ -497,6 +497,15 @@ export class TextPrims implements State<TextPrims> {
         return new TimedSnapshotInverse(snapshot, 2000, "remove string");
     }
 
+    /**
+     * Remove all text on the global line after the point.
+     */
+    killLine(): Inverse<TextPrims> {
+        const snapshot = this.clone();
+        this._killLine();
+        return new TimedSnapshotInverse(snapshot, 2000, "kill line");
+    }
+
     insertGlobalNewline(): Inverse<TextPrims> {
         const snapshot = this.clone();
 

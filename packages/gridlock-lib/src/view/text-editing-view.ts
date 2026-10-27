@@ -110,6 +110,7 @@ class _TextEditingView extends AbstractEditorView {
                     case "p": this.commitInverse(this._teState.putPointOnPrevGlobalLine()); break;
                     case "b": this.commitInverse(this._teState.putPointOnPrevGlobalCol()); break;
                     case "f": this.commitInverse(this._teState.putPointOnNextGlobalCol()); break;
+                    case "k": this.commitInverse(this._teState.killLine()); break;
                     default: return false;
                 }
             } else {
