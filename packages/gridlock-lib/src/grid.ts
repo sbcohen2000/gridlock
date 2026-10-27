@@ -838,6 +838,11 @@ export function splitCell<A>(
     splitLabel: (label: string) => [string, string] = (label => [label, label])
 ) {
     const theCell = lookupCell(g, cell);
+
+    if(splitCol <= 0 || splitCol >= theCell.width) {
+        throw new Error(`invalid split (splitCol ${splitCol} for cell of width ${theCell.width})`);
+    }
+
     const leftCell: Cell<A> = { type: "Cell", width: splitCol };
     const rightCell: Cell<A> = { type: "Cell", width: theCell.width - splitCol };
 

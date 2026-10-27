@@ -64,8 +64,23 @@ describe("serialize", () => {
         g.rows.splice(1, 0, {
             type: "Row",
             height: 0,
-            cells: [{ type: "Cell", width: 3, data: { lines: [], disabledGuides: new Set() } }],
+            cells: [{ type: "Cell", width: 4, data: { lines: [], disabledGuides: new Set() } }],
         });
+
+        const compact = serialize.printCompactGrid({ grid: g });
+        expect(() => serialize.parseCompactGrid(compact)).to.throw();
+    });
+
+    it("parseCompactGrid throws on a zero-width cell", () => {
+        const src =
+              "foo\n"   +
+              "bar\n"   +
+              "+---+\n" +
+              "+---+\n" +
+              "+---+"
+
+        const g = serialize.parseCommonState(src);
+        g.rows[0].cells.push({ type: "Cell", width: 0, data: { lines: [""], disabledGuides: new Set() } });
 
         const compact = serialize.printCompactGrid({ grid: g });
         expect(() => serialize.parseCompactGrid(compact)).to.throw();

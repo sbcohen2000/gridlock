@@ -366,6 +366,9 @@ export function _parseCompactGridSpec(src: string): grid.Grid<CompactGridData> {
             cellDataPtr += BYTES_PER_NUM;
             const width = dv.getUint16(cellDataPtr);
             cellDataPtr += BYTES_PER_NUM;
+            if(width === 0) {
+                throw new Error(`Parse error. Cell ${c} of row ${r} has width 0.`);
+            }
             const x = dv.getUint16(cellDataPtr);
             cellDataPtr += BYTES_PER_NUM;
             const y = dv.getUint16(cellDataPtr);

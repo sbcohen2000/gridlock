@@ -520,6 +520,26 @@ describe("splitCell", () => {
 
         expect(grid.printASCII(g)).to.equal(exp);
     });
+
+    it("Refuses to split at the left edge of a cell", () => {
+        const g = grid.parseASCII(
+            "+---+\n" +
+            "|   |\n" +
+            "+---+"
+        );
+
+        expect(() => grid.splitCell(g, { rowNo: 0, colNo: 0 }, 0)).to.throw();
+    });
+
+    it("Refuses to split at the right edge of a cell", () => {
+        const g = grid.parseASCII(
+            "+---+\n" +
+            "|   |\n" +
+            "+---+"
+        );
+
+        expect(() => grid.splitCell(g, { rowNo: 0, colNo: 0 }, 4)).to.throw();
+    });
 });
 
 describe("cellsUnderGlobalY", () => {

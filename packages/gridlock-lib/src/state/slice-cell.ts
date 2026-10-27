@@ -23,10 +23,12 @@ export class SliceCellPrims implements State<SliceCellPrims> {
         const cell = grid.cellUnderPoint(this.grid, globalPt);
         if(!cell) return new IdInverse();
 
-        const snapshot = this.clone();
-
         const cellRect = grid.rectOfCell(this.grid, cell);
         const localCol = globalPt.x - cellRect.left;
+        if(localCol <= 0) return new IdInverse();
+
+        const snapshot = this.clone();
+
         grid.splitCell(this.grid, cell, localCol, splitCellData(localCol));
 
         return new SnapshotInverse(snapshot, "split cell horizontally");
