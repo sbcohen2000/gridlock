@@ -1,12 +1,26 @@
 import { maximum, padRightToLength } from "../util.js";
 import * as grid from "../grid.js";
 
+export interface DisabledGuide {
+    /**
+     * The location of the disabled guide as a local offset from the
+     * left edge of the cell.
+     */
+    localOffset: number;
+    /**
+     * The fill character of the cell to the *right* of `localOffset`,
+     * if any.
+     */
+    fillChar?: string;
+}
+
 export interface Cell {
     lines: string[];
     /**
-     * The location of any disabled guides within this cell.
+     * Any guides which are disabled inside the cell. They are assumed
+     * to occur in increasing order of `localOffset`.
      */
-    disabledGuides: Set<number>;
+    disabledGuides: DisabledGuide[];
     /**
      * The cell's fill character. If it's not given, it defaults to
      * space.
@@ -14,10 +28,18 @@ export interface Cell {
     fillChar?: string;
 }
 
+export function cloneDisabledGuides(guides: DisabledGuide[]): DisabledGuide[] {
+    return guides.map(guide => ({ ...guide }));
+}
+
+export function sortDisabledGuides(guides: DisabledGuide[]): DisabledGuide[] {
+    return guides.toSorted((a, b) => a.localOffset - b.localOffset);
+}
+
 export function cloneCellData(data: Cell): Cell {
     const c: Cell = {
         lines: [...data.lines],
-        disabledGuides: new Set(data.disabledGuides),
+        disabledGuides: cloneDisabledGuides(data.disabledGuides),
     };
     if (data.fillChar !== undefined) c.fillChar = data.fillChar;
     return c;
@@ -33,22 +55,27 @@ export function maximumCellHeight(row: grid.Row<Cell>): number {
 
 /**
  * Split a cell's data at a local column, trimming trailing whitespace
- * and partitioning disabled guides.
+ * and partitioning disabled guides. The right half takes the fill
+ * character of the segment containing `col`.
  */
 export function splitCellData(col: number): (cellData: Cell) => [Cell, Cell] {
     return (cellData: Cell) => {
         const left: Cell = {
             lines: cellData.lines.map(line => line.slice(0, col).trimEnd()),
-            disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x < col))
+            disabledGuides: cloneDisabledGuides(cellData.disabledGuides.filter(guide => guide.localOffset < col)),
         };
         const right: Cell = {
             lines: cellData.lines.map(line => line.slice(col).trimEnd()),
-            disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x > col).map(x => x - col))
+            disabledGuides: cellData.disabledGuides
+                .filter(guide => guide.localOffset > col)
+                .map(guide => ({ ...guide, localOffset: guide.localOffset - col })),
         };
-        if (cellData.fillChar !== undefined) {
-            left.fillChar = cellData.fillChar;
-            right.fillChar = cellData.fillChar;
-        }
+
+        const guideBeforeCol = cellData.disabledGuides.findLast(guide => guide.localOffset <= col);
+        const rightFillChar = guideBeforeCol ? guideBeforeCol.fillChar : cellData.fillChar;
+
+        if (cellData.fillChar !== undefined) left.fillChar = cellData.fillChar;
+        if (rightFillChar !== undefined) right.fillChar = rightFillChar;
         return [left, right];
     };
 }
@@ -59,8 +86,8 @@ export function splitCellData(col: number): (cellData: Cell) => [Cell, Cell] {
  */
 export function splitRowData(row: number): (cellData: Cell) => [Cell, Cell] {
     return (cellData: Cell) => {
-        const top: Cell = { lines: cellData.lines.slice(0, row), disabledGuides: new Set(cellData.disabledGuides) };
-        const bottom: Cell = { lines: cellData.lines.slice(row), disabledGuides: new Set(cellData.disabledGuides) };
+        const top: Cell = { lines: cellData.lines.slice(0, row), disabledGuides: cloneDisabledGuides(cellData.disabledGuides) };
+        const bottom: Cell = { lines: cellData.lines.slice(row), disabledGuides: cloneDisabledGuides(cellData.disabledGuides) };
         if (cellData.fillChar !== undefined) {
             top.fillChar = cellData.fillChar;
             bottom.fillChar = cellData.fillChar;
@@ -170,7 +197,7 @@ export function ensureCellLinesMatchRowHeight(g: grid.Grid<Cell>, cellPath: grid
  */
 export function ensureCellDisabledGuidesInBounds(cell: grid.Cell<Cell>) {
     const width = cell.width;
-    cell.data.disabledGuides = new Set(new Set(cell.data.disabledGuides.values().filter(x => x < width)));
+    cell.data.disabledGuides = cell.data.disabledGuides.filter(guide => guide.localOffset < width);
 }
 
 /**
@@ -195,11 +222,13 @@ export function checkGridInvariants(st: { grid: grid.Grid<Cell> }): boolean {
         }
 
         // Each cell's disabled guides must be less than cell's width
-        // and greater than zero.
-        for(const guide of theCell.data.disabledGuides.values()) {
-            if(guide < 0 || theCell.width <= guide) {
+        // and greater than zero, in increasing order.
+        let prevOffset = -1;
+        for(const { localOffset } of theCell.data.disabledGuides) {
+            if(localOffset < 0 || theCell.width <= localOffset || localOffset <= prevOffset) {
                 return false;
             }
+            prevOffset = localOffset;
         }
     }
 

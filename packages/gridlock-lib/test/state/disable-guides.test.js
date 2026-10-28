@@ -28,13 +28,33 @@ describe("disable-guides", () => {
               "+----+-+"
 
         const st = TextPrims.editText({ grid: serialize.parseCommonState(src) });
-        st.grid.rows[0].cells[0].data.disabledGuides = new Set([2]);
+        st.grid.rows[0].cells[0].data.disabledGuides = [{ localOffset: 2 }];
 
         const disabled = disableCellGuides(st);
-        expect([...disabled.grid.rows[0].cells[0].data.disabledGuides].toSorted()).to.deep.equal([2, 5]);
+        expect(disabled.grid.rows[0].cells[0].data.disabledGuides.map(guide => guide.localOffset)).to.deep.equal([2, 5]);
 
         const reenabled = enableCellGuides(disabled);
         expect(reenabled.grid.rows[0].cells.map(cell => cell.width)).to.deep.equal([2, 3, 2]);
+    });
+
+    it("Restores the fill character of each cell", () => {
+        const src =
+              "ab\n"    +
+              "+-+-+\n" +
+              "+-+-+"
+
+        const st = TextPrims.editText({ grid: serialize.parseCommonState(src) });
+        st.grid.rows[0].cells[1].data.fillChar = ".";
+
+        const disabled = disableCellGuides(st);
+        const merged = disabled.grid.rows[0].cells[0];
+        expect(merged.data.fillChar).to.be.undefined;
+        expect(merged.data.disabledGuides).to.deep.equal([{ localOffset: 2, fillChar: "." }]);
+
+        const reenabled = enableCellGuides(disabled);
+        const [left, right] = reenabled.grid.rows[0].cells;
+        expect(left.data.fillChar).to.be.undefined;
+        expect(right.data.fillChar).to.equal(".");
     });
 
     it("Enables guides in several cells on the same row", () => {
@@ -44,14 +64,14 @@ describe("disable-guides", () => {
               "++--+------+"
 
         const g = serialize.parseCommonState(src);
-        g.rows[0].cells[1].data.disabledGuides = new Set([1]);
-        g.rows[0].cells[2].data.disabledGuides = new Set([1]);
+        g.rows[0].cells[1].data.disabledGuides = [{ localOffset: 1 }];
+        g.rows[0].cells[2].data.disabledGuides = [{ localOffset: 1 }];
 
         enableCellGuidesInGrid(g);
 
         const cells = g.rows[0].cells;
         expect(cells.map(cell => cell.width)).to.deep.equal([1, 1, 2, 1, 6]);
-        expect(cells.every(cell => cell.data.disabledGuides.size === 0)).to.be.true;
+        expect(cells.every(cell => cell.data.disabledGuides.length === 0)).to.be.true;
     });
 
     it("disableCellGuides and enableCellGuides are inverses", () => {

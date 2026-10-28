@@ -453,9 +453,8 @@ export abstract class AbstractEditorView extends AbstractView {
                                 this.viewLine(rowNo, cell, r))
                         .commit();
                 })
-                .views([...theCell.data.disabledGuides.values()]
-                    .toSorted((a, b) => a - b)
-                    .map((guideX: number, colNo: number) => [guideX, colNo]),
+                .views(theCell.data.disabledGuides
+                    .map(({ localOffset }, colNo: number) => [localOffset, colNo]),
                     ([guideX, colNo]: [number, number], r: Recycler) =>
                         this.#viewDisabledCellGuide({ rowNo: cell.rowNo, colNo }, guideX, r))
                 .view((r: Recycler) => this.viewCellSelection(cell, r))

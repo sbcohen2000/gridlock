@@ -1,7 +1,7 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as util from "../util.js";
-import { Cell, AnyState, cellContentExceedsCellWidth, horizontallyCatCellLines, splitCellData } from "./state-iface.js";
+import { Cell, DisabledGuide, AnyState, cellContentExceedsCellWidth, horizontallyCatCellLines, splitCellData } from "./state-iface.js";
 import { TextPrims } from "./text-prims.js";
 
 /**
@@ -38,12 +38,18 @@ function _disableCellGuides(st: AnyState, rows: grid.RowPath[]): boolean {
 
                 // Keep the guides that were already disabled in each
                 // cell, along with the boundaries between the cells.
-                const guidePositions = new Set<number>();
+                // Each boundary remembers the fill character of the
+                // cell to its right.
+                const guides: DisabledGuide[] = [];
                 for(const { cell, leftEdge } of currentGroup) {
                     const offset = leftEdge - firstLeftEdge;
-                    if(offset > 0) guidePositions.add(offset);
+                    if(offset > 0) {
+                        const boundary: DisabledGuide = { localOffset: offset };
+                        if(cell.data.fillChar !== undefined) boundary.fillChar = cell.data.fillChar;
+                        guides.push(boundary);
+                    }
                     for(const guide of cell.data.disabledGuides) {
-                        guidePositions.add(guide + offset);
+                        guides.push({ ...guide, localOffset: guide.localOffset + offset });
                     }
                 }
 
@@ -51,7 +57,7 @@ function _disableCellGuides(st: AnyState, rows: grid.RowPath[]): boolean {
                 // Compute lines before mutating the width, since
                 // horizontallyCatCellLines pads by cell.width.
                 firstCell.data.lines = horizontallyCatCellLines(currentGroup.values().map(elt => elt.cell));
-                firstCell.data.disabledGuides = guidePositions;
+                firstCell.data.disabledGuides = guides;
                 firstCell.width = groupWidth;
 
                 cells.push(firstCell);
@@ -145,14 +151,14 @@ export function disableCellGuides(st: AnyState, rows?: grid.RowPath[]): AnyState
 export function enableCellGuidesInGrid(g: grid.Grid<Cell>) {
     // Collect the global position of every guide before splitting,
     // since each split shifts the column numbers of the cells to its
-    // right.
+    // right. Splitting at a guide removes it and gives its fill
+    // character to the cell on its right (see `splitCellData`).
     const splitPts: point.P2[] = [];
     for(const [cell, rect] of grid.allPositionedCells(g)) {
         const theCell = grid.lookupCell(g, cell);
-        for(const x of theCell.data.disabledGuides) {
-            splitPts.push(point.mkP2(x + rect.left, rect.top));
+        for(const { localOffset } of theCell.data.disabledGuides) {
+            splitPts.push(point.mkP2(localOffset + rect.left, rect.top));
         }
-        theCell.data.disabledGuides = new Set();
     }
 
     splitPts.forEach(pt => grid.splitCellUnderPoint(g, pt, splitCellData));

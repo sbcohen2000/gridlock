@@ -62,7 +62,7 @@ export function parseCommonState(src: string): grid.Grid<Cell> {
     for(const [cellPath, cellRect] of grid.allPositionedCells(g)) {
         const cell = grid.lookupCell(g, cellPath);
         const h = rect.height(cellRect);
-        cell.data = { lines: [], disabledGuides: new Set() };
+        cell.data = { lines: [], disabledGuides: [] };
         for(let row = cellRect.top; row < cellRect.top + h; ++row) {
             cell.data.lines.push(srcLines[row].slice(cellRect.left, cellRect.right).trimEnd());
         }
@@ -205,7 +205,7 @@ function compactGrid(src: string, g: grid.Grid<CompactGridData>): grid.Grid<Cell
                         srcLines[cell.data.upperLeft.y + i]
                             .slice(cell.data.upperLeft.x, cell.data.upperLeft.x + len)
                     ),
-                    disabledGuides: new Set(),
+                    disabledGuides: [],
                     fillChar: cell.data.fillChar === " " ? undefined : cell.data.fillChar
                 }
             }))

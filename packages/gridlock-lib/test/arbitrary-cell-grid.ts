@@ -1,20 +1,28 @@
 import * as grid from "../src/grid.js";
 import * as arbg from "./arbitrary-grid.js";
 import * as fc from "fast-check";
-import { Cell } from "../src/state/state-iface.js";
+import { Cell, DisabledGuide } from "../src/state/state-iface.js";
 
 const printableChar = fc.constantFrom(
     ...'abcdefghijklmnopqrstuvwxyz0123456789 '.split('')
 );
 
+const arbFillChar = fc.constantFrom(".", "-", "=", "*", "#");
+
 /**
- * Generate a random set of disabled guides that lie strictly within a
- * cell of the given width.
+ * Generate a random list of disabled guides, in increasing order,
+ * that lie strictly within a cell of the given width.
  */
-function arbDisabledGuides(width: number): fc.Arbitrary<Set<number>> {
-    if(width < 2) return fc.constant(new Set<number>());
+function arbDisabledGuides(width: number): fc.Arbitrary<DisabledGuide[]> {
+    if(width < 2) return fc.constant([]);
     return fc.uniqueArray(fc.integer({ min: 1, max: width - 1 }), { maxLength: width - 1 })
-        .map(guides => new Set(guides));
+        .chain(offsets => fc.tuple(...offsets
+            .toSorted((a, b) => a - b)
+            .map(localOffset => fc.record({
+                localOffset: fc.constant(localOffset),
+                fillChar: arbFillChar,
+            }, { requiredKeys: ["localOffset"] }))
+        ));
 }
 
 /**
@@ -26,7 +34,7 @@ function arbCell(width: number, height: number): fc.Arbitrary<Cell> {
     return fc.record({
         lines: fc.array(lineArb, { minLength: height, maxLength: height }),
         disabledGuides: arbDisabledGuides(width),
-        fillChar: fc.constantFrom(".", "-", "=", "*", "#"),
+        fillChar: arbFillChar,
     }, { requiredKeys: ["lines", "disabledGuides"] });
 }
 

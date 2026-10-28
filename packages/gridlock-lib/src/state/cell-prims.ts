@@ -2,7 +2,7 @@ import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as rect from "../rect.js";
 import * as util from "../util.js";
-import { Cell, cloneCellData, splitCellData, State, horizontallyCatCellLines, rowLines, ensureCellLinesMatchRowHeight, ensureCellDisabledGuidesInBounds } from "./state-iface.js";
+import { Cell, DisabledGuide, cloneCellData, cloneDisabledGuides, splitCellData, State, horizontallyCatCellLines, rowLines, ensureCellLinesMatchRowHeight, ensureCellDisabledGuidesInBounds, sortDisabledGuides } from "./state-iface.js";
 import { SnapshotInverse, Inverse, IdInverse } from "./inverse.js";
 import { applyPartition, findOptimalPartition } from "./find-optimal-partition.js";
 
@@ -222,16 +222,19 @@ export class CellPrims implements State<CellPrims> {
         // Merge disabled guides, adjusting offsets relative to the
         // merged cell's left edge.
         const mergedRect = rect.unions(...cells.map(cell => grid.rectOfCell(g, cell)));
-        const disabledGuides = new Set<number>();
+        const guidesByOffset = new Map<number, DisabledGuide>();
         for(const cell of cells) {
             const theCell = grid.lookupCell(g, cell);
             const cellRect = grid.rectOfCell(g, cell);
             const offset = cellRect.left - mergedRect.left;
             for(const guide of theCell.data.disabledGuides) {
-                disabledGuides.add(guide + offset);
+                const localOffset = guide.localOffset + offset;
+                if(!guidesByOffset.has(localOffset)) {
+                    guidesByOffset.set(localOffset, { ...guide, localOffset });
+                }
             }
         }
-
+        const disabledGuides = sortDisabledGuides([...guidesByOffset.values()]);
         return grid.mergeCells(g, cells, { lines, disabledGuides });
     }
 
@@ -319,7 +322,7 @@ export class CellPrims implements State<CellPrims> {
             cells: row.cells.map(cell => ({
                 type: "Cell" as const,
                 width: cell.width,
-                data: { lines: [""], disabledGuides: new Set<number>() },
+                data: { lines: [""], disabledGuides: [] },
             })),
         };
     }
@@ -409,7 +412,7 @@ export class CellPrims implements State<CellPrims> {
         const snapshot = this.clone();
 
         theTargetCell.data.lines = [...theSrcCell.data.lines];
-        theTargetCell.data.disabledGuides = new Set(theSrcCell.data.disabledGuides);
+        theTargetCell.data.disabledGuides = cloneDisabledGuides(theSrcCell.data.disabledGuides);
         ensureCellDisabledGuidesInBounds(theTargetCell);
         ensureCellLinesMatchRowHeight(this.grid, target);
         this.clearCellContents();
@@ -443,8 +446,8 @@ export class CellPrims implements State<CellPrims> {
 
         // 2. Shift the disabled guides, if any, by
         //     `INITIAL_CELL_WIDTH` spaces.
-        theCell.data.disabledGuides = new Set(
-            theCell.data.disabledGuides.values().map(x => x + INITIAL_CELL_WIDTH)
+        theCell.data.disabledGuides = theCell.data.disabledGuides.map(guide =>
+            ({ ...guide, localOffset: guide.localOffset + INITIAL_CELL_WIDTH })
         );
 
         // 3. Split the `target` cell at local column
