@@ -168,6 +168,23 @@ describe("cell-prims", () => {
         });
     })
 
+    describe("replaceCellContent", () => {
+        it("Leaves a cell unchanged when moved onto itself", () => {
+            const src =
+                  "hello there\n" +
+                  "+-----+-----+\n" +
+                  "+-----+-----+";
+
+            const st = mkCellState(src);
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+            const [cell] = st.selection;
+            st.replaceCellContent(cell);
+
+            expect(serialize.printCommonState(st)).to.equal(src);
+            expect(st.selection).to.deep.equal([cell]);
+        });
+    })
+
     describe("deleteRows", () => {
         it("Preserves grid invariants", () => {
             fc.assert(

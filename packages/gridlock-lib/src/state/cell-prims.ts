@@ -399,6 +399,7 @@ export class CellPrims implements State<CellPrims> {
     replaceCellContent(target: grid.CellPath): Inverse<CellPrims> {
         const srcCell = this.selectionCoveringCell();
         if(!srcCell) return new IdInverse();
+        if(grid.eqCellPath(srcCell, target)) return new IdInverse();
 
         const theSrcCell = grid.lookupCell(this.grid, srcCell);
         const theTargetCell = grid.lookupCell(this.grid, target);
