@@ -1,21 +1,23 @@
 import * as fc from "fast-check";
 import * as grid from "../../src/grid.js";
-import { arbCellGrid } from "../arbitrary-cell-grid.js";
+import { arbCellGridWithHiddenLines } from "../arbitrary-cell-grid.js";
 import { expect } from "chai";
 import { serialize } from "../../src/state/index.js";
 import { TextPrims } from "../../src/state/text-prims.js";
 import { disableCellGuides, enableCellGuides, enableCellGuidesInGrid } from "../../src/state/disable-guides.js";
-import { checkGridInvariants, cloneCellData } from "../../src/state/state-iface.js";
+import { checkGridInvariants, cloneCellData, ensureCellLinesMatchRowHeight } from "../../src/state/state-iface.js";
 
 /**
- * Generate grids whose lines have no trailing whitespace, since
- * disabling and enabling guides trims trailing whitespace.
+ * Generate grids whose lines have no trailing whitespace, and which
+ * have no empty lines hidden below the bottom of their row, since
+ * disabling and enabling guides trims both.
  */
-const arbCellGridWithoutTrailingSpaces = arbCellGrid.map(g => {
+const arbCellGridWithoutTrailingSpaces = arbCellGridWithHiddenLines.map(g => {
     const trimmed = grid.clone(g, cloneCellData);
     for(const cell of grid.allCells(trimmed)) {
         const theCell = grid.lookupCell(trimmed, cell);
         theCell.data.lines = theCell.data.lines.map(line => line.trimEnd());
+        ensureCellLinesMatchRowHeight(trimmed, cell);
     }
     return trimmed;
 });

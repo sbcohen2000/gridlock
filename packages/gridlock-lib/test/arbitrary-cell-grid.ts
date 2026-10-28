@@ -26,13 +26,20 @@ function arbDisabledGuides(width: number): fc.Arbitrary<DisabledGuide[]> {
 }
 
 /**
- * Generate a random Cell that fits the given dimensions.
+ * Generate a random Cell that fits the given dimensions, followed by
+ * up to `maxHiddenLines` non-empty lines which are hidden below the
+ * bottom of the cell.
  */
-function arbCell(width: number, height: number): fc.Arbitrary<Cell> {
+function arbCell(width: number, height: number, maxHiddenLines: number): fc.Arbitrary<Cell> {
     const lineArb = fc.array(printableChar, { minLength: 0, maxLength: width })
         .map(cs => cs.join(''));
+    const hiddenLineArb = fc.array(printableChar, { minLength: 1, maxLength: width })
+        .map(cs => cs.join(''));
     return fc.record({
-        lines: fc.array(lineArb, { minLength: height, maxLength: height }),
+        lines: fc.tuple(
+            fc.array(lineArb, { minLength: height, maxLength: height }),
+            fc.array(hiddenLineArb, { maxLength: maxHiddenLines }),
+        ).map(([visible, hidden]) => [...visible, ...hidden]),
         disabledGuides: arbDisabledGuides(width),
         fillChar: arbFillChar,
     }, { requiredKeys: ["lines", "disabledGuides"] });
@@ -43,10 +50,10 @@ function arbCell(width: number, height: number): fc.Arbitrary<Cell> {
  * cell is populated with a randomly generated Cell whose lines fit
  * the cell's dimensions.
  */
-function populateCells(voidGrid: grid.Grid<void>): fc.Arbitrary<grid.Grid<Cell>> {
+function populateCells(voidGrid: grid.Grid<void>, maxHiddenLines: number): fc.Arbitrary<grid.Grid<Cell>> {
     const rowArbs = voidGrid.rows.map(row => {
         const cellArbs = row.cells.map(cell =>
-            arbCell(cell.width, row.height).map(data =>
+            arbCell(cell.width, row.height, maxHiddenLines).map(data =>
                 ({ ...cell, data }) as grid.Cell<Cell>
             )
         );
@@ -63,4 +70,13 @@ function populateCells(voidGrid: grid.Grid<void>): fc.Arbitrary<grid.Grid<Cell>>
  * @type {fc.Arbitrary<grid.Grid<Cell>>}
  */
 export const arbCellGrid: fc.Arbitrary<grid.Grid<Cell>> =
-    arbg.arbGrid.chain(g => populateCells(g));
+    arbg.arbGrid.chain(g => populateCells(g, 0));
+
+/**
+ * Generate an arbitrary grid, populated with `Cell`s, some of which
+ * have lines hidden below the bottom of their row.
+ *
+ * @type {fc.Arbitrary<grid.Grid<Cell>>}
+ */
+export const arbCellGridWithHiddenLines: fc.Arbitrary<grid.Grid<Cell>> =
+    arbg.arbGrid.chain(g => populateCells(g, 2));

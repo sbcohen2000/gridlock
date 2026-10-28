@@ -1,7 +1,7 @@
 import * as grid from "../grid.js";
 import * as point from "../point.js";
 import * as util from "../util.js";
-import { Cell, DisabledGuide, AnyState, cellContentExceedsCellWidth, horizontallyCatCellLines, splitCellData } from "./state-iface.js";
+import { Cell, DisabledGuide, AnyState, cellContentExceedsCellWidth, ensureCellLinesMatchRowHeight, horizontallyCatCellLines, splitCellData } from "./state-iface.js";
 import { TextPrims } from "./text-prims.js";
 
 /**
@@ -162,6 +162,10 @@ export function enableCellGuidesInGrid(g: grid.Grid<Cell>) {
     }
 
     splitPts.forEach(pt => grid.splitCellUnderPoint(g, pt, splitCellData));
+
+    for(const cell of grid.allCells(g)) {
+        ensureCellLinesMatchRowHeight(g, cell);
+    }
 }
 
 /**

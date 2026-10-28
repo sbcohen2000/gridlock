@@ -1,7 +1,7 @@
 import * as fc from "fast-check";
 import * as grid from "../../src/grid.js";
 import { serialize } from "../../src/state/index.js";
-import { arbCellGrid } from "../arbitrary-cell-grid.js";
+import { arbCellGrid, arbCellGridWithHiddenLines } from "../arbitrary-cell-grid.js";
 import { expect } from "chai";
 import { checkGridInvariants, cloneCellData } from "../../src/state/state-iface.js";
 import { TextPrims } from "../../src/state/text-prims.js";
@@ -26,7 +26,7 @@ describe("serialize", () => {
     it("_printCompactGridSpec and _parseCompactGridSpec are inverses", () => {
         fc.assert(
             fc.property(
-                arbCellGrid,
+                arbCellGridWithHiddenLines,
                 (g) => {
                     const { grid: expanded } = serialize._expandGrid({ grid: g });
                     // Strip the `lines` field so we have a Grid<CompactGridData>.
@@ -43,7 +43,7 @@ describe("serialize", () => {
     it("printCompactGrid and parseCompactGrid are inverses", () => {
         fc.assert(
             fc.property(
-                arbCellGrid,
+                arbCellGridWithHiddenLines,
                 (g) => {
                     const src0 = serialize.printCompactGrid({ grid: g });
                     const g1 = serialize.parseCompactGrid(src0);
@@ -95,7 +95,7 @@ describe("serialize", () => {
     it("tryParseCompactGrid accepts the output of printCompactGrid", () => {
         fc.assert(
             fc.property(
-                arbCellGrid,
+                arbCellGridWithHiddenLines,
                 (g) => {
                     const src = serialize.printCompactGrid({ grid: g });
                     expect(serialize.tryParseCompactGrid(src)).to.not.be.undefined;
