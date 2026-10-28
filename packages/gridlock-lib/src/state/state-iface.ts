@@ -143,8 +143,8 @@ export function horizontallyCatCellLines(cells: Iterable<grid.Cell<Cell>>): stri
 
     let out: string[] = Array.from({ length: height }, () => "");
     for(const cell of cellArray) {
-        for(let j = 0; j < cell.data.lines.length; ++j) {
-            out[j] += padRightToLength(cell.data.lines[j], cell.width);
+        for(let j = 0; j < height; ++j) {
+            out[j] += padRightToLength(cell.data.lines[j] ?? "", cell.width);
         }
     }
 

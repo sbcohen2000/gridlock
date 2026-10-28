@@ -57,6 +57,21 @@ describe("disable-guides", () => {
         expect(right.data.fillChar).to.equal(".");
     });
 
+    it("Keeps hidden lines in the cell they belong to", () => {
+        const src =
+              "   x\n"    +
+              "+--+--+\n" +
+              "+--+--+"
+
+        const st = TextPrims.editText({ grid: serialize.parseCommonState(src) });
+        st.grid.rows[0].cells[1].data.lines = ["x", "yz"];
+
+        const reenabled = enableCellGuides(disableCellGuides(st));
+        const [left, right] = reenabled.grid.rows[0].cells;
+        expect(left.data.lines.every(line => line === "")).to.be.true;
+        expect(right.data.lines).to.deep.equal(["x", "yz"]);
+    });
+
     it("Enables guides in several cells on the same row", () => {
         const src =
               "\n" +
