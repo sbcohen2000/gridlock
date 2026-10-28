@@ -861,6 +861,29 @@ export function splitCell<A>(
 }
 
 /**
+ * Split the cell under the global point `pt` at `pt.x`. The data of
+ * the cell is divided by `splitData`, which is given the local column
+ * of the split.
+ *
+ * @returns `true` if a cell was split, and `false` if there is no
+ *     cell under `pt` or `pt` lies on the left edge of its cell.
+ */
+export function splitCellUnderPoint<A>(
+    g: Grid<A>,
+    pt: point.P2,
+    splitData: (localCol: number) => (a: A) => [A, A] = (_ => a => [a, a]),
+): boolean {
+    const cell = cellUnderPoint(g, pt);
+    if(!cell) return false;
+
+    const localCol = pt.x - rectOfCell(g, cell).left;
+    if(localCol <= 0) return false;
+
+    splitCell(g, cell, localCol, splitData(localCol));
+    return true;
+}
+
+/**
  * Split a row into a top and bottom half at the given (local)
  * `splitRow`. The caller can provide function describing how to
  * divide the `data` between top and bottom cells, and how to define

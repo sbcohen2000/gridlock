@@ -20,16 +20,11 @@ export class SliceCellPrims implements State<SliceCellPrims> {
     }
 
     splitCell(globalPt: point.P2): Inverse<SliceCellPrims> {
-        const cell = grid.cellUnderPoint(this.grid, globalPt);
-        if(!cell) return new IdInverse();
-
-        const cellRect = grid.rectOfCell(this.grid, cell);
-        const localCol = globalPt.x - cellRect.left;
-        if(localCol <= 0) return new IdInverse();
-
         const snapshot = this.clone();
 
-        grid.splitCell(this.grid, cell, localCol, splitCellData(localCol));
+        if(!grid.splitCellUnderPoint(this.grid, globalPt, splitCellData)) {
+            return new IdInverse();
+        }
 
         return new SnapshotInverse(snapshot, "split cell horizontally");
     }

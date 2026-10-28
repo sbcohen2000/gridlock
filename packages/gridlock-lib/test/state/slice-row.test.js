@@ -40,5 +40,22 @@ describe("slice-row", () => {
             expect(st.grid.rows.map(row => row.height)).to.deep.equal([1, 1]);
             expect(serialize.printCommonState(st)).to.equal(src);
         });
+
+        it("Keeps the fill character on both halves", () => {
+            const src =
+                  "foo\n"   +
+                  "bar\n"   +
+                  "+---+\n" +
+                  "|   |\n" +
+                  "+---+"
+
+            const st = SliceRowPrims.sliceRow({ grid: serialize.parseCommonState(src) });
+            st.grid.rows[0].cells[0].data.fillChar = ".";
+            st.splitRow(point.mkP2(1, 1));
+
+            const [top, bottom] = st.grid.rows;
+            expect(top.cells[0].data.fillChar).to.equal(".");
+            expect(bottom.cells[0].data.fillChar).to.equal(".");
+        });
     });
 });

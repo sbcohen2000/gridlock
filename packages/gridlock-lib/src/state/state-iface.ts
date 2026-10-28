@@ -36,16 +36,21 @@ export function maximumCellHeight(row: grid.Row<Cell>): number {
  * and partitioning disabled guides.
  */
 export function splitCellData(col: number): (cellData: Cell) => [Cell, Cell] {
-    return (cellData: Cell) => [
-        {
+    return (cellData: Cell) => {
+        const left: Cell = {
             lines: cellData.lines.map(line => line.slice(0, col).trimEnd()),
             disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x < col))
-        },
-        {
+        };
+        const right: Cell = {
             lines: cellData.lines.map(line => line.slice(col).trimEnd()),
             disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x > col).map(x => x - col))
-        },
-    ];
+        };
+        if (cellData.fillChar !== undefined) {
+            left.fillChar = cellData.fillChar;
+            right.fillChar = cellData.fillChar;
+        }
+        return [left, right];
+    };
 }
 
 /**
@@ -53,10 +58,15 @@ export function splitCellData(col: number): (cellData: Cell) => [Cell, Cell] {
  * both halves.
  */
 export function splitRowData(row: number): (cellData: Cell) => [Cell, Cell] {
-    return (cellData: Cell) => [
-        { lines: cellData.lines.slice(0, row), disabledGuides: new Set(cellData.disabledGuides) },
-        { lines: cellData.lines.slice(row), disabledGuides: new Set(cellData.disabledGuides) },
-    ];
+    return (cellData: Cell) => {
+        const top: Cell = { lines: cellData.lines.slice(0, row), disabledGuides: new Set(cellData.disabledGuides) };
+        const bottom: Cell = { lines: cellData.lines.slice(row), disabledGuides: new Set(cellData.disabledGuides) };
+        if (cellData.fillChar !== undefined) {
+            top.fillChar = cellData.fillChar;
+            bottom.fillChar = cellData.fillChar;
+        }
+        return [top, bottom];
+    };
 }
 
 export function cellContentExceedsCellWidth(cell: grid.Cell<Cell>): boolean {

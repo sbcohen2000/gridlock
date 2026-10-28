@@ -5,7 +5,7 @@ import { arbCellGrid } from "../arbitrary-cell-grid.js";
 import { expect } from "chai";
 import { checkGridInvariants, cloneCellData } from "../../src/state/state-iface.js";
 import { TextPrims } from "../../src/state/text-prims.js";
-import { disableCellGuides } from "../../src/state/disable-guides.js";
+import { disableCellGuides, enableCellGuides } from "../../src/state/disable-guides.js";
 
 describe("serialize", () => {
     it("printCellGrid and parseCellGrid are inverses", () => {
@@ -60,8 +60,8 @@ describe("serialize", () => {
             fc.property(
                 arbCellGrid,
                 (g) => {
-                    const st = TextPrims.editText({ grid: g });
-                    const before = serialize.printCommonState(st);
+                    const st = TextPrims.editText({ grid: grid.clone(g, cloneCellData) });
+                    const before = serialize.printCommonState(enableCellGuides(st.clone()));
 
                     const disabled = disableCellGuides(st);
                     const loaded = serialize.parseCompactGrid(serialize.printCompactGrid(disabled));

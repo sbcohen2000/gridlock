@@ -26,7 +26,8 @@ function arbCell(width: number, height: number): fc.Arbitrary<Cell> {
     return fc.record({
         lines: fc.array(lineArb, { minLength: height, maxLength: height }),
         disabledGuides: arbDisabledGuides(width),
-    });
+        fillChar: fc.constantFrom(".", "-", "=", "*", "#"),
+    }, { requiredKeys: ["lines", "disabledGuides"] });
 }
 
 /**

@@ -49,5 +49,20 @@ describe("slice-cell", () => {
             expect([...left.data.disabledGuides]).to.deep.equal([1]);
             expect([...right.data.disabledGuides]).to.deep.equal([2]);
         });
+
+        it("Keeps the fill character on both halves", () => {
+            const src =
+                  "foobar\n"   +
+                  "+------+\n" +
+                  "+------+"
+
+            const st = SliceCellPrims.sliceCell({ grid: serialize.parseCommonState(src) });
+            st.grid.rows[0].cells[0].data.fillChar = ".";
+            st.splitCell(point.mkP2(3, 0));
+
+            const [left, right] = st.grid.rows[0].cells;
+            expect(left.data.fillChar).to.equal(".");
+            expect(right.data.fillChar).to.equal(".");
+        });
     });
 });
