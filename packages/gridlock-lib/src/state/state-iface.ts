@@ -43,7 +43,7 @@ export function splitCellData(col: number): (cellData: Cell) => [Cell, Cell] {
         },
         {
             lines: cellData.lines.map(line => line.slice(col).trimEnd()),
-            disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x > col))
+            disabledGuides: new Set(cellData.disabledGuides.values().filter(x => x > col).map(x => x - col))
         },
     ];
 }

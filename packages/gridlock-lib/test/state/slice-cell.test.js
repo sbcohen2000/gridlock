@@ -34,5 +34,20 @@ describe("slice-cell", () => {
             expect(st.grid.rows[0].cells.map(cell => cell.width)).to.deep.equal([4, 3]);
             expect(serialize.printCommonState(st)).to.equal(src);
         });
+
+        it("Keeps disabled guides relative to each half", () => {
+            const src =
+                  "foobarba\n"   +
+                  "+--------+\n" +
+                  "+--------+"
+
+            const st = SliceCellPrims.sliceCell({ grid: serialize.parseCommonState(src) });
+            st.grid.rows[0].cells[0].data.disabledGuides = new Set([1, 5]);
+            st.splitCell(point.mkP2(3, 0));
+
+            const [left, right] = st.grid.rows[0].cells;
+            expect([...left.data.disabledGuides]).to.deep.equal([1]);
+            expect([...right.data.disabledGuides]).to.deep.equal([2]);
+        });
     });
 });
