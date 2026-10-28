@@ -15,11 +15,12 @@ export interface Cell {
 }
 
 export function cloneCellData(data: Cell): Cell {
-    return {
+    const c: Cell = {
         lines: [...data.lines],
         disabledGuides: new Set(data.disabledGuides),
-        fillChar: data.fillChar
     };
+    if (data.fillChar !== undefined) c.fillChar = data.fillChar;
+    return c;
 }
 
 export function maximumLineLength(data: Cell): number {
@@ -186,7 +187,7 @@ export function checkGridInvariants(st: { grid: grid.Grid<Cell> }): boolean {
         // Each cell's disabled guides must be less than cell's width
         // and greater than zero.
         for(const guide of theCell.data.disabledGuides.values()) {
-            if(0 <= guide || theCell.width <= guide) {
+            if(guide < 0 || theCell.width <= guide) {
                 return false;
             }
         }

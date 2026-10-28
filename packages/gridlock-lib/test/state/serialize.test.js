@@ -1,8 +1,11 @@
 import * as fc from "fast-check";
+import * as grid from "../../src/grid.js";
 import { serialize } from "../../src/state/index.js";
 import { arbCellGrid } from "../arbitrary-cell-grid.js";
 import { expect } from "chai";
-import { checkGridInvariants } from "../../src/state/state-iface.js";
+import { checkGridInvariants, cloneCellData } from "../../src/state/state-iface.js";
+import { TextPrims } from "../../src/state/text-prims.js";
+import { disableCellGuides } from "../../src/state/disable-guides.js";
 
 describe("serialize", () => {
     it("printCellGrid and parseCellGrid are inverses", () => {
@@ -47,6 +50,37 @@ describe("serialize", () => {
                     const src1 = serialize.printCompactGrid({ grid: g1 });
                     expect(src0).to.equal(src1);
                     expect(checkGridInvariants({ grid: g1 })).to.be.true;
+                }
+            )
+        );
+    });
+
+    it("printCompactGrid preserves structure hidden by disabled guides", () => {
+        fc.assert(
+            fc.property(
+                arbCellGrid,
+                (g) => {
+                    const st = TextPrims.editText({ grid: g });
+                    const before = serialize.printCommonState(st);
+
+                    const disabled = disableCellGuides(st);
+                    const loaded = serialize.parseCompactGrid(serialize.printCompactGrid(disabled));
+
+                    expect(checkGridInvariants({ grid: loaded })).to.be.true;
+                    expect(serialize.printCommonState({ grid: loaded })).to.equal(before);
+                }
+            )
+        );
+    });
+
+    it("printCompactGrid does not modify its input", () => {
+        fc.assert(
+            fc.property(
+                arbCellGrid,
+                (g) => {
+                    const snapshot = grid.clone(g, cloneCellData);
+                    serialize.printCompactGrid({ grid: g });
+                    expect(g).to.deep.equal(snapshot);
                 }
             )
         );

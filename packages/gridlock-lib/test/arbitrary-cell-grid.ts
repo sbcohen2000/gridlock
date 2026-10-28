@@ -8,13 +8,25 @@ const printableChar = fc.constantFrom(
 );
 
 /**
+ * Generate a random set of disabled guides that lie strictly within a
+ * cell of the given width.
+ */
+function arbDisabledGuides(width: number): fc.Arbitrary<Set<number>> {
+    if(width < 2) return fc.constant(new Set<number>());
+    return fc.uniqueArray(fc.integer({ min: 1, max: width - 1 }), { maxLength: width - 1 })
+        .map(guides => new Set(guides));
+}
+
+/**
  * Generate a random Cell that fits the given dimensions.
  */
 function arbCell(width: number, height: number): fc.Arbitrary<Cell> {
     const lineArb = fc.array(printableChar, { minLength: 0, maxLength: width })
         .map(cs => cs.join(''));
-    return fc.array(lineArb, { minLength: height, maxLength: height })
-        .map(lines => ({ lines, disabledGuides: new Set<number>() }));
+    return fc.record({
+        lines: fc.array(lineArb, { minLength: height, maxLength: height }),
+        disabledGuides: arbDisabledGuides(width),
+    });
 }
 
 /**

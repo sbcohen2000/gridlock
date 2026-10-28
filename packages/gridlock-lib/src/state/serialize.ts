@@ -2,8 +2,9 @@ import * as grid from "../grid.js";
 import * as rect from "../rect.js";
 import * as point from "../point.js";
 import * as util from "../util.js";
-import type { Cell } from "./state-iface.js";
+import { Cell, cloneCellData } from "./state-iface.js";
 import { TextPrims } from "./text-prims.js";
+import { enableCellGuidesInGrid } from "./disable-guides.js";
 
 /**
  * Return the textual contents of the grid by extracting the text from
@@ -173,14 +174,18 @@ export function _expandGrid(st: { grid: grid.Grid<Cell> }): {
  * their contents.
  */
 export function printCompactGrid(st: { grid: grid.Grid<Cell> }): string {
-    const { src, grid } = _expandGrid(st);
+    const g = grid.clone(st.grid, cloneCellData);
+    // Note that we enable guides here so that we won't forget about any
+    // disabled guides when we serialize.
+    enableCellGuidesInGrid(g);
+    const { src, grid: expanded } = _expandGrid({ grid: g });
 
-    // Forget the `lines` field of `grid`. It's okay to do this
+    // Forget the `lines` field of `expanded`. It's okay to do this
     // mutably because `expandGrid` returns only a copy of its input.
-    grid.rows.forEach(row =>
+    expanded.rows.forEach(row =>
         row.cells.forEach(cell => delete cell.data.lines));
 
-    return _printCompactGridSpec(grid) + "\n" + src;
+    return _printCompactGridSpec(expanded) + "\n" + src;
 }
 
 /**

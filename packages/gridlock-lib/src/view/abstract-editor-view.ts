@@ -180,6 +180,10 @@ export abstract class AbstractEditorView extends AbstractView {
         return this.#cellGuidesDisabled;
     }
 
+    set cellGuidesDisabled(disabled: boolean) {
+        this.#cellGuidesDisabled = disabled;
+    }
+
     toggleCellGuidesDisabled(andThen?: ReplaceEditorViewCB) {
         if(this.#cellGuidesDisabled) {
             this.enableCellGuides(andThen);

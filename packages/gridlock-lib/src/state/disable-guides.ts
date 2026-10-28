@@ -119,24 +119,31 @@ export function disableCellGuides(st: AnyState, rows?: grid.RowPath[]): AnyState
 }
 
 /**
+ * Re-enable the disabled cell guides in `g`, modifying it in place.
+ *
+ * @see enableCellGuides
+ */
+export function enableCellGuidesInGrid(g: grid.Grid<Cell>) {
+    const cells = [...grid.allPositionedCells(g)];
+    const sliceSt = SliceCellPrims.sliceCell({ grid: g });
+
+    for(const [cell, rect] of cells) {
+        const theCell = grid.lookupCell(g, cell);
+        const guideXs = [...theCell.data.disabledGuides.values().map(x => x + rect.left)];
+        theCell.data.disabledGuides = new Set();
+
+        guideXs.forEach(x => {
+            sliceSt.splitCell(point.mkP2(x, rect.top));
+        });
+    }
+}
+
+/**
  * Re-enable cell guides after they have been disabled.
  */
 export function enableCellGuides(st: AnyState): AnyState {
     const stateIsValid = st.mutateGrid(g => {
-
-        const cells = [...grid.allPositionedCells(g)];
-        const sliceSt = SliceCellPrims.sliceCell({ grid: g });
-
-        for(const [cell, rect] of cells) {
-            const theCell = grid.lookupCell(g, cell);
-            const guideXs = [...theCell.data.disabledGuides.values().map(x => x + rect.left)];
-            theCell.data.disabledGuides = new Set();
-
-            guideXs.forEach(x => {
-                sliceSt.splitCell(point.mkP2(x, rect.top));
-            });
-        }
-
+        enableCellGuidesInGrid(g);
         return g;
     });
 

@@ -203,6 +203,7 @@ class AppView extends view.AbstractView {
                               return view.cmenu.button(key, () => {
                                   const grid = state.serialize.parseCompactGrid(val);
                                   const freshView = this.#editorView.createViewForState(state.TextPrims.editText({ grid }));
+                                  freshView.cellGuidesDisabled = false;
                                   this.#editorView.requestReplaceEditorView(freshView);
                               })
                           }
@@ -212,6 +213,7 @@ class AppView extends view.AbstractView {
                     view.cmenu.divider(),
                     view.cmenu.button("clear", () => {
                         const freshView = this.#editorView.createViewForState(state.TextPrims.mkEmpty());
+                        freshView.cellGuidesDisabled = false;
                         this.#editorView.requestReplaceEditorView(freshView);
                     })
                 ];
