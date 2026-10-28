@@ -86,6 +86,24 @@ describe("serialize", () => {
         );
     });
 
+    it("tryParseCompactGrid rejects plain text", () => {
+        expect(serialize.tryParseCompactGrid("hello")).to.be.undefined;
+        expect(serialize.tryParseCompactGrid("hello\nworld")).to.be.undefined;
+        expect(serialize.tryParseCompactGrid("AAAA\nAAAA")).to.be.undefined;
+    });
+
+    it("tryParseCompactGrid accepts the output of printCompactGrid", () => {
+        fc.assert(
+            fc.property(
+                arbCellGrid,
+                (g) => {
+                    const src = serialize.printCompactGrid({ grid: g });
+                    expect(serialize.tryParseCompactGrid(src)).to.not.be.undefined;
+                }
+            )
+        );
+    });
+
     it("parseCompactGrid throws on a zero-height row", () => {
         const src =
               "foo\n"   +

@@ -1,6 +1,6 @@
 import * as arbg from "./arbitrary-grid.js";
 import * as fc from "fast-check";
-import * as grid from "../src/grid";
+import * as grid from "../src/grid.js";
 import * as point from "../src/point.js";
 import * as rect from "../src/rect.js";
 import { expect } from "chai";
@@ -800,5 +800,213 @@ describe("modifyWidthOfCells", () => {
 
         expect(grid.printASCII(g)).to.equal(exp);
         expect(grid.debugCheckGridDimsConsistency(g)).to.be.true;
+    });
+});
+
+describe("findColumnPositionsForSubgrid", () => {
+  it("Can find the column positions for an empty list of columns", () => {
+    expect(grid._findRowColPositionsForSubgrid([], 100)).to.deep.equal([]);
+  });
+
+  it("Can find the column positions for the `insertSubgrid` example", () => {
+    const colPositions    = [2, 9, 11];
+    const expColPositions = [2, 4,  5];
+    expect(grid._findRowColPositionsForSubgrid(colPositions, 6)).to.deep.equal(expColPositions);
+  });
+
+  it("Leaves positions which already fit unchanged", () => {
+    expect(grid._findRowColPositionsForSubgrid([2, 5], 10)).to.deep.equal([2, 5]);
+  });
+
+  it("Packs positions against the right edge", () => {
+    expect(grid._findRowColPositionsForSubgrid([5, 6, 7], 4)).to.deep.equal([1, 2, 3]);
+  });
+
+  it("Gives up when the positions cannot fit", () => {
+    expect(grid._findRowColPositionsForSubgrid([1, 2, 3], 3)).to.be.undefined;
+  });
+});
+
+describe("insertSubgrid", () => {
+    it("Inserts the `insertSubgrid` example", () => {
+        const g = grid.parseASCII(
+            "+-----+\n" +
+            "|     |\n" +
+            "|     |\n" +
+            "+-----+");
+        const subgrid = grid.parseASCII(
+            "+-+------+-++\n" +
+            "| |      | ||\n" +
+            "+-+------+-++");
+
+        expect(grid.insertSubgrid(g, [{ rowNo: 0, colNo: 0 }], subgrid)).to.be.true;
+        expect(grid.printASCII(g)).to.equal(
+            "+-+-+++\n" +
+            "| | |||\n" +
+            "| | |||\n" +
+            "+-+-+++");
+    });
+
+    it("Leaves neighboring cells unchanged", () => {
+        const g = grid.parseASCII(
+            "+--+------+--+\n" +
+            "|  |      |  |\n" +
+            "+--+------+--+");
+        const subgrid = grid.parseASCII(
+            "+-+--+\n" +
+            "+-+--+");
+
+        expect(grid.insertSubgrid(g, [{ rowNo: 0, colNo: 1 }], subgrid)).to.be.true;
+        expect(grid.printASCII(g)).to.equal(
+            "+--+-+----+--+\n" +
+            "|  | |    |  |\n" +
+            "+--+-+----+--+");
+    });
+
+    it("Stretches the last column of a smaller subgrid", () => {
+        const g = grid.parseASCII(
+            "+-----+\n" +
+            "+-----+");
+        const subgrid = grid.parseASCII(
+            "++-+\n" +
+            "++-+");
+
+        expect(grid.insertSubgrid(g, [{ rowNo: 0, colNo: 0 }], subgrid)).to.be.true;
+        expect(grid.printASCII(g)).to.equal(
+            "++----+\n" +
+            "++----+");
+    });
+
+    it("Replaces entire rows with a multi-row subgrid", () => {
+        const g = grid.parseASCII(
+            "+-----+\n" +
+            "+-----+\n" +
+            "|     |\n" +
+            "+-----+\n" +
+            "+-----+");
+        const subgrid = grid.parseASCII(
+            "+--+---+\n" +
+            "|  |   |\n" +
+            "+--+---+\n" +
+            "|      |\n" +
+            "+-+----+\n" +
+            "| |    |\n" +
+            "+-+----+");
+
+        const target = [{ rowNo: 0, colNo: 0 }, { rowNo: 1, colNo: 0 }];
+        expect(grid.insertSubgrid(g, target, subgrid)).to.be.true;
+        expect(g.rows.map(row => [row.height, row.cells.map(cell => cell.width)])).to.deep.equal([
+            [1, [3, 3]],
+            [1, [6]],
+            [1, [2, 4]],
+            [1, [6]],
+        ]);
+    });
+
+    it("Does nothing when the subgrid has too many columns", () => {
+        const src =
+              "+-----+\n" +
+              "+-----+";
+        const g = grid.parseASCII(src);
+        const subgrid = grid.parseASCII(
+            "++++++++\n" +
+            "++++++++");
+
+        expect(grid.insertSubgrid(g, [{ rowNo: 0, colNo: 0 }], subgrid)).to.be.false;
+        expect(grid.printASCII(g)).to.equal(src);
+    });
+
+    it("Does nothing when the subgrid has too many rows", () => {
+        const src =
+              "+-+\n" +
+              "+-+";
+        const g = grid.parseASCII(src);
+        const subgrid = grid.parseASCII(
+            "+-+\n" +
+            "+-+\n" +
+            "+-+");
+
+        expect(grid.insertSubgrid(g, [{ rowNo: 0, colNo: 0 }], subgrid)).to.be.false;
+        expect(grid.printASCII(g)).to.equal(src);
+    });
+
+    it("Does nothing when a multi-row subgrid targets part of a row", () => {
+        const src =
+              "+--+--+\n" +
+              "|  |  |\n" +
+              "+--+--+";
+        const g = grid.parseASCII(src);
+        const subgrid = grid.parseASCII(
+            "+-+\n" +
+            "+-+\n" +
+            "+-+");
+
+        expect(grid.insertSubgrid(g, [{ rowNo: 0, colNo: 0 }], subgrid)).to.be.false;
+        expect(grid.printASCII(g)).to.equal(src);
+    });
+
+    it("Does nothing when the target is not a rectangle", () => {
+        const src =
+              "+--+--+\n" +
+              "+--+--+\n" +
+              "+--+--+";
+        const g = grid.parseASCII(src);
+        const subgrid = grid.parseASCII(
+            "+-+\n" +
+            "+-+");
+
+        const target = [{ rowNo: 0, colNo: 0 }, { rowNo: 1, colNo: 0 }];
+        expect(grid.insertSubgrid(g, target, subgrid)).to.be.false;
+        expect(grid.printASCII(g)).to.equal(src);
+    });
+});
+
+describe("extractSubgrid", () => {
+    it("Copies part of a row", () => {
+        const g = grid.parseASCII(
+            "+--+---+--+\n" +
+            "|  |   |  |\n" +
+            "+--+---+--+");
+
+        const subgrid = grid.extractSubgrid(g, [{ rowNo: 0, colNo: 2 }, { rowNo: 0, colNo: 1 }]);
+        expect(grid.printASCII(subgrid!)).to.equal(
+            "+---+--+\n" +
+            "|   |  |\n" +
+            "+---+--+");
+    });
+
+    it("Copies entire rows", () => {
+        const g = grid.parseASCII(
+            "+-----+\n" +
+            "+--+--+\n" +
+            "|  |  |\n" +
+            "+--+--+\n" +
+            "+-----+");
+
+        const target = [{ rowNo: 1, colNo: 0 }, { rowNo: 1, colNo: 1 }, { rowNo: 2, colNo: 0 }];
+        const subgrid = grid.extractSubgrid(g, target);
+        expect(subgrid!.rows.map(row => [row.height, row.cells.map(cell => cell.width)])).to.deep.equal([
+            [2, [3, 3]],
+            [1, [6]],
+        ]);
+    });
+
+    it("Returns undefined when the cells are not a rectangle", () => {
+        const g = grid.parseASCII(
+            "+--+--+\n" +
+            "+--+--+\n" +
+            "+--+--+");
+
+        expect(grid.extractSubgrid(g, [{ rowNo: 0, colNo: 0 }, { rowNo: 1, colNo: 0 }])).to.be.undefined;
+    });
+
+    it("Does not share cells with the grid", () => {
+        const g = grid.parseASCII(
+            "+--+\n" +
+            "+--+");
+
+        const subgrid = grid.extractSubgrid(g, [{ rowNo: 0, colNo: 0 }]);
+        subgrid!.rows[0].cells[0].width = 10;
+        expect(g.rows[0].cells[0].width).to.equal(3);
     });
 });

@@ -185,6 +185,131 @@ describe("cell-prims", () => {
         });
     })
 
+    describe("copySubgrid", () => {
+        it("Copies the selected cells so that they can be pasted", () => {
+            const src =
+                  "ab cd ef\n"    +
+                  "+--+--+--+\n"  +
+                  "+--+--+--+";
+
+            const st = mkCellState(src);
+            st.selectCellUnderPoint(point.mkP2(3, 0));
+            st.selectCellUnderPoint(point.mkP2(6, 0));
+            const clipping = st.copySubgrid();
+
+            const target = mkCellState(
+                  "xyz\n"      +
+                  "+------+\n" +
+                  "+------+");
+            target.selectCellUnderPoint(point.mkP2(0, 0));
+            target.pasteSubgrid(serialize.tryParseCompactGrid(clipping));
+
+            const exp =
+                  "cd ef\n"    +
+                  "+--+---+\n" +
+                  "+--+---+";
+            expect(serialize.printCommonState(target)).to.equal(exp);
+        });
+
+        it("Returns undefined when the selection is not a rectangle", () => {
+            const st = mkCellState(
+                  "ab cd\n"   +
+                  "\n"        +
+                  "+--+--+\n" +
+                  "+--+--+\n" +
+                  "+--+--+");
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+            st.selectCellUnderPoint(point.mkP2(0, 1));
+
+            expect(st.copySubgrid()).to.be.undefined;
+        });
+    })
+
+    describe("pasteSubgrid", () => {
+        it("Pastes a subgrid over the selected cell", () => {
+            const src =
+                  "abc\n"      +
+                  "+------+\n" +
+                  "+------+";
+            const subgrid = serialize.parseCommonState(
+                  "ab cd\n"    +
+                  "+--+--+\n"  +
+                  "+--+--+");
+
+            const st = mkCellState(src);
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+            st.pasteSubgrid(subgrid);
+
+            const exp =
+                  "ab cd\n"    +
+                  "+--+---+\n" +
+                  "+--+---+";
+            expect(serialize.printCommonState(st)).to.equal(exp);
+            expect(st.selection).to.deep.equal([{ rowNo: 0, colNo: 0 }, { rowNo: 0, colNo: 1 }]);
+        });
+
+        it("Pads pasted cells to the height of the row", () => {
+            const src =
+                  "abc\n"      +
+                  "def\n"      +
+                  "+------+\n" +
+                  "|      |\n" +
+                  "+------+";
+            const subgrid = serialize.parseCommonState(
+                  "xy\n"   +
+                  "+--+\n" +
+                  "+--+");
+
+            const st = mkCellState(src);
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+            st.pasteSubgrid(subgrid);
+
+            const exp =
+                  "xy\n"       +
+                  "\n"         +
+                  "+------+\n" +
+                  "|      |\n" +
+                  "+------+";
+            expect(serialize.printCommonState(st)).to.equal(exp);
+            expect(checkGridInvariants(st)).to.be.true;
+        });
+
+        it("Does not share data with the subgrid", () => {
+            const subgrid = serialize.parseCommonState(
+                  "xy\n"   +
+                  "+--+\n" +
+                  "+--+");
+
+            const st = mkCellState(
+                  "abc\n"      +
+                  "+------+\n" +
+                  "+------+");
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+            st.pasteSubgrid(subgrid);
+
+            grid.lookupCell(st.grid, { rowNo: 0, colNo: 0 }).data.lines[0] = "changed";
+            expect(subgrid.rows[0].cells[0].data.lines).to.deep.equal(["xy"]);
+        });
+
+        it("Does nothing when the subgrid does not fit", () => {
+            const src =
+                  "abc\n"   +
+                  "+---+\n" +
+                  "+---+";
+            const subgrid = serialize.parseCommonState(
+                  "abcde\n"    +
+                  "++++++\n"   +
+                  "++++++");
+
+            const st = mkCellState(src);
+            st.selectCellUnderPoint(point.mkP2(0, 0));
+            st.pasteSubgrid(subgrid);
+
+            expect(serialize.printCommonState(st)).to.equal(src);
+            expect(st.selection).to.deep.equal([{ rowNo: 0, colNo: 0 }]);
+        });
+    })
+
     describe("deleteRows", () => {
         it("Preserves grid invariants", () => {
             fc.assert(

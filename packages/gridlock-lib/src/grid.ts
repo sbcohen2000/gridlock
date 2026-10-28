@@ -922,3 +922,141 @@ export function splitRow<A>(
     g.rows.splice(row.rowNo, 1, topRow, bottomRow);
 }
 
+/**
+ * Replace the content and structure of the `targetCells` with the `subgrid`.
+ *
+ * This makes sense only if:
+ *   - The `targetCells` describe a rectangle in the document. (i.e.
+ *     if they span multiple rows, they horizontally span the
+ *     _entire_ grid `g`). (See `canMergeCells`)
+ *   - If the `subgrid` has multiple rows, then the `targetCells` must
+ *     horizontally cover the entire grid. (Otherwise, we would be
+ *     forced to introduce horizontal splits into neighboring cells.)
+ *
+ * It is of course possible that the subgrid is a different dimension
+ * and has different structure than the `targetCells`. The structure
+ * of the `targetCells` is always ignored, being replaced by the
+ * `subgrid`.
+ *
+ * If the `subgrid` has a vertical guide which exceeds the width of
+ * the `targetCells`, then the column shall be shifted to the left
+ * such that all remaining columns fit to the left of the rightmost
+ * edge of the `targetCells`.
+ *
+ * For example, if the shape of the `targetCells` is described by `A`,
+ * and the subgrid is defined by `B`, the new shape of the structure
+ * underneath the `targetCells` would be C.
+ *
+ * ```
+ *      A          B             C
+ *   +-----+ +-+------+-++    +-+-+++
+ *   |     | | |      | || => | | |||
+ *   |     | +-+------+-++    | | |||
+ *   +-----+ 0123456789012    +-+-+++
+ *                            0123456
+ * ```
+ *
+ * Note that the number of rows and columns in `B` is the same as `C`.
+ * This will always be true, unless the number of rows (resp. columns)
+ * exceeds the height (resp. width) of the `targetCells`, in which case
+ * this function should do nothing.
+ *
+ * The cells of `subgrid` are moved into `g`, sharing their `data`.
+ *
+ * @returns `true` if the subgrid was inserted, and `false` otherwise.
+ */
+export function insertSubgrid<A>(
+    g: Grid<A>,
+    targetCells: CellPath[],
+    subgrid: Grid<A>,
+): boolean {
+    if(targetCells.length === 0) return false;
+    if(targetCells.length > 1 && !canMergeCells(g, targetCells)) return false;
+
+    const byRow = collectCellsByRow(targetCells);
+    const coversRows = [...byRow.values()].every(cells => cellsCoverRow(g, cells));
+    if(subgrid.rows.length > 1 && !coversRows) return false;
+
+    const target = rect.unions(...targetCells.map(cell => rectOfCell(g, cell)));
+    const heights = _fitSizesForSubgrid(subgrid.rows.map(row => row.height), rect.height(target));
+    if(!heights) return false;
+
+    const rows: Row<A>[] = [];
+    for(const [i, row] of subgrid.rows.entries()) {
+        const widths = _fitSizesForSubgrid(row.cells.map(cell => cell.width), rect.width(target));
+        if(!widths) return false;
+        rows.push({
+            type: "Row",
+            height: heights[i],
+            cells: row.cells.map((cell, j) => ({ ...cell, width: widths[j] })),
+        });
+    }
+
+    const { rowNo, colNo } = cellUnderPoint(g, rect.upperLeft(target))!;
+    if(coversRows) {
+        g.rows.splice(rowNo, byRow.size, ...rows);
+    } else {
+        g.rows[rowNo].cells.splice(colNo, targetCells.length, ...rows[0].cells);
+    }
+    return true;
+}
+
+/**
+ * Copy the rectangle of the grid covered by `cells` into a new grid.
+ * The `cells` must describe a rectangle, as in `insertSubgrid`.
+ *
+ * @param [cloneData] How to clone the data of each cell.
+ * @returns The subgrid, or `undefined` if `cells` is not a rectangle.
+ */
+export function extractSubgrid<A>(
+    g: Grid<A>,
+    cells: CellPath[],
+    cloneData: ((a: A) => A) = (a) => a,
+): Grid<A> | undefined {
+    if(cells.length === 0) return undefined;
+    if(cells.length > 1 && !canMergeCells(g, cells)) return undefined;
+
+    const rows: Row<A>[] = [...collectCellsByRow(cells).entries()]
+        .toSorted(([a], [b]) => a - b)
+        .map(([rowNo, rowCells]) => ({
+            type: "Row",
+            height: g.rows[rowNo].height,
+            cells: rowCells
+                .map(({ colNo }) => colNo)
+                .toSorted((a, b) => a - b)
+                .map(colNo => lookupCell(g, { rowNo, colNo })),
+        }));
+
+    return clone({ type: "Grid", rows }, cloneData);
+}
+
+/**
+ * @see insertSubgrid
+ *
+ * Fit the sizes of the rows (resp. the cells of a row) of a subgrid
+ * into a target of the given `size`.
+ */
+function _fitSizesForSubgrid(sizes: number[], size: number): number[] | undefined {
+    const positions: number[] = [];
+    for(const s of sizes.slice(0, -1)) {
+        positions.push((positions.at(-1) ?? 0) + s);
+    }
+
+    const fitted = _findRowColPositionsForSubgrid(positions, size);
+    if(!fitted) return undefined;
+
+    return [...fitted, size].map((pos, i) => pos - (fitted[i - 1] ?? 0));
+}
+
+/**
+ * @see insertSubgrid
+ *
+ * Find the row (resp. column) positions of the rows (resp. a single
+ * row), given the positions of the corresponding rows (resp. columns)
+ * in the `subgrid`.
+ */
+export function _findRowColPositionsForSubgrid(positions: number[], size: number): number[] | undefined {
+    const n = positions.length;
+    if(n >= size) return undefined;
+    return positions.map((pos, i) => Math.min(pos, size - (n - i)));
+}

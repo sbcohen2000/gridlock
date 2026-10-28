@@ -5,6 +5,7 @@ import * as util from "../util.js";
 import { Cell, DisabledGuide, cloneCellData, cloneDisabledGuides, splitCellData, State, horizontallyCatCellLines, rowLines, ensureCellLinesMatchRowHeight, ensureCellDisabledGuidesInBounds, sortDisabledGuides } from "./state-iface.js";
 import { SnapshotInverse, Inverse, IdInverse } from "./inverse.js";
 import { applyPartition, findOptimalPartition } from "./find-optimal-partition.js";
+import * as serialize from "./serialize.js";
 
 /**
  * The initial width of newly created cells.
@@ -419,6 +420,41 @@ export class CellPrims implements State<CellPrims> {
 
         this.selection = [target];
         return new SnapshotInverse(snapshot, "replace cell content");
+    }
+
+    /**
+     * Copy the selected cells into the compact grid representation
+     * (see `serialize.printCompactGrid`). If the selection isn't a
+     * rectangle, then return `undefined`.
+     */
+    copySubgrid(): string | undefined {
+        const subgrid = grid.extractSubgrid(this.grid, this.selection, cloneCellData);
+        return subgrid && serialize.printCompactGrid({ grid: subgrid });
+    }
+
+    /**
+     * Replace the selected cells with a copy of `subgrid`, selecting
+     * the pasted cells. If the subgrid can't be inserted at the
+     * selection (see `grid.insertSubgrid`), then this method does
+     * nothing.
+     */
+    pasteSubgrid(subgrid: grid.Grid<Cell>): Inverse<CellPrims> {
+        if(this.selection.length === 0) return new IdInverse();
+
+        const snapshot = this.clone();
+        const target = rect.unions(...this.selection.map(cell => grid.rectOfCell(this.grid, cell)));
+
+        if(!grid.insertSubgrid(this.grid, this.selection, grid.clone(subgrid, cloneCellData))) {
+            return new IdInverse();
+        }
+
+        this.selection = grid.cellsUnderRect(this.grid, target);
+        for(const cell of this.selection) {
+            ensureCellLinesMatchRowHeight(this.grid, cell);
+            ensureCellDisabledGuidesInBounds(grid.lookupCell(this.grid, cell));
+        }
+
+        return new SnapshotInverse(snapshot, "paste");
     }
 
     /**

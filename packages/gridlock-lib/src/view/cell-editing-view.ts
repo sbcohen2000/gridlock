@@ -5,7 +5,7 @@ import * as point from "../point.js";
 import * as rect from "../rect.js";
 import { AbstractEditorView, PointerEventContext, PointerInCellEventContext } from "./abstract-editor-view.js";
 import { AbstractEditorViewWithDragging } from "./abstract-editor-view-with-dragging.js";
-import { CellPrims } from "../state/index.js";
+import { CellPrims, serialize } from "../state/index.js";
 import { DragState } from "./drag-state.js";
 import { RowDraggingView } from "./row-dragging-view.js";
 import { ViewsSelectedCells } from "./views-selected-cells-mixin.js";
@@ -63,39 +63,52 @@ class _CellEditingView extends AbstractEditorViewWithDragging {
             const rowsPluralSuffix = this._ceState.pluralRows ? "s" : "";
 
             const canMergeCells = this._ceState.canMergeSelectedCells();
+            const clipping = this.doCopy();
+            const origin = point.mkP2(ctx.event.clientX, ctx.event.clientY);
 
-            const descr: cmenu.ContextMenuDescription = {
-                origin: point.mkP2(ctx.event.clientX, ctx.event.clientY),
-                menu: [
-                    cmenu.button(`Delete row${rowsPluralSuffix}`, () => {
-                        this.commitInverse(this._ceState.deleteRows());
-                    }),
-                    cmenu.divider(),
-                    cmenu.button("Clear cell contents", () => {
-                        this.commitInverse(this._ceState.clearCellContents());
-                    }),
-                    cmenu.divider(),
-                    cmenu.button("Insert row above", () => {
-                        this.commitInverse(this._ceState.insertRowAbove());
-                    }, !canInsertRow),
-                    cmenu.button("Insert row below", () => {
-                        this.commitInverse(this._ceState.insertRowBelow());
-                    }, !canInsertRow),
-                    cmenu.divider(),
-                    cmenu.button(`Insert cell${cellsPluralSuffix} to the left`, () => {
-                        this.commitInverse(this._ceState.insertCellLeft());
-                    }, !canInsertCell),
-                    cmenu.button(`Insert cell${cellsPluralSuffix} to the right`, () => {
-                        this.commitInverse(this._ceState.insertCellRight());
-                    }, !canInsertCell),
-                    cmenu.divider(),
-                    cmenu.button("Merge cells", () => {
-                        this.commitInverse(this._ceState.mergeSelectedCells());
-                    }, !canMergeCells)
-                ]
-            };
+            const menu: cmenu.ContextMenuItem[] = [
+                cmenu.button(`Delete row${rowsPluralSuffix}`, () => {
+                    this.commitInverse(this._ceState.deleteRows());
+                }),
+                cmenu.divider(),
+                cmenu.button("Clear cell contents", () => {
+                    this.commitInverse(this._ceState.clearCellContents());
+                }),
+                cmenu.divider(),
+                cmenu.button("Insert row above", () => {
+                    this.commitInverse(this._ceState.insertRowAbove());
+                }, !canInsertRow),
+                cmenu.button("Insert row below", () => {
+                    this.commitInverse(this._ceState.insertRowBelow());
+                }, !canInsertRow),
+                cmenu.divider(),
+                cmenu.button(`Insert cell${cellsPluralSuffix} to the left`, () => {
+                    this.commitInverse(this._ceState.insertCellLeft());
+                }, !canInsertCell),
+                cmenu.button(`Insert cell${cellsPluralSuffix} to the right`, () => {
+                    this.commitInverse(this._ceState.insertCellRight());
+                }, !canInsertCell),
+                cmenu.divider(),
+                cmenu.button("Merge cells", () => {
+                    this.commitInverse(this._ceState.mergeSelectedCells());
+                }, !canMergeCells)
+            ];
 
-            this.notify(new cmenu.OpenContextMenu(this, descr));
+            navigator.clipboard.readText().catch(() => "").then(clipboard => {
+                this.notify(new cmenu.OpenContextMenu(this, {
+                    origin,
+                    menu: [
+                        cmenu.button("Copy", () => {
+                            if(clipping === undefined) return;
+                            navigator.clipboard.writeText(clipping)
+                                .catch(err => console.error('Failed to write clipboard:', err));
+                        }, clipping === undefined),
+                        cmenu.button("Paste", () => this.doPaste(clipboard), clipboard === ""),
+                        cmenu.divider(),
+                        ...menu,
+                    ],
+                }));
+            });
             return;
         }
 
@@ -182,6 +195,29 @@ class _CellEditingView extends AbstractEditorViewWithDragging {
             this.requestReplaceEditorView(new CellEditingView(this, this._ceState));
         }));
         this.requestReplaceEditorView(cellDragView);
+    }
+
+    doCopy(): string | undefined {
+        return this._ceState.copySubgrid();
+    }
+
+    /**
+     * Paste the `clipboard` contents over the selected cells. If they
+     * are a compact grid, paste them structurally. Otherwise, paste
+     * them as text at the upper-left corner of the selection.
+     */
+    doPaste(clipboard: string) {
+        if(clipboard === "" || this._ceState.selection.length === 0) return;
+
+        const subgrid = serialize.tryParseCompactGrid(clipboard);
+        if(subgrid) {
+            this.commitInverse(this._ceState.pasteSubgrid(subgrid));
+            return;
+        }
+
+        const target = rect.unions(...this._ceState.selection.map(cell =>
+            grid.rectOfCell(this._ceState.grid, cell)));
+        this.editTextAt(rect.upperLeft(target), newView => newView.doPaste(clipboard));
     }
 
     get ceState() {

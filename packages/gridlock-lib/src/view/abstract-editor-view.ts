@@ -154,16 +154,23 @@ export abstract class AbstractEditorView extends AbstractView {
             // If the user double-clicked on the cell, we want to
             // change to text-editing mode, setting the selection
             // to the point under the cursor.
-
-            const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
-            this.commitInverse(inv);
-
-            this.commitInverse(st.putPointOnGlobalPosition(ctx.flooredGridPt, true));
-            this.requestReplaceEditorView(this.createViewForState(st));
+            this.editTextAt(ctx.flooredGridPt);
             return true;
         } else {
             return false;
         }
+    }
+
+    /**
+     * Change to text-editing mode, with the point at the global grid
+     * position `pt`.
+     */
+    editTextAt(pt: point.P2, andThen?: ReplaceEditorViewCB) {
+        const [inv, st] = withSnapshotInverse(TextPrims.editText, "edit text")(this.state);
+        this.commitInverse(inv);
+
+        this.commitInverse(st.putPointOnGlobalPosition(pt, true));
+        this.requestReplaceEditorView(this.createViewForState(st), andThen);
     }
 
     /*************************************************************************/
@@ -666,7 +673,8 @@ export abstract class AbstractEditorView extends AbstractView {
             if(e.e.ctrlKey && e.e.key === "w") {
                 const clipping = this.doCopy();
                 if(clipping !== undefined) {
-                    console.error("TODO: Copy to clipboard");
+                    navigator.clipboard.writeText(clipping)
+                        .catch(err => console.error('Failed to write clipboard:', err));
                 }
                 return true;
             }

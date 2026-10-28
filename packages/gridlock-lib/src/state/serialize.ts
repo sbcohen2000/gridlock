@@ -227,6 +227,20 @@ export function parseCompactGrid(src: string): grid.Grid<Cell> {
     return compactGrid(srcText, _parseCompactGridSpec(gridSpec));
 }
 
+/**
+ * Parse `src` as a compact grid if it is exactly the output of
+ * `printCompactGrid`, and return `undefined` otherwise (for
+ * instance, if `src` is plain text).
+ */
+export function tryParseCompactGrid(src: string): grid.Grid<Cell> | undefined {
+    try {
+        const g = parseCompactGrid(src);
+        return printCompactGrid({ grid: g }) === src ? g : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
 /** Encode a Uint8Array as a base64 string. */
 function bytesToBase64(bytes: Uint8Array): string {
     let binary = "";
